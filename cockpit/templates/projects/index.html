@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block title %}Projekte{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Projekte</h1></div>
+</div>
+
+<section class="card">
+  {% if projects %}
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Projekt</th><th class="hide-mobile">Auftraggeber</th><th>Status</th><th class="num">Offen</th><th class="num">Überfällig</th><th class="hide-mobile">Nächstes Meeting</th><th class="hide-mobile">Ende</th></tr></thead>
+    <tbody>
+    {% for p in projects %}
+      <tr class="{{ 'done' if p.status == 'abgeschlossen' else '' }}">
+        <td><a href="{{ url_for('projects.detail', project_id=p.id) }}">{% if p.code %}{{ p.code }} · {% endif %}{{ p.name }}</a>{% if p.priority == 1 %} <span class="badge red">Hoch</span>{% endif %}</td>
+        <td class="hide-mobile">{{ p.client }}</td>
+        <td><span class="badge">{{ PROJECT_STATUS[p.status] }}</span></td>
+        <td class="num"><a href="{{ url_for('tasks.index', projekt=p.id) }}">{{ p.open_tasks }}</a></td>
+        <td class="num">{% if p.overdue %}<a class="overdue" href="{{ url_for('tasks.index', projekt=p.id, ansicht='ueberfaellig') }}">{{ p.overdue }}</a>{% else %}0{% endif %}</td>
+        <td class="hide-mobile nowrap">{{ p.next_meeting|zeitpunkt if p.next_meeting else '–' }}</td>
+        <td class="hide-mobile nowrap">{{ p.end_date|datum if p.end_date else '–' }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="empty">Noch keine Projekte. Lege unten das erste an.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <details{% if not projects %} open{% endif %}>
+    <summary>Neues Projekt</summary>
+    <form method="post" action="{{ url_for('projects.create') }}">
+      {{ csrf() }}
+      {% include "projects/_fields.html" %}
+      <button class="btn btn-primary" type="submit">Projekt anlegen</button>
+    </form>
+  </details>
+</section>
+{% endblock %}

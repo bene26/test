@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, task_table, meeting_list %}
+{% block title %}{{ firm.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="sub"><a href="{{ url_for('team.index') }}">← Team & Firmen</a></p>
+    <h1>{{ firm.name }}</h1>
+    <p class="sub">{{ CONTRACT_TYPES[firm.contract_type] }}{% if firm.contact_name %} · {{ firm.contact_name }}{% endif %}{% if firm.contact_email %} · <a href="mailto:{{ firm.contact_email }}">{{ firm.contact_email }}</a>{% endif %}{% if firm.contact_phone %} · {{ firm.contact_phone }}{% endif %}</p>
+  </div>
+  <div class="actions">
+    <a class="btn btn-primary" href="{{ url_for('meetings.index', typ='jourfixe', firma=firm.id) }}">Jour fixe anlegen</a>
+  </div>
+</div>
+
+<div class="columns">
+  <div>
+    <section class="card">
+      <h2>Offene Aufgaben <span class="count">{{ tasks|length }}</span></h2>
+      {{ task_table(tasks, request.path, empty='Keine offenen Aufgaben.') }}
+    </section>
+    <section class="card">
+      <h2>Meetings</h2>
+      {{ meeting_list(meetings, empty='Noch keine Meetings mit dieser Firma.') }}
+    </section>
+  </div>
+  <div>
+    {% if firm.contract_type == 'anue' %}
+    <section class="card">
+      <h2>Personen (Arbeitnehmerüberlassung)</h2>
+      {% if staff %}
+      <ul>{% for p in staff %}<li><a href="{{ url_for('team.person', person_id=p.id) }}">{{ p.name }}</a></li>{% endfor %}</ul>
+      {% else %}
+      <p class="empty">Noch keine Personen. Anlegen unter Team & Firmen, dabei diese Firma wählen.</p>
+      {% endif %}
+    </section>
+    {% endif %}
+    <section class="card">
+      <h2>Bearbeiten</h2>
+      <form method="post">
+        {{ csrf() }}
+        {% include "team/_firm_fields.html" %}
+        <button class="btn btn-primary" type="submit">Speichern</button>
+      </form>
+    </section>
+    <form method="post" action="{{ url_for('team.delete_firm', firm_id=firm.id) }}" data-confirm="{{ firm.name }} löschen?">
+      {{ csrf() }}<button class="btn btn-danger btn-small" type="submit">Firma löschen</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

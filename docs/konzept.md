@@ -2,6 +2,8 @@
 
 *Arbeitstitel. Stand: Entwurf v0.2, September 2026*
 
+**Umsetzung:** Stufe 1 ist als Version 0.1 umgesetzt, siehe [`README.md`](../README.md) und [`installation-ugreen.md`](installation-ugreen.md).
+
 **Änderungen gegenüber v0.1:** Aufgabenverteilung, externe Firmen, Meetings mit Protokollen und Erinnerungen sind dazugekommen. Die Kapazitätsplanung aus v0.1 steht jetzt in Abschnitt 6.
 
 ## 1. Ziel

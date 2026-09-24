@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block title %}Einrichtung{% endblock %}
+{% block content %}
+<div class="auth">
+  <div class="card">
+    <h1>Projekt-Cockpit einrichten</h1>
+    <p class="muted">Lege dein Konto an. Den Einrichtungscode findest du im Log des Containers oder in der Datei <code>EINRICHTUNGSCODE.txt</code> im Datenordner.</p>
+    <form method="post">
+      {{ csrf() }}
+      <div class="field">
+        <label for="code">Einrichtungscode</label>
+        <input id="code" type="text" name="code" required maxlength="40" autocomplete="off" autocapitalize="characters" placeholder="XXXXXX-XXXXXX-XXXXXX">
+      </div>
+      <div class="field">
+        <label for="username">Benutzername</label>
+        <input id="username" type="text" name="username" required maxlength="60" autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="password">Passwort (mindestens 12 Zeichen)</label>
+        <input id="password" type="password" name="password" required minlength="12" maxlength="200" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label for="password2">Passwort wiederholen</label>
+        <input id="password2" type="password" name="password2" required minlength="12" maxlength="200" autocomplete="new-password">
+      </div>
+      <button class="btn btn-primary" type="submit">Konto anlegen</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

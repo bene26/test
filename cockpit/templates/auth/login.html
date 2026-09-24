@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block title %}Anmelden{% endblock %}
+{% block content %}
+<div class="auth">
+  <div class="card">
+    <h1>Anmelden</h1>
+    <form method="post" action="{{ url_for('auth.login') }}">
+      {{ csrf() }}
+      <input type="hidden" name="next" value="{{ next_url }}">
+      <div class="field">
+        <label for="username">Benutzername</label>
+        <input id="username" type="text" name="username" required maxlength="60" autocomplete="username" autofocus>
+      </div>
+      <div class="field">
+        <label for="password">Passwort</label>
+        <input id="password" type="password" name="password" required maxlength="200" autocomplete="current-password">
+      </div>
+      <div class="field">
+        <label class="check"><input type="checkbox" name="remember"> Auf diesem Gerät angemeldet bleiben (30 Tage)</label>
+      </div>
+      <button class="btn btn-primary" type="submit">Anmelden</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Protokoll: {{ snapshot.title }}</title>
+  <link rel="icon" href="{{ url_for('static', filename='icon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v={{ app_version }}">
+  <script src="{{ url_for('static', filename='app.js') }}?v={{ app_version }}" defer></script>
+</head>
+<body>
+<div class="print-page">
+  <div class="print-toolbar">
+    <a class="btn" href="{{ url_for('meetings.detail', meeting_id=meeting.id) }}">← zurück</a>
+    <button class="btn btn-primary" type="button" data-print>Drucken / als PDF speichern</button>
+  </div>
+  {% if draft %}<div class="draft-banner">Entwurf: Das Protokoll ist noch nicht abgeschlossen.</div>{% endif %}
+  <div class="card protocol">
+    {% include "meetings/_protocol.html" %}
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block title %}Einstellungen{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Einstellungen</h1></div>
+</div>
+
+<div class="columns-even">
+  <section class="card">
+    <h2>Erinnerungen</h2>
+    <form method="post" action="{{ url_for('settings.save_reminders') }}">
+      {{ csrf() }}
+      <div class="field">
+        <label class="check"><input type="checkbox" name="reminders_enabled"{% if settings.reminders_enabled == '1' %} checked{% endif %}> Erinnerungen senden (nur Montag bis Freitag)</label>
+      </div>
+      <div class="form-grid">
+        <div class="field"><label for="s-digest">Morgen-Zusammenfassung</label><input id="s-digest" type="time" name="digest_time" value="{{ settings.digest_time }}" required></div>
+        <div class="field"><label for="s-plan">Wochenplanung (Mo–Mi, bis erledigt)</label><input id="s-plan" type="time" name="weekly_planning_time" value="{{ settings.weekly_planning_time }}" required></div>
+        <div class="field"><label for="s-review">Wochenabschluss (Fr)</label><input id="s-review" type="time" name="weekly_review_time" value="{{ settings.weekly_review_time }}" required></div>
+        <div class="field"><label for="s-prep">Meetings vorbereiten (Vortag)</label><input id="s-prep" type="time" name="prep_time" value="{{ settings.prep_time }}" required></div>
+        <div class="field"><label for="s-month">Monatsbericht (Monatsende)</label><input id="s-month" type="time" name="monthly_time" value="{{ settings.monthly_time }}" required></div>
+        <div class="field"><label for="s-stale">„Ohne Update“ nach … Tagen</label><input id="s-stale" type="number" name="stale_days" value="{{ settings.stale_days }}" min="1" max="60" required></div>
+      </div>
+      <p class="small muted">Die Nachrichten enthalten nur Zahlen und einen Link, keine Aufgabentitel oder Namen.{% if not scheduler %} <strong>Der Erinnerungs-Dienst ist abgeschaltet (COCKPIT_SCHEDULER).</strong>{% endif %}</p>
+      <button class="btn btn-primary" type="submit">Speichern</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Kanäle</h2>
+    <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><td>Push aufs Handy (ntfy)</td><td>{% if ntfy %}<span class="badge green">eingerichtet</span>{% else %}<span class="badge">nicht eingerichtet</span>{% endif %}</td></tr>
+        <tr><td>E-Mail-Versand (Protokolle)</td><td>{% if smtp %}<span class="badge green">eingerichtet</span>{% else %}<span class="badge">nicht eingerichtet</span>{% endif %}</td></tr>
+        <tr><td>Erinnerungen per E-Mail</td><td>{% if reminder_email %}<span class="badge green">eingerichtet</span>{% else %}<span class="badge">nicht eingerichtet</span>{% endif %}</td></tr>
+        <tr><td>Link in Erinnerungen</td><td class="small">{{ base_url or 'nicht gesetzt (COCKPIT_BASE_URL)' }}</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="small muted">Zugangsdaten stehen aus Sicherheitsgründen nicht in der Datenbank, sondern in der Datei <code>.env</code> neben der <code>docker-compose.yml</code>. Nach einer Änderung den Container neu starten.</p>
+    <form method="post" action="{{ url_for('settings.test_notification') }}">
+      {{ csrf() }}<button class="btn" type="submit">Testnachricht senden</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Passwort ändern</h2>
+    <form method="post" action="{{ url_for('settings.change_password') }}">
+      {{ csrf() }}
+      <div class="form-grid">
+        <div class="field wide"><label for="pw-current">Aktuelles Passwort</label><input id="pw-current" type="password" name="current" required maxlength="200" autocomplete="current-password"></div>
+        <div class="field"><label for="pw-new">Neues Passwort (mind. 12 Zeichen)</label><input id="pw-new" type="password" name="new" required minlength="12" maxlength="200" autocomplete="new-password"></div>
+        <div class="field"><label for="pw-new2">Wiederholen</label><input id="pw-new2" type="password" name="new2" required minlength="12" maxlength="200" autocomplete="new-password"></div>
+      </div>
+      <button class="btn" type="submit">Passwort ändern</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Sicherung</h2>
+    <p>Jede Nacht legt das Cockpit eine Kopie der Datenbank im Datenordner unter <code>backups/</code> ab und behält 14 Tage. Für den Fall, dass das NAS ausfällt, sollte der Datenordner zusätzlich mit der Backup-Funktion von UGOS verschlüsselt auf ein anderes Ziel gesichert werden.</p>
+    <p><a class="btn" href="{{ url_for('settings.download_backup') }}">Aktuelle Datenbank herunterladen</a></p>
+    {% if backups %}
+    <details>
+      <summary>Automatische Sicherungen ({{ backups|length }})</summary>
+      <ul class="small">{% for b in backups %}<li>{{ b.name }} ({{ (b.size / 1024)|round|int }} KB)</li>{% endfor %}</ul>
+    </details>
+    {% endif %}
+    <p class="small muted">Version {{ app_version }}</p>
+  </section>
+</div>
+{% endblock %}

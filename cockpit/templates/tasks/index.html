@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, quick_add, task_table, assignee_select, project_select %}
+{% block title %}Aufgaben{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Aufgaben</h1>
+    <p class="sub">{{ tasks|length }} {{ 'Aufgabe' if tasks|length == 1 else 'Aufgaben' }}{% if filters.preset %} · {{ presets[filters.preset] }}{% endif %}</p>
+  </div>
+  <div class="actions"><a class="btn" href="{{ export_url }}">Als CSV exportieren</a></div>
+</div>
+
+<section class="card quick-add">
+  {{ quick_add(assignees, projects, current_url, (filters.project|int) if filters.project and filters.project != 'none' else None, filters.assignee_raw) }}
+</section>
+
+<section class="card">
+  <nav class="presets" aria-label="Schnellfilter">
+    <a href="{{ url_for('tasks.index') }}"{% if not filters.preset and filters.status == 'open' and not filters.project and not filters.assignee_raw and not filters.query %} aria-current="true"{% endif %}>Alle offenen</a>
+    {% for key, label in presets.items() %}
+    <a href="{{ url_for('tasks.index', ansicht=key) }}"{% if filters.preset == key %} aria-current="true"{% endif %}>{{ label }}</a>
+    {% endfor %}
+  </nav>
+  <form method="get" class="filters">
+    {% if filters.preset %}<input type="hidden" name="ansicht" value="{{ filters.preset }}">{% endif %}
+    <div class="field">
+      <label for="f-project">Projekt</label>
+      <select id="f-project" name="projekt">
+        <option value="">Alle Projekte</option>
+        <option value="none"{% if filters.project == 'none' %} selected{% endif %}>Ohne Projekt</option>
+        {% for value, label in projects %}<option value="{{ value }}"{% if filters.project == value|string %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="f-assignee">Zuständig</label>
+      <select id="f-assignee" name="zustaendig">
+        <option value="">Alle</option>
+        <option value="none"{% if filters.assignee_raw == 'none' %} selected{% endif %}>Niemand</option>
+        {% for group, options in assignees %}
+        <optgroup label="{{ group }}">{% for value, label in options %}<option value="{{ value }}"{% if filters.assignee_raw == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</optgroup>
+        {% endfor %}
+      </select>
+    </div>
+    {% if not filters.preset %}
+    <div class="field">
+      <label for="f-status">Status</label>
+      <select id="f-status" name="status">
+        {% for value, label in status_filters.items() %}<option value="{{ value }}"{% if filters.status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    <div class="field">
+      <label for="f-q">Suche</label>
+      <input id="f-q" type="search" name="q" value="{{ filters.query }}" maxlength="100" placeholder="Titel oder Beschreibung">
+    </div>
+    <button class="btn" type="submit">Filtern</button>
+  </form>
+</section>
+
+<section class="card">
+  <form id="bulk" method="post" action="{{ url_for('tasks.bulk') }}" class="bulk-bar">
+    {{ csrf() }}
+    <input type="hidden" name="next" value="{{ current_url }}">
+    <label for="bulk-action" class="small">Ausgewählte:</label>
+    <select id="bulk-action" name="action">
+      {% for key, label in bulk_actions.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+    </select>
+    <span data-bulk-param="status">
+      <select name="bulk_status" aria-label="Neuer Status">
+        {% for value, label in TASK_STATUS.items() %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+      </select>
+    </span>
+    <span data-bulk-param="faellig"><input type="date" name="bulk_due" aria-label="Neues Fälligkeitsdatum"></span>
+    <span data-bulk-param="zuweisen">{{ assignee_select('bulk_assignee', assignees) }}</span>
+    <span data-bulk-param="projekt">{{ project_select('bulk_project', projects, empty='— Projekt wählen —') }}</span>
+    <button class="btn btn-small" type="submit">Anwenden</button>
+  </form>
+  {{ task_table(tasks, current_url, selectable=True, empty='Keine Aufgaben für diesen Filter.') }}
+</section>
+{% endblock %}

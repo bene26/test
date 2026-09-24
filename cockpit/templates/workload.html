@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Auslastung{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Auslastung</h1>
+    <p class="sub">Aus offenen Aufgaben berechnet: Der Aufwand jeder Aufgabe wird gleichmäßig auf die Wochen bis zur Fälligkeit verteilt, Überfälliges zählt in die aktuelle Woche.</p>
+  </div>
+  <nav class="presets" aria-label="Zeitraum">
+    {% for w in (4, 6, 8, 12) %}<a href="{{ url_for('workload.index', wochen=w) }}"{% if w == weeks %} aria-current="true"{% endif %}>{{ w }} Wochen</a>{% endfor %}
+  </nav>
+</div>
+
+<section class="card">
+  <h2>Personen</h2>
+  {% if data.people %}
+  <div class="table-wrap">
+  <table class="workload">
+    <thead>
+      <tr>
+        <th>Person</th>
+        <th class="num hide-mobile">Kapazität</th>
+        {% for w in data.weeks %}<th class="num" title="ab {{ w.start|datum }}">{{ w.label }}</th>{% endfor %}
+        <th class="num">Offen</th>
+        <th class="num hide-mobile">ohne Aufwand/Termin</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for p in data.people %}
+      <tr>
+        <td><a href="{{ url_for('team.person', person_id=p.id) }}">{{ p.name }}</a>{% if p.firm_name %}<div class="small muted">{{ p.firm_name }}</div>{% endif %}</td>
+        <td class="num hide-mobile nowrap">{{ p.capacity|stunden }}</td>
+        {% for c in p.cells %}
+        <td class="lvl lvl-{{ c.level }}" title="{{ c.hours|stunden }} von {{ p.capacity|stunden }}">{{ c.percent|round|int }} %<div class="small">{{ c.hours|stunden }}</div></td>
+        {% endfor %}
+        <td class="num"><a href="{{ url_for('tasks.index', zustaendig='p:%d' % p.id) }}">{{ p.open }}</a>{% if p.overdue %} <span class="overdue small">({{ p.overdue }} überfällig)</span>{% endif %}</td>
+        <td class="num hide-mobile">{{ p.unplanned }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <div class="legend">
+    <span class="lvl-frei">unter 70 %: freie Kapazität</span>
+    <span class="lvl-ok">70–95 %: gut ausgelastet</span>
+    <span class="lvl-voll">95–105 %: voll</span>
+    <span class="lvl-ueber">über 105 %: überbucht</span>
+  </div>
+  {% else %}
+  <p class="empty">Noch keine Personen angelegt.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Firmen <span class="count">verplante Stunden aus Aufgaben</span></h2>
+  {% if data.firms %}
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Firma</th>
+        {% for w in data.weeks %}<th class="num">{{ w.label }}</th>{% endfor %}
+        <th class="num">Aufwand offen</th>
+        <th class="num">Offen</th>
+        <th class="num hide-mobile">ohne Aufwand/Termin</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for f in data.firms %}
+      <tr>
+        <td><a href="{{ url_for('team.firm', firm_id=f.id) }}">{{ f.name }}</a><div class="small muted">{{ CONTRACT_TYPES[f.contract_type] }}</div></td>
+        {% for c in f.cells %}<td class="num nowrap">{{ c.hours|stunden if c.hours else '–' }}</td>{% endfor %}
+        <td class="num nowrap">{{ f.effort|stunden }}</td>
+        <td class="num"><a href="{{ url_for('tasks.index', zustaendig='f:%d' % f.id) }}">{{ f.open }}</a>{% if f.overdue %} <span class="overdue small">({{ f.overdue }} überfällig)</span>{% endif %}</td>
+        <td class="num hide-mobile">{{ f.unplanned }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="small muted">Bei externen Firmen wird nicht die Auslastung einzelner Personen geplant, sondern wie viel Arbeit bei der Firma liegt. Kontingente je Bestellung kommen in Stufe 2.</p>
+  {% else %}
+  <p class="empty">Noch keine Firmen angelegt.</p>
+  {% endif %}
+</section>
+{% endblock %}

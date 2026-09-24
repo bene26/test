@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block title %}Projekt-Cockpit{% endblock %} · Projekt-Cockpit</title>
+  <link rel="icon" href="{{ url_for('static', filename='icon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v={{ app_version }}">
+  <script src="{{ url_for('static', filename='app.js') }}?v={{ app_version }}" defer></script>
+</head>
+<body>
+{% if current_user %}
+<header class="topbar">
+  <a class="brand" href="{{ url_for('main.dashboard') }}">Projekt-Cockpit</a>
+  <nav aria-label="Hauptnavigation">
+    {% for endpoint, label in [
+        ('main.dashboard', 'Start'),
+        ('tasks.index', 'Aufgaben'),
+        ('meetings.index', 'Meetings'),
+        ('projects.index', 'Projekte'),
+        ('team.index', 'Team & Firmen'),
+        ('workload.index', 'Auslastung'),
+        ('settings.index', 'Einstellungen')] %}
+    <a href="{{ url_for(endpoint) }}"{% if request.blueprint == endpoint.split('.')[0] %} aria-current="page"{% endif %}>{{ label }}</a>
+    {% endfor %}
+  </nav>
+  <form class="logout" method="post" action="{{ url_for('auth.logout') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn-link" type="submit">Abmelden</button>
+  </form>
+</header>
+{% endif %}
+<main>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <ul class="flash" role="status">
+    {% for category, message in messages %}<li class="{{ category }}">{{ message }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, quick_add, task_table, meeting_list %}
+{% block title %}{{ project.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="sub"><a href="{{ url_for('projects.index') }}">← Projekte</a></p>
+    <h1>{% if project.code %}{{ project.code }} · {% endif %}{{ project.name }}</h1>
+    <p class="sub"><span class="badge">{{ PROJECT_STATUS[project.status] }}</span>
+      {% if project.client %} · {{ project.client }}{% endif %}
+      {% if project.start_date or project.end_date %} · {{ project.start_date|datum or '?' }} – {{ project.end_date|datum or '?' }}{% endif %}</p>
+  </div>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('meetings.index', projekt=project.id) }}">Meeting anlegen</a>
+    <a class="btn" href="{{ url_for('tasks.index', projekt=project.id, status='all') }}">Alle Aufgaben</a>
+  </div>
+</div>
+
+<section class="card quick-add">
+  {{ quick_add(assignees, projects, request.path, project.id) }}
+</section>
+
+<div class="columns">
+  <div>
+    <section class="card">
+      <h2>Offene Aufgaben <span class="count">{{ tasks|length }}</span></h2>
+      {{ task_table(tasks, request.path, show_project=False, empty='Keine offenen Aufgaben.') }}
+    </section>
+    <section class="card">
+      <h2>Entscheidungsregister <span class="count">{{ decisions|length }}</span></h2>
+      {% if decisions %}
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Nr.</th><th>Entscheidung</th><th>Meeting</th></tr></thead>
+        <tbody>
+        {% for d in decisions %}
+          <tr>
+            <td class="decision-code">E-{{ '%02d' % d.number }}</td>
+            <td class="pre">{{ d.text }}</td>
+            <td class="small nowrap"><a href="{{ url_for('meetings.detail', meeting_id=d.meeting_id) }}">{{ d.starts_at|datum }}</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% else %}
+      <p class="empty">Noch keine Entscheidungen. Sie werden in Meetings festgehalten.</p>
+      {% endif %}
+    </section>
+  </div>
+  <div>
+    <section class="card">
+      <h2>Meetings</h2>
+      {{ meeting_list(meetings, empty='Noch keine Meetings.') }}
+    </section>
+    <section class="card">
+      <details>
+        <summary>Projekt bearbeiten</summary>
+        <form method="post">
+          {{ csrf() }}
+          {% include "projects/_fields.html" %}
+          <button class="btn btn-primary" type="submit">Speichern</button>
+        </form>
+      </details>
+    </section>
+    <form method="post" action="{{ url_for('projects.delete', project_id=project.id) }}" data-confirm="Projekt „{{ project.name }}“ löschen?">
+      {{ csrf() }}<button class="btn btn-danger btn-small" type="submit">Projekt löschen</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

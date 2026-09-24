@@ -1,0 +1,33 @@
+<div class="form-grid">
+  <div class="field">
+    <label for="f-name">Name</label>
+    <input id="f-name" type="text" name="name" value="{{ firm.name if firm else '' }}" required maxlength="150">
+  </div>
+  <div class="field">
+    <label for="f-contract">Vertragsart</label>
+    <select id="f-contract" name="contract_type">
+      {% for value, label in CONTRACT_TYPES.items() %}<option value="{{ value }}"{% if firm and firm.contract_type == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="f-contact">Ansprechpartner</label>
+    <input id="f-contact" type="text" name="contact_name" value="{{ firm.contact_name if firm else '' }}" maxlength="120">
+  </div>
+  <div class="field">
+    <label for="f-email">E-Mail</label>
+    <input id="f-email" type="email" name="contact_email" value="{{ firm.contact_email if firm else '' }}" maxlength="254">
+  </div>
+  <div class="field">
+    <label for="f-phone">Telefon</label>
+    <input id="f-phone" type="text" name="contact_phone" value="{{ firm.contact_phone if firm else '' }}" maxlength="40">
+  </div>
+  {% if firm %}
+  <div class="field">
+    <label class="check"><input type="checkbox" name="active"{% if firm.active %} checked{% endif %}> aktiv</label>
+  </div>
+  {% endif %}
+  <div class="field wide">
+    <label for="f-notes">Notizen (z. B. Bestellnummer, Kontingent)</label>
+    <textarea id="f-notes" name="notes" rows="3" maxlength="5000">{{ firm.notes if firm else '' }}</textarea>
+  </div>
+</div>

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, meeting_list, project_select %}
+{% block title %}Meetings{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Meetings</h1>
+    <p class="sub">Agenda aus Vorlage, Protokoll live mitschreiben, Maßnahmen landen direkt in den Aufgaben.</p>
+  </div>
+</div>
+
+<div class="columns">
+  <div>
+    <section class="card section-anchor" id="fehlt">
+      <h2>Protokoll fehlt <span class="count">{{ missing|length }}</span></h2>
+      {{ meeting_list(missing, empty='Alle Protokolle sind abgeschlossen.') }}
+    </section>
+    <section class="card">
+      <h2>Nächste 30 Tage <span class="count">{{ upcoming|length }}</span></h2>
+      {{ meeting_list(upcoming, empty='Keine Meetings geplant.') }}
+      {% if later %}<p class="small muted">Dazu {{ later }} Meeting(s) später.</p>{% endif %}
+    </section>
+    <section class="card">
+      <h2>Abgeschlossene Protokolle</h2>
+      {{ meeting_list(closed, empty='Noch keine abgeschlossenen Protokolle.') }}
+    </section>
+  </div>
+  <div>
+    <section class="card">
+      <h2>Neues Meeting</h2>
+      <form method="post" action="{{ url_for('meetings.create') }}">
+        {{ csrf() }}
+        <div class="form-grid">
+          <div class="field wide">
+            <label for="m-type">Art</label>
+            <select id="m-type" name="type">
+              {% for key, t in MEETING_TYPES.items() %}<option value="{{ key }}"{% if key == preset_type %} selected{% endif %}>{{ t.label }} ({{ t.duration }} min)</option>{% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label for="m-firm">Firma</label>
+            <select id="m-firm" name="firm_id">
+              <option value="">— keine —</option>
+              {% for f in firms %}<option value="{{ f.id }}"{% if f.id == preset_firm %} selected{% endif %}>{{ f.name }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label for="m-project">Projekt</label>
+            {{ project_select('project_id', projects, preset_project, id='m-project', empty='— alle / keins —') }}
+          </div>
+          <div class="field">
+            <label for="m-date">Datum</label>
+            <input id="m-date" type="date" name="date" value="{{ today.isoformat() }}" required>
+          </div>
+          <div class="field">
+            <label for="m-time">Uhrzeit</label>
+            <input id="m-time" type="time" name="time" value="10:00" required>
+          </div>
+          <div class="field">
+            <label for="m-duration">Dauer (min)</label>
+            <input id="m-duration" type="number" name="duration_min" min="5" max="600" step="5" placeholder="aus Vorlage">
+          </div>
+          <div class="field">
+            <label for="m-location">Ort / Link</label>
+            <input id="m-location" type="text" name="location" maxlength="300">
+          </div>
+          <div class="field wide">
+            <label for="m-title">Titel (optional)</label>
+            <input id="m-title" type="text" name="title" maxlength="150" placeholder="wird sonst aus Art, Firma und Projekt gebildet">
+          </div>
+          <div class="field wide">
+            <label for="m-participants">Teilnehmende, eine Zeile pro Person</label>
+            <textarea id="m-participants" name="participants" rows="4" maxlength="3000" placeholder="Max Beispiel, Firma Alpha, max@example.com"></textarea>
+          </div>
+        </div>
+        <p class="small muted">E-Mail-Adressen in den Teilnehmenden werden für den Protokollversand genutzt. Bei einer Firma ohne Projekt zeigt der Jour fixe die Aufgaben der Firma über alle Projekte.</p>
+        <button class="btn btn-primary" type="submit">Meeting anlegen</button>
+      </form>
+    </section>
+  </div>
+</div>
+{% endblock %}

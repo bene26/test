@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, quick_add, task_table, meeting_list %}
+{% block title %}Start{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ now|datum_wt }} · KW {{ week }}</h1>
+    <p class="sub">{% if now.hour < 11 %}Guten Morgen.{% elif now.hour < 17 %}Guten Tag.{% else %}Guten Abend.{% endif %} Das steht heute an.</p>
+  </div>
+</div>
+
+<div class="stats">
+  <a class="stat{{ ' alert' if counts.overdue }}" href="{{ url_for('tasks.index', ansicht='ueberfaellig') }}">
+    <div class="value">{{ counts.overdue }}</div><div class="label">überfällig</div></a>
+  <a class="stat{{ ' warn' if counts.due_today }}" href="{{ url_for('tasks.index', ansicht='heute') }}">
+    <div class="value">{{ counts.due_today }}</div><div class="label">heute fällig</div></a>
+  <a class="stat{{ ' warn' if counts.stale }}" href="{{ url_for('tasks.index', ansicht='ohne_update') }}">
+    <div class="value">{{ counts.stale }}</div><div class="label">seit {{ stale_days }} Tagen ohne Update</div></a>
+  <a class="stat{{ ' alert' if counts.missing_protocols }}" href="{{ url_for('meetings.index') }}#fehlt">
+    <div class="value">{{ counts.missing_protocols }}</div><div class="label">Protokolle fehlen</div></a>
+  <a class="stat" href="{{ url_for('tasks.index', ansicht='ohne_termin') }}">
+    <div class="value">{{ counts.no_due }}</div><div class="label">ohne Termin</div></a>
+</div>
+
+{% for r in routines %}
+<section class="card routine">
+  <div class="head">
+    <h2>{{ r.label }} <span class="count">ca. {{ r.minutes }} Minuten</span></h2>
+    <form method="post" action="{{ url_for('main.routine_done', key=r.key, period=r.period) }}">
+      {{ csrf() }}<button class="btn btn-primary btn-small" type="submit">Erledigt</button>
+    </form>
+  </div>
+  <ul>{% for item in r.checklist %}<li>{{ item }}</li>{% endfor %}</ul>
+</section>
+{% endfor %}
+
+<section class="card quick-add">
+  {{ quick_add(assignees, projects, url_for('main.dashboard')) }}
+</section>
+
+<div class="columns">
+  <div>
+    <section class="card">
+      <h2>Überfällig <span class="count">{{ counts.overdue }}</span></h2>
+      {{ task_table(overdue, url_for('main.dashboard'), empty='Nichts überfällig.') }}
+      {% if counts.overdue > overdue|length %}<p class="small"><a href="{{ url_for('tasks.index', ansicht='ueberfaellig') }}">Alle {{ counts.overdue }} anzeigen</a></p>{% endif %}
+    </section>
+    <section class="card">
+      <h2>Fällig bis Sonntag, {{ week_end|datum }}</h2>
+      {{ task_table(due_week, url_for('main.dashboard'), empty='Diese Woche ist nichts mehr fällig.') }}
+    </section>
+  </div>
+  <div>
+    <section class="card">
+      <h2>Meetings heute</h2>
+      {{ meeting_list(meetings_today, empty='Heute keine Meetings.', show_protocol=False) }}
+      <h3 class="small muted">Nächster Arbeitstag: {{ next_day|datum_wt }}</h3>
+      {{ meeting_list(meetings_next, empty='Keine Meetings.', show_protocol=False) }}
+    </section>
+    <section class="card">
+      <h2>Protokoll fehlt <span class="count">{{ missing|length }}</span></h2>
+      {{ meeting_list(missing, empty='Alle Protokolle sind abgeschlossen.', show_protocol=False) }}
+    </section>
+    <section class="card">
+      <h2>Überbucht</h2>
+      {% if overbooked %}
+      <ul>
+        {% for o in overbooked %}<li><strong>{{ o.name }}</strong>: {{ o.percent|round|int }} % in {{ o.week }}</li>{% endfor %}
+      </ul>
+      <p class="small"><a href="{{ url_for('workload.index') }}">Zur Auslastung</a></p>
+      {% else %}
+      <p class="empty">In den nächsten zwei Wochen ist niemand überbucht.</p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

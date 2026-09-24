@@ -1,0 +1,156 @@
+{% macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endmacro %}
+
+{% macro assignee_select(name, groups, selected='', empty='— niemand —', id=None, form=None) %}
+<select name="{{ name }}"{% if id %} id="{{ id }}"{% endif %}{% if form %} form="{{ form }}"{% endif %}>
+  <option value="">{{ empty }}</option>
+  {% for group, options in groups %}
+  <optgroup label="{{ group }}">
+    {% for value, label in options %}
+    <option value="{{ value }}"{% if value == selected %} selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </optgroup>
+  {% endfor %}
+</select>
+{% endmacro %}
+
+{% macro project_select(name, projects, selected=None, empty='— kein Projekt —', id=None, form=None) %}
+<select name="{{ name }}"{% if id %} id="{{ id }}"{% endif %}{% if form %} form="{{ form }}"{% endif %}>
+  <option value="">{{ empty }}</option>
+  {% for value, label in projects %}
+  <option value="{{ value }}"{% if value == selected %} selected{% endif %}>{{ label }}</option>
+  {% endfor %}
+</select>
+{% endmacro %}
+
+{% macro due(task) -%}
+{%- if task.due_date -%}
+<span class="{{ 'overdue' if task.overdue else 'today-due' if task.due_today else '' }}">{{ task.due_date|datum_wt }}</span>
+{%- else -%}<span class="muted">—</span>{%- endif -%}
+{%- endmacro %}
+
+{% macro quick_add(assignees, projects, next_url, project_id=None, assignee='') %}
+<form method="post" action="{{ url_for('tasks.create') }}" class="inline-form">
+  {{ csrf() }}
+  <input type="hidden" name="next" value="{{ next_url }}">
+  <div class="field grow">
+    <label for="qa-title">Neue Aufgabe</label>
+    <input id="qa-title" type="text" name="title" required maxlength="200" placeholder="Was ist zu tun?">
+  </div>
+  <div class="field">
+    <label for="qa-project">Projekt</label>
+    {{ project_select('project_id', projects, project_id, id='qa-project') }}
+  </div>
+  <div class="field">
+    <label for="qa-assignee">Zuständig</label>
+    {{ assignee_select('assignee', assignees, assignee, id='qa-assignee') }}
+  </div>
+  <div class="field date">
+    <label for="qa-due">Fällig</label>
+    <input id="qa-due" type="date" name="due_date">
+  </div>
+  <div class="field narrow">
+    <label for="qa-effort">Aufwand (h)</label>
+    <input id="qa-effort" type="number" name="effort_hours" min="0" max="10000" step="0.5" inputmode="decimal">
+  </div>
+  <button class="btn btn-primary" type="submit">Anlegen</button>
+</form>
+{% endmacro %}
+
+{% macro task_table(tasks, next_url, show_project=True, show_assignee=True, selectable=False, empty='Keine Aufgaben.') %}
+{% if tasks %}
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr>
+      {% if selectable %}<th class="cell-select"><input type="checkbox" data-select-all="bulk" aria-label="Alle auswählen"></th>{% endif %}
+      <th>Nr.</th>
+      <th>Aufgabe</th>
+      {% if show_project %}<th class="hide-mobile">Projekt</th>{% endif %}
+      {% if show_assignee %}<th>Zuständig</th>{% endif %}
+      <th>Fällig</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for t in tasks %}
+    <tr class="{{ '' if t.is_open else 'done' }}">
+      {% if selectable %}<td class="cell-select"><input type="checkbox" name="ids" value="{{ t.id }}" form="bulk" aria-label="Aufgabe {{ t.id }} auswählen"></td>{% endif %}
+      <td class="muted nowrap">#{{ t.id }}</td>
+      <td>
+        <a href="{{ url_for('tasks.edit', task_id=t.id, next=next_url) }}">{{ t.title }}</a>
+        {% if t.priority == 1 %} <span class="badge red">Hoch</span>{% endif %}
+        {% if t.status == 'wartet' and t.waiting_for %}<div class="small muted">wartet auf: {{ t.waiting_for }}</div>{% endif %}
+      </td>
+      {% if show_project %}<td class="hide-mobile">{{ t.project_code or t.project_name or '' }}</td>{% endif %}
+      {% if show_assignee %}<td>{{ t.assignee or '—' }}</td>{% endif %}
+      <td class="nowrap">{{ due(t) }}</td>
+      <td>
+        <select class="status-select" name="status" form="st-{{ t.id }}" data-autosubmit aria-label="Status von #{{ t.id }}">
+          {% for value, label in TASK_STATUS.items() %}
+          <option value="{{ value }}"{% if value == t.status %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% for t in tasks %}
+<form id="st-{{ t.id }}" method="post" action="{{ url_for('tasks.set_status', task_id=t.id) }}" hidden>
+  {{ csrf() }}<input type="hidden" name="next" value="{{ next_url }}">
+  <noscript><button type="submit">Status speichern</button></noscript>
+</form>
+{% endfor %}
+{% else %}
+<p class="empty">{{ empty }}</p>
+{% endif %}
+{% endmacro %}
+
+{% macro meeting_list(meetings, empty='Keine Meetings.', show_protocol=True) %}
+{% if meetings %}
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Wann</th><th>Meeting</th><th class="hide-mobile">Projekt / Firma</th>{% if show_protocol %}<th>Protokoll</th>{% endif %}</tr></thead>
+  <tbody>
+  {% for m in meetings %}
+    <tr>
+      <td class="nowrap">{{ m.starts_at|zeitpunkt }}</td>
+      <td><a href="{{ url_for('meetings.detail', meeting_id=m.id) }}">{{ m.title }}</a></td>
+      <td class="hide-mobile">{{ [m.project_name, m.firm_name]|select|join(' · ') }}</td>
+      {% if show_protocol %}<td>{% if m.protocol_status == 'abgeschlossen' %}<span class="badge green">V{{ m.version }}</span>{% else %}<span class="badge">offen</span>{% endif %}</td>{% endif %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p class="empty">{{ empty }}</p>
+{% endif %}
+{% endmacro %}
+
+{% macro data_table(table) %}
+{% if table.rows %}
+<div class="table-wrap">
+<table>
+  <thead><tr>{% for c in table.columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+  <tbody>
+  {% for row in table.rows %}
+    {% set task_id = table.task_ids[loop.index0] if table.task_ids else None %}
+    <tr>
+    {% for cell in row %}
+      {% if loop.first and task_id %}
+      <td class="nowrap"><a href="{{ url_for('tasks.edit', task_id=task_id) }}">{{ cell }}</a></td>
+      {% else %}
+      <td>{{ cell }}</td>
+      {% endif %}
+    {% endfor %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p class="empty">{{ table.empty }}</p>
+{% endif %}
+{% endmacro %}

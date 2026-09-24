@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block title %}Team & Firmen{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Team & Firmen</h1>
+    <p class="sub">Eigene Leute werden einzeln geplant, externe Firmen über Aufträge an die Firma.</p>
+  </div>
+</div>
+
+<div class="note info">
+  <strong>Warum Firmen und Personen getrennt sind:</strong> Bei Werk- und Dienstverträgen gehen Aufgaben an die Firma, die sie intern verteilt. Wer externen Mitarbeitenden direkt Aufgaben gibt und ihre Zeit plant, riskiert eine verdeckte Arbeitnehmerüberlassung. Nur bei einem Vertrag über Arbeitnehmerüberlassung lassen sich Externe hier einzeln als Person anlegen.
+</div>
+
+<div class="columns-even">
+  <section class="card">
+    <h2>Personen <span class="count">{{ people|length }}</span></h2>
+    {% if people %}
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Name</th><th class="hide-mobile">Rolle</th><th class="num">Std./Woche</th><th class="num">Verfügbar</th><th class="num">Offen</th></tr></thead>
+      <tbody>
+      {% for p in people %}
+        <tr class="{{ '' if p.active else 'done' }}">
+          <td><a href="{{ url_for('team.person', person_id=p.id) }}">{{ p.name }}</a>{% if p.firm_name %}<div class="small muted">{{ p.firm_name }} (ANÜ)</div>{% endif %}{% if not p.active %} <span class="badge">inaktiv</span>{% endif %}</td>
+          <td class="hide-mobile">{{ p.role }}</td>
+          <td class="num">{{ p.weekly_hours|stunden }}</td>
+          <td class="num">{{ (p.availability * 100)|round|int }} %</td>
+          <td class="num"><a href="{{ url_for('tasks.index', zustaendig='p:%d' % p.id) }}">{{ p.open_tasks }}</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <p class="empty">Noch keine Personen.</p>
+    {% endif %}
+    <details{% if not people %} open{% endif %}>
+      <summary>Person anlegen</summary>
+      <form method="post" action="{{ url_for('team.create_person') }}">
+        {{ csrf() }}
+        {% include "team/_person_fields.html" %}
+        <button class="btn btn-primary" type="submit">Anlegen</button>
+      </form>
+    </details>
+  </section>
+
+  <section class="card">
+    <h2>Firmen <span class="count">{{ firms|length }}</span></h2>
+    {% if firms %}
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Firma</th><th>Vertrag</th><th class="hide-mobile">Ansprechpartner</th><th class="num">Offen</th></tr></thead>
+      <tbody>
+      {% for f in firms %}
+        <tr class="{{ '' if f.active else 'done' }}">
+          <td><a href="{{ url_for('team.firm', firm_id=f.id) }}">{{ f.name }}</a>{% if not f.active %} <span class="badge">inaktiv</span>{% endif %}</td>
+          <td class="small">{{ CONTRACT_TYPES[f.contract_type] }}</td>
+          <td class="hide-mobile">{{ f.contact_name }}</td>
+          <td class="num"><a href="{{ url_for('tasks.index', zustaendig='f:%d' % f.id) }}">{{ f.open_tasks }}</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <p class="empty">Noch keine Firmen.</p>
+    {% endif %}
+    <details{% if not firms %} open{% endif %}>
+      <summary>Firma anlegen</summary>
+      <form method="post" action="{{ url_for('team.create_firm') }}">
+        {{ csrf() }}
+        {% include "team/_firm_fields.html" %}
+        <button class="btn btn-primary" type="submit">Anlegen</button>
+      </form>
+    </details>
+  </section>
+</div>
+{% endblock %}
