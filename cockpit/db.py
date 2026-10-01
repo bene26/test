@@ -11,6 +11,8 @@ MIGRATIONS: list[str] = [
     # 2: per-user design (see themes.py). Empty means the default design.
     "ALTER TABLE users ADD COLUMN theme TEXT NOT NULL DEFAULT '';",
     resources.files("cockpit").joinpath("migration_3.sql").read_text(encoding="utf-8"),
+    # 4: appearance options per user as JSON (see themes.APPEARANCE).
+    "ALTER TABLE users ADD COLUMN appearance TEXT NOT NULL DEFAULT '';",
 ]
 
 

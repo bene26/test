@@ -13,14 +13,81 @@
     }
   });
 
-  // Design picker: preview the chosen design right away, saving stays a normal POST.
-  document.querySelectorAll('.theme-picker input[name="theme"]').forEach(function (radio) {
-    radio.addEventListener("change", function () {
-      if (!radio.checked) return;
-      document.documentElement.setAttribute("data-theme", radio.value);
-      var hint = document.querySelector("[data-theme-hint]");
-      if (hint) hint.hidden = false;
+  // Appearance settings: preview every option on the whole page right away,
+  // count the changes and offer "Verwerfen" / "Übernehmen". Saving stays a normal POST.
+  var lookForm = document.querySelector("[data-look-form]");
+  if (lookForm) {
+    var root = document.documentElement;
+    var ATTRS = { modus: "data-mode", akzent: "data-accent", schrift: "data-size", ecken: "data-shape", menue: "data-menu" };
+    var TONES = { violett: "dunkel", glas: "dunkel", bronze: "dunkel", hell: "hell", schlicht: "" };
+    var SIDEBAR = { violett: true, glas: true, hell: true };
+    var bar = lookForm.querySelector("[data-changes-bar]");
+    var countEl = lookForm.querySelector("[data-changes-count]");
+    var picked = function (name) {
+      var el = lookForm.querySelector('input[name="' + name + '"]:checked');
+      return el ? el.value : "";
+    };
+    var snapshot = function () {
+      var o = { theme: picked("theme") };
+      Object.keys(ATTRS).forEach(function (k) { o[k] = picked(k); });
+      return o;
+    };
+    var navState = function (theme) {
+      var m = document.cookie.match(/(?:^|; )pc_nav=(mini|voll)/);
+      return m ? m[1] : (theme === "hell" ? "mini" : "voll");
+    };
+    var initial = snapshot();
+    var apply = function () {
+      var cur = snapshot();
+      root.setAttribute("data-theme", cur.theme);
+      Object.keys(ATTRS).forEach(function (k) {
+        if (cur[k]) root.setAttribute(ATTRS[k], cur[k]); else root.removeAttribute(ATTRS[k]);
+      });
+      var tone = cur.modus || TONES[cur.theme];
+      if (tone) root.setAttribute("data-tone", tone); else root.removeAttribute("data-tone");
+      if (SIDEBAR[cur.theme]) root.setAttribute("data-nav", navState(cur.theme)); else root.removeAttribute("data-nav");
+      var demo = lookForm.querySelector("[data-menu-preview]");
+      if (demo) demo.setAttribute("data-menu", cur.menue);
+      var swatch = lookForm.querySelector("[data-design-swatch]");
+      if (swatch) swatch.setAttribute("data-theme", cur.theme);
+      var changes = Object.keys(cur).filter(function (k) { return cur[k] !== initial[k]; }).length;
+      if (bar) bar.hidden = changes === 0;
+      if (countEl) countEl.textContent = changes === 1 ? "1 Änderung" : changes + " Änderungen";
+    };
+    lookForm.addEventListener("change", apply);
+    var discard = lookForm.querySelector("[data-changes-discard]");
+    if (discard) discard.addEventListener("click", function () { lookForm.reset(); apply(); });
+  }
+
+  // Sidebar: collapse to an icon rail and remember it in a cookie for the server.
+  var syncNavToggle = function () {
+    var state = document.documentElement.getAttribute("data-nav");
+    document.querySelectorAll("[data-nav-toggle]").forEach(function (btn) {
+      btn.setAttribute("aria-expanded", state === "mini" ? "false" : "true");
     });
+  };
+  syncNavToggle();
+  document.addEventListener("click", function (event) {
+    var btn = event.target.closest ? event.target.closest("[data-nav-toggle]") : null;
+    if (!btn) return;
+    var root = document.documentElement;
+    var next = root.getAttribute("data-nav") === "mini" ? "voll" : "mini";
+    root.setAttribute("data-nav", next);
+    document.cookie = "pc_nav=" + next + "; path=/; max-age=31536000; SameSite=Lax" +
+      (location.protocol === "https:" ? "; Secure" : "");
+    syncNavToggle();
+  });
+
+  // Show or hide the password.
+  document.addEventListener("click", function (event) {
+    var btn = event.target.closest ? event.target.closest("[data-toggle-password]") : null;
+    if (!btn) return;
+    var input = document.getElementById(btn.getAttribute("aria-controls"));
+    if (!input) return;
+    var show = input.type === "password";
+    input.type = show ? "text" : "password";
+    btn.setAttribute("aria-pressed", show ? "true" : "false");
+    btn.setAttribute("aria-label", show ? "Passwort verbergen" : "Passwort anzeigen");
   });
 
   // Timeline form: show the fields that belong to a phase or a milestone.

@@ -46,7 +46,7 @@ Die App wird per Portweiterleitung ins Internet gestellt, das Passwort erraten o
 - Projektstunden (Tabelle `time_entries`) sind personenbezogen: nur Stunden je Person, Projekt und Tag, keine Kommentare, keine Abwesenheitsgründe. Sie dienen Plan/Ist je Projekt, nicht der Leistungs- oder Anwesenheitskontrolle. Mit Betriebsrat abstimmen (§ 87 Abs. 1 Nr. 6 BetrVG)
 - Leistungen externer Firmen mit Werk- oder Dienstvertrag werden nur je Bestellung erfasst, nie je Person (Arbeitnehmerüberlassungsgesetz)
 - Statusberichte per E-Mail gehen nur an Adressen, die beim Versand eingegeben werden (höchstens 20, geprüft)
-- Design-Cookie `pc_theme` enthält nur den Namen des gewählten Designs (für die Anmeldeseite), gleiche Cookie-Flags; unbekannte Werte werden ignoriert
+- Design-Cookies `pc_theme` und `pc_look` enthalten nur die gewählten Darstellungs-Optionen (für die Anmeldeseite), gleiche Cookie-Flags; `pc_nav` (Seitenleiste offen oder eingeklappt) setzt der Browser selbst. Der Server übernimmt aus allen dreien nur bekannte Werte aus einer festen Liste, alles andere wird ignoriert
 - Schriften liegen im Container (`cockpit/static/fonts`), die Seite lädt nichts von fremden Servern; die CSP erlaubt nur `'self'`
 - CSRF-Token auf jedem Formular und jeder POST-Anfrage
 - Eingaben werden je Formular gegen eine erlaubte Feldliste, Typen und Längen geprüft; unbekannte Felder werden abgelehnt

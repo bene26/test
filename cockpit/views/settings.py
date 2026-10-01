@@ -57,15 +57,25 @@ def save_reminders():
     return redirect(url_for("settings.index"))
 
 
+APPEARANCE_FIELDS = {
+    "theme": forms.Choice("Design", themes.THEMES, required=True),
+    **{key: forms.Choice(themes.LABELS[key], options)
+       for key, (_attr, options) in themes.APPEARANCE.items()},
+}
+
+
 @bp.route("/darstellung", methods=["POST"])
 def save_theme():
-    values = parse_or_flash({"theme": forms.Choice("Design", themes.THEMES, required=True)})
+    values = parse_or_flash(APPEARANCE_FIELDS)
     if values is not None:
+        look = themes.clean_look({k: values[k] or "" for k in themes.APPEARANCE})
         db = get_db()
-        db.execute("UPDATE users SET theme = ? WHERE id = ?", (values["theme"], g.user["id"]))
+        db.execute("UPDATE users SET theme = ?, appearance = ? WHERE id = ?",
+                   (values["theme"], themes.dump_look(look), g.user["id"]))
         db.commit()
         g.user["theme"] = values["theme"]
-        flash(f"Design „{themes.THEMES[values['theme']]['label']}“ gespeichert.", "ok")
+        g.user["appearance"] = themes.dump_look(look)
+        flash(f"Darstellung gespeichert: {themes.THEMES[values['theme']]['label']}.", "ok")
     return redirect(url_for("settings.index") + "#darstellung")
 
 

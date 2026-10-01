@@ -1,6 +1,6 @@
 {% from "_macros.html" import icon -%}
 <!doctype html>
-<html lang="de" data-theme="{{ theme }}">
+<html lang="de"{% for name, value in html_attrs %} {{ name }}="{{ value }}"{% endfor %}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,24 +11,43 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v={{ app_version }}">
   <script src="{{ url_for('static', filename='app.js') }}?v={{ app_version }}" defer></script>
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
 <div class="shell{% if current_user %} with-nav{% endif %}">
 {% if current_user %}
+{% set navc = nav_counts() %}
 <header class="sidenav">
-  <a class="brand" href="{{ url_for('main.dashboard') }}"><span class="logo" aria-hidden="true"></span><span class="nav-label">Projekt-Cockpit</span></a>
-  <nav aria-label="Hauptnavigation">
-    {% for endpoint, label, icon_name, blueprints in [
-        ('main.dashboard', 'Start', 'start', ('main',)),
-        ('tasks.index', 'Aufgaben', 'tasks', ('tasks',)),
-        ('meetings.index', 'Meetings', 'meetings', ('meetings',)),
-        ('projects.index', 'Projekte', 'projects', ('projects',)),
-        ('schedule.index', 'Zeitplan', 'schedule', ('schedule',)),
-        ('times.index', 'Zeiten', 'times', ('times',)),
-        ('reports.index', 'Berichte', 'reports', ('reports',)),
-        ('team.index', 'Team & Firmen', 'team', ('team', 'orders')),
-        ('workload.index', 'Auslastung', 'workload', ('workload',)),
-        ('settings.index', 'Einstellungen', 'settings', ('settings',))] %}
-    <a href="{{ url_for(endpoint) }}" title="{{ label }}"{% if request.blueprint in blueprints %} aria-current="page"{% endif %}>{{ icon(icon_name) }}<span class="nav-label">{{ label }}</span></a>
+  <div class="nav-top">
+    <a class="brand" href="{{ url_for('main.dashboard') }}"><span class="logo" aria-hidden="true"></span><span class="nav-label">Projekt-Cockpit</span></a>
+    <button class="nav-toggle" type="button" data-nav-toggle aria-controls="hauptmenue" title="Seitenleiste ein- oder ausklappen">{{ icon('chevron') }}<span class="sr-only">Seitenleiste ein- oder ausklappen</span></button>
+  </div>
+  <a class="nav-profile" href="{{ url_for('settings.index') }}" title="Einstellungen">
+    <span class="avatar" aria-hidden="true">{{ current_user.username[:2]|upper }}</span>
+    <span class="nav-label"><strong>{{ current_user.username }}</strong><small>Projektleitung</small></span>
+  </a>
+  <form class="nav-search" role="search" method="get" action="{{ url_for('tasks.index') }}">
+    <label class="sr-only" for="nav-q">Aufgaben durchsuchen</label>
+    {{ icon('search') }}
+    <input id="nav-q" type="search" name="q" placeholder="Aufgaben suchen …" maxlength="100" value="{{ request.args.get('q', '') if request.blueprint == 'tasks' else '' }}">
+  </form>
+  <nav id="hauptmenue" aria-label="Hauptnavigation">
+    {% for section, items in [
+        ('Menü', [
+          ('main.dashboard', 'Start', 'start', ('main',), None, ''),
+          ('tasks.index', 'Aufgaben', 'tasks', ('tasks',), 'tasks', 'überfällig'),
+          ('meetings.index', 'Meetings', 'meetings', ('meetings',), 'meetings', 'Protokolle fehlen')]),
+        ('Planung', [
+          ('projects.index', 'Projekte', 'projects', ('projects',), None, ''),
+          ('schedule.index', 'Zeitplan', 'schedule', ('schedule',), 'schedule', 'Konflikte'),
+          ('times.index', 'Zeiten', 'times', ('times',), None, ''),
+          ('workload.index', 'Auslastung', 'workload', ('workload',), None, '')]),
+        ('Allgemein', [
+          ('reports.index', 'Berichte', 'reports', ('reports',), None, ''),
+          ('team.index', 'Team & Firmen', 'team', ('team', 'orders'), 'team', 'Kontingent-Warnungen'),
+          ('settings.index', 'Einstellungen', 'settings', ('settings',), None, '')])] %}
+    <span class="nav-section" aria-hidden="true">{{ section }}</span>
+    {% for endpoint, label, icon_name, blueprints, badge, badge_label in items %}
+    <a href="{{ url_for(endpoint) }}" title="{{ label }}"{% if request.blueprint in blueprints %} aria-current="page"{% endif %}>{{ icon(icon_name) }}<span class="nav-label">{{ label }}</span>{% if badge and navc[badge] %}<span class="nav-badge"><span class="sr-only">: </span>{{ navc[badge] }}<span class="sr-only"> {{ badge_label }}</span></span>{% endif %}</a>
+    {% endfor %}
     {% endfor %}
   </nav>
   <form class="logout" method="post" action="{{ url_for('auth.logout') }}">

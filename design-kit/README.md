@@ -11,7 +11,8 @@ Mit diesem Paket bekommt jede Webseite die fünf Designs des Projekt-Cockpits: *
 | `fonts/` | Schriften als WOFF2 mit Lizenz (SIL Open Font License) |
 | `theme-umschalter.js` | Design wechseln und im Browser merken (optional) |
 | `einbauen.py` | baut das Design automatisch in alle HTML-Seiten eines Ordners ein |
-| `vorlage.html` | leere Seite zum Kopieren für neue Seiten |
+| `vorlage.html` | leere Seite mit Seitenleiste zum Kopieren für neue Seiten |
+| `anmelden.html` | Anmeldeseite im Stil „Login form V7“ mit Aufklapp-Animation |
 | `beispiel.html` | Beispielseite mit allen Bausteinen, einfach im Browser öffnen |
 
 ## Bestehende HTML-Seiten umstellen
@@ -38,6 +39,11 @@ Optionen:
 | Option | Wirkung |
 |---|---|
 | `--design hell` | Design wählen: `violett`, `glas` (Standard), `bronze`, `hell`, `schlicht` |
+| `--modus hell` | helle oder dunkle Variante des Designs: `hell`, `dunkel` |
+| `--akzent blau` | Akzentfarbe: `violett`, `blau`, `pink`, `gruen`, `orange`, `gelb`, `rot` |
+| `--schrift gross` | Schriftgröße: `klein`, `gross` |
+| `--ecken rund` | Ecken: `rund`, `weich`, `kantig` |
+| `--menue kapsel` | Menü-Stil, siehe Tabelle unten |
 | `--grundstil` | alte Seiten ohne neue Klassen gestalten (siehe unten), fast immer sinnvoll |
 | `--umschalter` | Besucher können das Design selbst umschalten |
 | `--zuruecksetzen --anwenden` | alle Seiten wieder in den Originalzustand |
@@ -81,6 +87,46 @@ Hat eine Seite ein eigenes Stylesheet (z. B. `style.css`), bleibt es eingebunden
 
 Das fertige ZIP entsteht mit `python3 tools/build_design_kit.py` (liegt danach in `dist/design-kit.zip`).
 
+## Aussehen einstellen
+
+Alles wird über Attribute am `<html>`-Element gesteuert, genau wie unter *Einstellungen → Darstellung* im Projekt-Cockpit:
+
+| Attribut | Werte | Wirkung |
+|---|---|---|
+| `data-theme` | `violett`, `glas`, `bronze`, `hell`, `schlicht` | das Design |
+| `data-mode` | `hell`, `dunkel` | helle oder dunkle Variante (weglassen = wie im Design) |
+| `data-tone` | `hell`, `dunkel` | sagt den Akzentfarben, ob der Hintergrund hell oder dunkel ist; setzt `theme-umschalter.js` selbst, ohne Skript von Hand passend zum Design |
+| `data-accent` | `violett`, `blau`, `pink`, `gruen`, `orange`, `gelb`, `rot` | Akzentfarbe für Knöpfe, Links, Menü |
+| `data-size` | `klein`, `gross` | Schriftgröße |
+| `data-shape` | `rund`, `weich`, `kantig` | Ecken (Bronze bleibt abgeschrägt) |
+| `data-menu` | siehe nächste Tabelle | Stil des aktuellen Menüpunkts |
+| `data-nav` | `voll`, `mini` | Seitenleiste offen oder als Symbolleiste (nur bei `violett`, `glas`, `hell`) |
+
+Menü-Stile (`data-menu`), nach den Vorlagen „10 Next-Gen Navigation Designs“:
+
+| Wert | Stil |
+|---|---|
+| `fluessig` | Liquid Floating Bar: flüssige Pille in Akzentfarbe |
+| `magnet` | Magnetic Dock: Einträge wachsen unter der Maus, der aktuelle als Kachel |
+| `kapsel` | Glass Capsule Dock: Glas-Kapsel, aktueller Eintrag als runder Knopf |
+| `segment` | Segmented Dynamic Bar |
+| `orbit` | Orbit Navigation: Umlaufbahn um den aktuellen Eintrag |
+| `welle` | Wave Indicator: laufende Welle darunter |
+| `neon` | Cyber Neon Dock: dunkle Leiste, leuchtender Eintrag |
+| `blob` | Morphing Blob: weicher Farbklecks, der seine Form ändert |
+| `karten` | Layered Cards: aktueller Eintrag als Karte auf einem Stapel |
+| `luxus` | Minimal Luxury: warmes Leuchten und ein Punkt |
+
+Auf dem Handy wird das Menü der Seitenleiste automatisch zu einem Dock am unteren Rand, im gewählten Stil.
+
+### Seitenleiste mit Profil, Suche und Zählern
+
+`vorlage.html` und `beispiel.html` enthalten die komplette Seitenleiste nach dem Vorbild „SideBar UI“: Profil, Suche, Abschnitte (`span.nav-section`), Zähler (`span.nav-badge`) und den Knopf zum Einklappen (`button[data-nav-toggle]`). Den Zustand merkt sich `theme-umschalter.js` im Browser. Profil, Suche und Zähler dürfen wegbleiben.
+
+### Anmeldeseite
+
+`anmelden.html` zeigt die Anmeldung im Stil „Login form V7“: abgeschrägte Glaskarte, die beim Öffnen aus dem Logo aufklappt, Symbole in den Feldern und ein Auge zum Anzeigen des Passworts. Das Formular braucht auf deiner Webseite ein eigenes Ziel (`action`), etwa ein Login-Skript beim Hoster.
+
 ## Grundsätzlich: so funktioniert das Design
 
 1. Den Ordner auf den Webserver kopieren, z. B. nach `/design/`. `cockpit-design.css` und `fonts/` müssen nebeneinander liegen.
@@ -100,7 +146,7 @@ Das fertige ZIP entsteht mit `python3 tools/build_design_kit.py` (liegt danach i
 
 ### Design umschalten lassen
 
-Mit `theme-umschalter.js` reicht eine Auswahlliste oder ein Knopf:
+Mit `theme-umschalter.js` reicht eine Auswahlliste oder ein Knopf. Für die weiteren Einstellungen gibt es `data-look`, zum Beispiel `<select data-look="akzent">` oder `<button type="button" data-look="menue" data-value="neon">`; Beispiele stehen in `beispiel.html`. Ein einfacher Design-Wechsel geht so:
 
 ```html
 <select data-theme-choice>
@@ -113,7 +159,7 @@ Mit `theme-umschalter.js` reicht eine Auswahlliste oder ein Knopf:
 <button type="button" data-theme-choice="hell">Hell</button>
 ```
 
-Die Wahl wird im Browser gespeichert. Aus eigenem Code: `cockpitDesign.set("bronze")`.
+Die Wahl wird im Browser gespeichert. Aus eigenem Code: `cockpitDesign.set("bronze")` oder `cockpitDesign.set({ theme: "hell", akzent: "blau", menue: "kapsel" })`.
 
 ### WordPress
 

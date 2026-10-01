@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import csrf %}
+{% from "_macros.html" import csrf, icon %}
 {% block title %}Einstellungen{% endblock %}
 {% block content %}
 <div class="page-head">
@@ -8,33 +8,101 @@
 
 <section class="card" id="darstellung" aria-labelledby="darstellung-titel">
   <h2 id="darstellung-titel">Darstellung</h2>
-  <form method="post" action="{{ url_for('settings.save_theme') }}">
+  <form method="post" action="{{ url_for('settings.save_theme') }}" data-look-form>
     {{ csrf() }}
-    <fieldset class="theme-picker">
-      <legend class="sr-only">Design wählen</legend>
-      {% for key, t in THEMES.items() %}
-      <label class="theme-option">
-        <span class="theme-preview" data-theme="{{ key }}" aria-hidden="true">
-          <span class="tp-nav"><span></span><span></span><span></span></span>
-          <span class="tp-main">
-            <span class="tp-title">Aa 12</span>
-            <span class="tp-cards"><span></span><span></span><span></span></span>
-            <span class="tp-panel"><span class="tp-btn"></span></span>
-          </span>
-        </span>
-        <span class="theme-text">
-          <input type="radio" name="theme" value="{{ key }}"{% if key == theme %} checked{% endif %}>
-          <span class="theme-name">{{ t.label }}{% if key == theme %} <span class="badge green">aktiv</span>{% endif %}</span>
-          <span class="theme-desc">{{ t.description }}</span>
-        </span>
-      </label>
-      {% endfor %}
-    </fieldset>
-    <div class="actions">
-      <button class="btn btn-primary" type="submit">Design übernehmen</button>
-      <span class="small muted" data-theme-hint hidden>Vorschau: Zum Behalten auf „Design übernehmen“ klicken.</span>
+    <div class="look-grid">
+      <div>
+        <fieldset class="look-group">
+          <legend>Design</legend>
+          <div class="theme-picker">
+          {% for key, t in THEMES.items() %}
+          <label class="theme-option">
+            <span class="theme-preview" data-theme="{{ key }}" aria-hidden="true">
+              <span class="tp-nav"><span></span><span></span><span></span></span>
+              <span class="tp-main">
+                <span class="tp-title">Aa 12</span>
+                <span class="tp-cards"><span></span><span></span><span></span></span>
+                <span class="tp-panel"><span class="tp-btn"></span></span>
+              </span>
+            </span>
+            <span class="theme-text">
+              <input type="radio" name="theme" value="{{ key }}"{% if key == theme %} checked{% endif %}>
+              <span class="theme-name">{{ t.label }}</span>
+              <span class="theme-desc">{{ t.description }}</span>
+            </span>
+          </label>
+          {% endfor %}
+          </div>
+        </fieldset>
+
+        <fieldset class="look-group">
+          <legend>Hell oder dunkel</legend>
+          <div class="seg">
+            {% for value, label in APPEARANCE.modus[1].items() %}<label><input type="radio" name="modus" value="{{ value }}"{% if look.modus == value %} checked{% endif %}>{{ label }}</label>{% endfor %}
+          </div>
+        </fieldset>
+
+        <fieldset class="look-group">
+          <legend>Akzentfarbe</legend>
+          <div class="swatches">
+            {% for value, label in APPEARANCE.akzent[1].items() %}
+            <label class="swatch"><input type="radio" name="akzent" value="{{ value }}"{% if look.akzent == value %} checked{% endif %}><span class="sw-dot sw-{{ value or 'design' }}"{% if not value %} data-theme="{{ theme }}" data-design-swatch{% endif %}></span>{{ label if value else 'Design' }}</label>
+            {% endfor %}
+          </div>
+        </fieldset>
+
+        <fieldset class="look-group">
+          <legend>Schriftgröße</legend>
+          <div class="seg">
+            {% for value, label in APPEARANCE.schrift[1].items() %}<label><input type="radio" name="schrift" value="{{ value }}"{% if look.schrift == value %} checked{% endif %}><span class="aa-{{ value or 'normal' }}" aria-hidden="true">Aa</span>{{ label }}</label>{% endfor %}
+          </div>
+        </fieldset>
+
+        <fieldset class="look-group">
+          <legend>Ecken</legend>
+          <div class="seg">
+            {% for value, label in APPEARANCE.ecken[1].items() %}<label><input type="radio" name="ecken" value="{{ value }}"{% if look.ecken == value %} checked{% endif %}><span class="shape-mark shape-{{ value or 'design' }}" aria-hidden="true"></span>{{ label }}</label>{% endfor %}
+          </div>
+          <p class="small muted">Beim Design Bronze bleiben die Ecken immer abgeschrägt.</p>
+        </fieldset>
+
+        <fieldset class="look-group">
+          <legend>Menü-Stil</legend>
+          <div class="menu-picker">
+            {% for value, label in APPEARANCE.menue[1].items() %}
+            <label class="menu-option">
+              <input class="vh" type="radio" name="menue" value="{{ value }}"{% if look.menue == value %} checked{% endif %}>
+              <span class="menu-demo" data-menu="{{ value }}" aria-hidden="true"><a>{{ icon('start') }}Start</a><a aria-current="page">{{ icon('tasks') }}To-dos</a><a>{{ icon('meetings') }}Termine</a><a>{{ icon('schedule') }}Plan</a></span>
+              <strong>{{ label }}</strong>
+            </label>
+            {% endfor %}
+          </div>
+        </fieldset>
+      </div>
+
+      <aside class="look-preview" aria-label="Vorschau">
+        <span class="look-title">Vorschau</span>
+        <div class="stats">
+          <div class="stat alert"><div class="value"><span class="digit">5</span></div><div class="label">überfällig</div></div>
+          <div class="stat"><div class="value"><span class="digit">8</span><span class="digit">7</span></div><div class="label">Prozent</div></div>
+        </div>
+        <div class="pv-card">
+          <h3>Jour fixe Firma Alpha</h3>
+          <p>Heute 10:00 · Teams · 2 offene Maßnahmen</p>
+          <div class="pv-row"><span class="badge offen">Offen</span><span class="badge green">im Plan</span><a href="#darstellung">Agenda</a></div>
+          <progress class="bar bar-ok" max="100" value="62">62 %</progress>
+        </div>
+        <div class="pv-row"><span class="btn btn-primary">Speichern</span><span class="btn">Abbrechen</span></div>
+        <span class="menu-demo" data-menu="{{ look.menue }}" data-menu-preview aria-hidden="true"><a>{{ icon('start') }}Start</a><a aria-current="page">{{ icon('tasks') }}Aufgaben</a><a>{{ icon('meetings') }}Meetings</a><a>{{ icon('schedule') }}Zeitplan</a><a>{{ icon('reports') }}Berichte</a></span>
+      </aside>
     </div>
-    <p class="small muted">Das Design gilt für dein Konto auf allen Geräten. Die Anmeldeseite merkt sich das zuletzt gewählte Design. Ausdrucke und PDFs bleiben immer schwarz auf weiß.</p>
+
+    <div class="changes-bar" data-changes-bar hidden>
+      <span><span class="count-text" data-changes-count>Keine Änderungen</span> <span class="small muted">Die Vorschau gilt schon für die ganze Seite.</span></span>
+      <span class="actions"><button class="btn" type="button" data-changes-discard>Verwerfen</button><button class="btn btn-primary" type="submit">Übernehmen</button></span>
+    </div>
+    <noscript><p><button class="btn btn-primary" type="submit">Darstellung speichern</button></p></noscript>
+    <p class="small muted">Gilt für dein Konto auf allen Geräten; die Anmeldeseite merkt sich die letzte Wahl. Die Seitenleiste klappst du mit dem Pfeil oben in der Leiste ein und aus. Ausdrucke bleiben schwarz auf weiß.</p>
   </form>
 </section>
 

@@ -58,10 +58,12 @@ def test_apply_update_and_restore(tmp_path):
     assert (root / "design" / "fonts" / "geist.woff2").exists()
 
     # A second run with other options replaces the block instead of adding one.
-    einbauen.main([str(root), "--design", "bronze", "--anwenden"])
+    einbauen.main([str(root), "--design", "bronze", "--akzent", "gelb", "--menue", "neon",
+                   "--anwenden"])
     index = (root / "index.html").read_text(encoding="utf-8")
     assert index.count("<!-- Cockpit-Design -->") == 1
-    assert 'data-theme="bronze"' in index and "hell" not in index
+    assert 'data-theme="bronze" data-accent="gelb" data-menu="neon" data-tone="dunkel"' in index
+    assert "hell" not in index
     assert "cockpit-basis.css" not in index and 'class="seite"' in index
 
     einbauen.main([str(root), "--zuruecksetzen", "--anwenden"])
@@ -75,7 +77,8 @@ def test_package_contains_everything(tmp_path):
     target = build.build(tmp_path / "kit.zip")
     names = zipfile.ZipFile(target).namelist()
     for name in ("cockpit-design.css", "cockpit-basis.css", "einbauen.py", "vorlage.html",
-                 "beispiel.html", "theme-umschalter.js", "README.md", "fonts/sora.woff2"):
+                 "beispiel.html", "anmelden.html", "theme-umschalter.js", "README.md",
+                 "fonts/sora.woff2"):
         assert f"design-kit/{name}" in names
     html = zipfile.ZipFile(target).read("design-kit/vorlage.html").decode()
     assert 'href="cockpit-design.css"' in html

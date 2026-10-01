@@ -2,25 +2,52 @@
 <!-- Vorlage für eine neue Seite im Cockpit-Design.
      1. Datei kopieren und umbenennen.
      2. Titel, Menü und Inhalt anpassen (Stellen mit "HIER").
-     3. Design wählen: data-theme = violett, glas, bronze, hell oder schlicht. -->
-<html lang="de" data-theme="glas">
+     3. Aussehen am <html> festlegen:
+        data-theme = violett | glas | bronze | hell | schlicht
+        data-mode  = hell | dunkel                    (weglassen = wie im Design)
+        data-accent= violett | blau | pink | gruen | orange | gelb | rot
+        data-size  = klein | gross                    data-shape = rund | weich | kantig
+        data-menu  = fluessig | magnet | kapsel | segment | orbit | welle | neon | blob | karten | luxus
+        data-nav   = voll | mini   (nur bei violett, glas, hell: Seitenleiste offen oder eingeklappt)
+        Ohne theme-umschalter.js zusätzlich data-tone="hell" oder "dunkel" passend zum Design setzen. -->
+<html lang="de" data-theme="glas" data-tone="dunkel" data-nav="voll">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Seitentitel · Meine Webseite</title><!-- HIER: Titel im Browser-Tab -->
   <link rel="stylesheet" href="../cockpit/static/app.css">
-  <script src="theme-umschalter.js" defer></script><!-- weglassen, wenn nicht umschaltbar -->
+  <script src="theme-umschalter.js" defer></script>
 </head>
 <body>
 <div class="shell with-nav">
+  <!-- HIER: Menü. Die aktuelle Seite bekommt aria-current="page". Zähler (nav-badge) und Profil sind optional. -->
   <header class="sidenav">
-    <a class="brand" href="index.html"><span class="logo" aria-hidden="true"></span><span class="nav-label">Meine Webseite</span></a>
-    <!-- HIER: Menü. Die aktuelle Seite bekommt aria-current="page". Das Symbol (svg) kann wegbleiben. -->
-    <nav aria-label="Hauptnavigation">
-      <a href="index.html" aria-current="page" title="Start"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z"/></svg><span class="nav-label">Start</span></a>
-      <a href="leistungen.html" title="Leistungen"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg><span class="nav-label">Leistungen</span></a>
-      <a href="kontakt.html" title="Kontakt"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg><span class="nav-label">Kontakt</span></a>
+    <div class="nav-top">
+      <a class="brand" href="index.html"><span class="logo" aria-hidden="true"></span><span class="nav-label">Meine Webseite</span></a>
+      <button class="nav-toggle" type="button" data-nav-toggle aria-controls="hauptmenue" title="Seitenleiste ein- oder ausklappen"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg><span class="sr-only">Seitenleiste ein- oder ausklappen</span></button>
+    </div>
+    <a class="nav-profile" href="einstellungen.html" title="Profil">
+      <span class="avatar" aria-hidden="true">MM</span>
+      <span class="nav-label"><strong>Max Muster</strong><small>Projektleitung</small></span>
+    </a>
+    <form class="nav-search" role="search" action="suche.html" method="get">
+      <label class="sr-only" for="nav-q">Suchen</label>
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-4.35-4.35"/></svg>
+      <input id="nav-q" type="search" name="q" placeholder="Suchen …">
+    </form>
+    <nav id="hauptmenue" aria-label="Hauptnavigation">
+      <span class="nav-section" aria-hidden="true">Menü</span>
+      <a href="index.html" title="Start" aria-current="page"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z"/></svg><span class="nav-label">Start</span></a>
+      <a href="aufgaben.html" title="Aufgaben"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg><span class="nav-label">Aufgaben</span><span class="nav-badge"><span class="sr-only">: </span>5<span class="sr-only"> neu</span></span></a>
+      <a href="termine.html" title="Termine"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg><span class="nav-label">Termine</span><span class="nav-badge"><span class="sr-only">: </span>2<span class="sr-only"> neu</span></span></a>
+      <span class="nav-section" aria-hidden="true">Planung</span>
+      <a href="projekte.html" title="Projekte"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span class="nav-label">Projekte</span></a>
+      <a href="zeitplan.html" title="Zeitplan"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h9M8 12h10M6 18h8M19 4l2 2-2 2-2-2z"/></svg><span class="nav-label">Zeitplan</span><span class="nav-badge"><span class="sr-only">: </span>1<span class="sr-only"> neu</span></span></a>
+      <span class="nav-section" aria-hidden="true">Allgemein</span>
+      <a href="berichte.html" title="Berichte"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8M8 17h5"/></svg><span class="nav-label">Berichte</span></a>
+      <a href="einstellungen.html" title="Einstellungen"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4"/></svg><span class="nav-label">Einstellungen</span></a>
     </nav>
+    <div class="logout"><button type="button" title="Abmelden"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="nav-label">Abmelden</span></button></div>
   </header>
 
   <main>

@@ -4,7 +4,7 @@ Selbst gehostetes Werkzeug für Projektleitung mit mehreren Projekten, eigenen L
 
 Konzept und Hintergrund: [`docs/konzept.md`](docs/konzept.md). Installation: [`docs/installation-ugreen.md`](docs/installation-ugreen.md).
 
-## Was die Version 0.3 kann
+## Was die Version 0.4 kann
 
 - **Startseite zum Selbst-Zusammenstellen:** 14 Bausteine (Kennzahlen, Routinen, Schnellerfassung, nächstes Meeting, Überfällig, Diese Woche, Meetings, Protokoll fehlt, Projekte, Kalender, Zeitplan, Kontingente, Auslastung, Zeiten). Mit „Startseite anpassen“ per Ziehen oder Pfeiltasten sortieren, ein- und ausblenden, breit oder schmal; gespeichert je Konto
 - **Aufgaben:** Schnellerfassung in einer Zeile, Filter und Schnellansichten, Status direkt in der Liste ändern, Sammelbearbeitung (Status, verschieben, zuweisen, löschen), CSV-Export für Excel
@@ -19,7 +19,9 @@ Konzept und Hintergrund: [`docs/konzept.md`](docs/konzept.md). Installation: [`d
 - **Auslastung:** aus Aufwand und Fälligkeit der offenen Aufgaben, je Person in Prozent mit Ampel, je Firma in Stunden und gegen das Kontingent
 - **Erinnerungen** per Push (ntfy) und/oder E-Mail: Morgen-Zusammenfassung (inkl. Zeitplan-Konflikten und Kontingent-Warnungen), Wochenplanung, Wochenabschluss, Meeting-Vorbereitung, Monatsbericht
 - **Sicherung:** tägliche Datenbank-Kopie (14 Tage), Download in den Einstellungen
-- **Designs:** unter *Einstellungen → Darstellung* wählbar: Violett, Glas und Orange (Standard), Bronze, Hell und Schlicht. Die Wahl gilt pro Konto, mit Vorschau vor dem Speichern. Schriften werden lokal ausgeliefert (keine Verbindung zu Google Fonts), Ausdrucke bleiben schwarz auf weiß
+- **Darstellung:** unter *Einstellungen → Darstellung* je Konto: fünf Designs (Violett, Glas und Orange, Bronze, Hell, Schlicht), jeweils hell oder dunkel, sieben Akzentfarben, drei Schriftgrößen, Ecken rund, weich oder kantig und zehn Menü-Stile (Liquid, Magnet, Glas-Kapsel, Segmente, Orbit, Welle, Neon, Blob, Karten, Minimal Luxus). Alles mit Live-Vorschau und Leiste „Änderungen · Verwerfen · Übernehmen“. Schriften werden lokal ausgeliefert (keine Verbindung zu Google Fonts), Ausdrucke bleiben schwarz auf weiß
+- **Seitenleiste:** Profil, Suche, Abschnitte, Zähler (überfällig, fehlende Protokolle, Konflikte, Kontingent-Warnungen), zum Einklappen als Symbolleiste; auf dem Handy wird das Menü ein Dock am unteren Rand
+- **Anmeldung** im Stil „Login form V7“ mit Aufklapp-Animation und Passwort-Auge
 
 Noch nicht enthalten (siehe Konzept): Abwesenheiten und Feiertage, Zuteilungen je Woche, Szenarien, mehrere Benutzer mit Rechten, Firmenportal, Kalender-Abonnement.
 

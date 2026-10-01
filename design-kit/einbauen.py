@@ -5,6 +5,7 @@ Aufruf (Python 3.9 oder neuer, keine Zusatzpakete):
     python3 einbauen.py ORDNER                         nur anzeigen, was passieren würde
     python3 einbauen.py ORDNER --anwenden              einbauen
     python3 einbauen.py ORDNER --design hell --grundstil --umschalter --anwenden
+    python3 einbauen.py ORDNER --design bronze --akzent gelb --menue neon --grundstil --anwenden
     python3 einbauen.py ORDNER --zuruecksetzen --anwenden
     python3 einbauen.py ORDNER --sicherungen-loeschen --anwenden
 
@@ -16,6 +17,8 @@ Was passiert:
   * --grundstil: zusätzlich cockpit-basis.css und <body class="cockpit-auto">, damit
     Seiten ohne Cockpit-Klassen (header, nav, main, section, button …) passend aussehen.
   * --umschalter: bindet theme-umschalter.js ein (Design im Browser umschaltbar).
+  * --modus, --akzent, --schrift, --ecken, --menue: weitere Einstellungen des Designs,
+    wie unter Einstellungen → Darstellung im Projekt-Cockpit.
   * Von jeder geänderten Datei bleibt eine Kopie DATEI.vor-cockpit.bak.
 """
 
@@ -29,6 +32,16 @@ import sys
 from pathlib import Path
 
 THEMES = ("violett", "glas", "bronze", "hell", "schlicht")
+TONES = {"violett": "dunkel", "glas": "dunkel", "bronze": "dunkel", "hell": "hell", "schlicht": ""}
+LOOK = {  # option: (attribute on <html>, allowed values)
+    "modus": ("data-mode", ("hell", "dunkel")),
+    "akzent": ("data-accent", ("violett", "blau", "pink", "gruen", "orange", "gelb", "rot")),
+    "schrift": ("data-size", ("klein", "gross")),
+    "ecken": ("data-shape", ("rund", "weich", "kantig")),
+    "menue": ("data-menu", ("fluessig", "magnet", "kapsel", "segment", "orbit", "welle", "neon",
+                            "blob", "karten", "luxus")),
+}
+MANAGED = ("data-theme", "data-tone") + tuple(attr for attr, _values in LOOK.values())
 START = "<!-- Cockpit-Design -->"
 END = "<!-- /Cockpit-Design -->"
 BACKUP = ".vor-cockpit.bak"
@@ -75,12 +88,26 @@ BLOCK_RE = re.compile(re.escape(START) + r".*?" + re.escape(END) + r"\n?", re.S)
 HEAD_END_RE = re.compile(r"</head\s*>", re.I)
 HTML_RE = re.compile(r"<html\b([^>]*)>", re.I)
 BODY_RE = re.compile(r"<body\b([^>]*)>", re.I)
-THEME_ATTR_RE = re.compile(r"""\sdata-theme\s*=\s*(["'])[^"']*\1""", re.I)
+MANAGED_ATTR_RE = re.compile(
+    r"\s(?:" + "|".join(MANAGED) + r""")\s*=\s*(["'])[^"']*\1""", re.I)
 CLASS_ATTR_RE = re.compile(r"""(\sclass\s*=\s*)(["'])([^"']*)\2""", re.I)
 VIEWPORT_RE = re.compile(r"""<meta[^>]+name\s*=\s*["']viewport["']""", re.I)
 
 
-def transform(text: str, rel: str, design: str, basis: bool, switcher: bool) -> str | None:
+def html_attrs(design: str, look: dict | None = None) -> str:
+    look = look or {}
+    attrs = [f'data-theme="{design}"']
+    for key, (attr, values) in LOOK.items():
+        if look.get(key) in values:
+            attrs.append(f'{attr}="{look[key]}"')
+    tone = look.get("modus") or TONES[design]
+    if tone:
+        attrs.append(f'data-tone="{tone}"')
+    return " ".join(attrs)
+
+
+def transform(text: str, rel: str, design: str, basis: bool, switcher: bool,
+              look: dict | None = None) -> str | None:
     """New page text, or None if the page has no <head> to extend."""
     text = BLOCK_RE.sub("", text)
     match = HEAD_END_RE.search(text)
@@ -90,8 +117,8 @@ def transform(text: str, rel: str, design: str, basis: bool, switcher: bool) -> 
     text = text[:match.start()] + snippet + text[match.start():]
 
     def set_theme(m):
-        attrs = THEME_ATTR_RE.sub("", m.group(1))
-        return f'<html{attrs} data-theme="{design}">'
+        attrs = MANAGED_ATTR_RE.sub("", m.group(1))
+        return f'<html{attrs} {html_attrs(design, look)}>'
     text = HTML_RE.sub(set_theme, text, count=1)
 
     def set_body(m):
@@ -133,6 +160,8 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Cockpit-Design in HTML-Seiten einbauen.")
     parser.add_argument("ordner", type=Path, help="Ordner mit den HTML-Seiten")
     parser.add_argument("--design", choices=THEMES, default="glas")
+    for key, (_attr, values) in LOOK.items():
+        parser.add_argument(f"--{key}", choices=values, help="Standard: wie im Design")
     parser.add_argument("--grundstil", action="store_true",
                         help="Seiten ohne Cockpit-Klassen automatisch gestalten")
     parser.add_argument("--umschalter", action="store_true", help="Design-Umschalter einbinden")
@@ -172,7 +201,8 @@ def main(argv=None) -> int:
             skipped += 1
             continue
         rel = Path(os.path.relpath(folder / TARGET, page.parent)).as_posix()
-        new = transform(text, rel, args.design, args.grundstil, args.umschalter)
+        look = {key: getattr(args, key) for key in LOOK}
+        new = transform(text, rel, args.design, args.grundstil, args.umschalter, look)
         if new is None:
             print(f"übersprungen (kein </head>, vermutlich nur ein Seitenteil): {name}")
             skipped += 1

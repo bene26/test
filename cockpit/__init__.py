@@ -8,10 +8,10 @@ from pathlib import Path
 from flask import Flask, g, render_template, request
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from . import auth, db, themes, util
+from . import auth, data, db, themes, util
 from .meeting_types import MEETING_TYPES
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -109,15 +109,37 @@ def _register_template_helpers(app: Flask) -> None:
         CONTRACT_TYPES=util.CONTRACT_TYPES,
         MEETING_TYPES=MEETING_TYPES,
         THEMES=themes.THEMES,
+        APPEARANCE=themes.APPEARANCE,
         app_version=__version__,
     )
 
     @app.context_processor
     def inject():
+        theme = themes.current()
+        look = themes.current_look()
         return {"current_user": g.get("user"), "today": util.today(),
-                "theme": themes.current()}
+                "theme": theme, "look": look, "html_attrs": themes.html_attrs(theme, look),
+                "nav_counts": _nav_counts}
 
     app.after_request(themes.remember)
+
+
+def _nav_counts() -> dict:
+    """Badges in the menu, computed once per request and only for logged-in pages."""
+    if "nav_counts" not in g:
+        from . import quotas, schedule
+        from .db import get_db
+        db = get_db()
+        now = util.now()
+        g.nav_counts = {
+            "tasks": db.execute(
+                "SELECT COUNT(*) FROM tasks WHERE status IN ('offen', 'in_arbeit', 'wartet') "
+                "AND due_date < ?", (now.date().isoformat(),)).fetchone()[0],
+            "meetings": len(data.missing_protocols(db, now)),
+            "schedule": len(schedule.overview(db, now.date())["conflicts"]),
+            "team": quotas.warning_count(db, now.date()),
+        }
+    return g.nav_counts
 
 
 def _register_security_headers(app: Flask) -> None:
