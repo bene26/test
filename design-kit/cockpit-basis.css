@@ -1,0 +1,153 @@
+/* Grundstil für bestehende HTML-Seiten, die keine Cockpit-Klassen benutzen.
+   Wirkt nur mit <body class="cockpit-auto"> und braucht cockpit-design.css davor.
+
+   Typischer Aufbau, der damit automatisch passt:
+     <body class="cockpit-auto">
+       <header> <h1>Name</h1> <nav><ul><li><a href="…">…</a></li></ul></nav> </header>
+       <main> <section>…</section> <article>…</article> </main>
+       <footer>…</footer>
+     </body>
+   Statt <main> gehen auch <div id="content">, <div class="content"> oder <div class="container">. */
+
+/* Kopfbereich als Leiste oben */
+body.cockpit-auto > header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 20px;
+  padding: 10px 20px;
+  background: var(--nav-bg);
+  border-bottom: 1px solid var(--border);
+  -webkit-backdrop-filter: var(--panel-filter);
+  backdrop-filter: var(--panel-filter);
+}
+body.cockpit-auto > header h1,
+body.cockpit-auto > header .logo-text { margin: 0; font-size: 1.25rem; }
+body.cockpit-auto > header a:has(> img) { display: inline-flex; }
+body.cockpit-auto > header img { max-height: 40px; width: auto; }
+[data-theme="bronze"] body.cockpit-auto > header {
+  margin: 14px 16px 0;
+  top: 14px;
+  border: 0;
+  clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
+}
+
+/* Menü, egal ob als Liste oder als einfache Links */
+.cockpit-auto nav ul, .cockpit-auto nav ol { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.cockpit-auto nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--nav-text);
+  text-decoration: none;
+}
+.cockpit-auto nav a:hover { background: var(--nav-hover); color: var(--text); text-decoration: none; }
+.cockpit-auto nav a[aria-current="page"], .cockpit-auto nav a.active, .cockpit-auto nav a.aktiv,
+.cockpit-auto nav li.active > a, .cockpit-auto nav li.aktiv > a {
+  background: var(--nav-active-bg);
+  color: var(--nav-active-text);
+  font-weight: 700;
+}
+[data-theme="bronze"] .cockpit-auto nav a[aria-current="page"], [data-theme="bronze"] .cockpit-auto nav a.active,
+[data-theme="bronze"] .cockpit-auto nav a.aktiv { box-shadow: inset 0 -2px 0 var(--accent); }
+body.cockpit-auto > nav { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 20px; background: var(--nav-bg); border-bottom: 1px solid var(--border); }
+
+/* Inhalt mittig mit Rand */
+body.cockpit-auto > main,
+body.cockpit-auto > #content, body.cockpit-auto > #inhalt,
+body.cockpit-auto > .content, body.cockpit-auto > .container, body.cockpit-auto > .wrapper,
+body.cockpit-auto > article {
+  display: block;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px 16px 48px;
+}
+
+/* Abschnitte als Karten */
+.cockpit-auto main > section, .cockpit-auto main > article, .cockpit-auto main > aside,
+.cockpit-auto #content > section, .cockpit-auto .content > section, .cockpit-auto .container > section {
+  position: relative;
+  margin-bottom: 16px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  -webkit-backdrop-filter: var(--panel-filter);
+  backdrop-filter: var(--panel-filter);
+}
+[data-theme="bronze"] .cockpit-auto main > section, [data-theme="bronze"] .cockpit-auto main > article,
+[data-theme="bronze"] .cockpit-auto main > aside {
+  background: linear-gradient(180deg, rgba(255, 214, 170, 0.1), rgba(255, 214, 170, 0.025) 40%, rgba(255, 214, 170, 0.02)), rgba(14, 11, 8, 0.55);
+  clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+}
+.cockpit-auto main > section > :last-child, .cockpit-auto main > article > :last-child { margin-bottom: 0; }
+
+/* Fußzeile */
+body.cockpit-auto > footer {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 18px 16px 32px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* Knöpfe ohne Klasse sehen aus wie .btn, Absende-Knöpfe wie .btn-primary */
+.cockpit-auto button:not([class]),
+.cockpit-auto input[type="submit"], .cockpit-auto input[type="button"], .cockpit-auto input[type="reset"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 6px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--btn-bg);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.cockpit-auto button:not([class]):hover, .cockpit-auto input[type="button"]:hover, .cockpit-auto input[type="reset"]:hover { border-color: var(--accent); }
+.cockpit-auto button[type="submit"]:not([class]), .cockpit-auto input[type="submit"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 700;
+}
+.cockpit-auto button[type="submit"]:not([class]):hover, .cockpit-auto input[type="submit"]:hover { background: var(--accent-hover); }
+.cockpit-auto form button, .cockpit-auto form input[type="submit"] { margin-top: 6px; }
+.cockpit-auto form > label, .cockpit-auto form p > label { margin-top: 10px; }
+
+/* Sonstige Elemente */
+.cockpit-auto img, .cockpit-auto video { max-width: 100%; height: auto; }
+.cockpit-auto hr { border: 0; border-top: 1px solid var(--border); margin: 20px 0; }
+.cockpit-auto blockquote { margin: 0 0 12px; padding: 8px 16px; border-left: 4px solid var(--accent); background: var(--surface-2); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.cockpit-auto code, .cockpit-auto kbd { padding: 1px 5px; border-radius: 4px; background: var(--surface-2); font-family: var(--font-mono); font-size: 0.9em; }
+.cockpit-auto pre { overflow-x: auto; padding: 12px 14px; border-radius: var(--radius-sm); background: var(--surface-2); font-family: var(--font-mono); }
+.cockpit-auto pre code { padding: 0; background: none; }
+.cockpit-auto fieldset { margin: 0 0 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.cockpit-auto legend { padding: 0 6px; font-weight: 700; }
+.cockpit-auto h3, .cockpit-auto h4 { font-family: var(--font-display); }
+.cockpit-auto table { margin-bottom: 12px; }
+.cockpit-auto caption { padding-bottom: 6px; text-align: left; color: var(--muted); font-size: 0.85rem; }
+.cockpit-auto ul, .cockpit-auto ol { padding-left: 22px; }
+.cockpit-auto nav ul, .cockpit-auto nav ol { padding-left: 0; }
+
+@media (max-width: 600px) {
+  body.cockpit-auto > header { padding: 8px 12px; }
+  [data-theme="bronze"] body.cockpit-auto > header { margin: 10px 10px 0; top: 10px; }
+  body.cockpit-auto > main, body.cockpit-auto > #content, body.cockpit-auto > .content,
+  body.cockpit-auto > .container { padding: 18px 12px 40px; }
+  .cockpit-auto main > section, .cockpit-auto main > article { padding: 14px; }
+}
+
+@media print {
+  body.cockpit-auto > header, body.cockpit-auto > nav { position: static; display: none; }
+  .cockpit-auto main > section, .cockpit-auto main > article { border: 0; padding: 0; background: none !important; clip-path: none !important; }
+}

@@ -70,7 +70,7 @@ Regeln, die bei neuen Seiten gelten, damit die Sicherheit erhalten bleibt:
 
 ## C: Bestehende Webseiten im gleichen Design
 
-Dafür ist das Design-Paket gedacht: [`../design-kit/README.md`](../design-kit/README.md). Es funktioniert mit reinem HTML, WordPress, React und anderen und braucht nur eine CSS-Datei und die Schriften. Bauen mit:
+Dafür ist das Design-Paket gedacht: [`../design-kit/README.md`](../design-kit/README.md). Es funktioniert mit reinem HTML, WordPress, React und anderen und braucht nur eine CSS-Datei und die Schriften. Für reine HTML-Seiten baut `design-kit/einbauen.py` das Design in alle Seiten eines Ordners auf einmal ein, mit Vorschau, Sicherungskopien und Rückgängig. Bauen mit:
 
 ```
 python3 tools/build_design_kit.py      # erzeugt dist/design-kit.zip

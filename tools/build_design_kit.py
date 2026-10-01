@@ -13,15 +13,16 @@ KIT = ROOT / "design-kit"
 
 def build(target: Path) -> Path:
     target.parent.mkdir(parents=True, exist_ok=True)
-    example = (KIT / "beispiel.html").read_text(encoding="utf-8").replace(
-        "../cockpit/static/app.css", "cockpit-design.css")
     with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as z:
         z.write(STATIC / "app.css", "design-kit/cockpit-design.css")
         for font in sorted((STATIC / "fonts").iterdir()):
             z.write(font, f"design-kit/fonts/{font.name}")
-        z.writestr("design-kit/beispiel.html", example)
-        z.write(KIT / "theme-umschalter.js", "design-kit/theme-umschalter.js")
-        z.write(KIT / "README.md", "design-kit/README.md")
+        for page in ("beispiel.html", "vorlage.html"):
+            html = (KIT / page).read_text(encoding="utf-8").replace(
+                "../cockpit/static/app.css", "cockpit-design.css")
+            z.writestr(f"design-kit/{page}", html)
+        for name in ("cockpit-basis.css", "theme-umschalter.js", "einbauen.py", "README.md"):
+            z.write(KIT / name, f"design-kit/{name}")
     return target
 
 

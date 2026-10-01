@@ -7,13 +7,81 @@ Mit diesem Paket bekommt jede Webseite die fünf Designs des Projekt-Cockpits: *
 | Datei | Wofür |
 |---|---|
 | `cockpit-design.css` | alle Farben, Schriften und Bausteine (im Repository: `cockpit/static/app.css`) |
+| `cockpit-basis.css` | Grundstil für bestehende Seiten ohne Cockpit-Klassen (optional) |
 | `fonts/` | Schriften als WOFF2 mit Lizenz (SIL Open Font License) |
 | `theme-umschalter.js` | Design wechseln und im Browser merken (optional) |
+| `einbauen.py` | baut das Design automatisch in alle HTML-Seiten eines Ordners ein |
+| `vorlage.html` | leere Seite zum Kopieren für neue Seiten |
 | `beispiel.html` | Beispielseite mit allen Bausteinen, einfach im Browser öffnen |
+
+## Bestehende HTML-Seiten umstellen
+
+### Automatisch, für alle Seiten auf einmal
+
+Du brauchst Python 3. Auf Mac und Linux ist es meist schon da. Unter Windows gibt es Python kostenlos im Microsoft Store oder auf python.org; dort heißt der Befehl `py` statt `python3`.
+
+1. Vorher eine Kopie des Webseiten-Ordners anlegen. Sicher ist sicher.
+2. Ein Terminal im entpackten Ordner `design-kit` öffnen und zuerst nur ansehen, was passieren würde:
+
+   ```
+   python3 einbauen.py "/Pfad/zu/meiner-webseite"
+   ```
+3. Einbauen:
+
+   ```
+   python3 einbauen.py "/Pfad/zu/meiner-webseite" --grundstil --anwenden
+   ```
+4. Die Seiten im Browser öffnen und ansehen.
+
+Optionen:
+
+| Option | Wirkung |
+|---|---|
+| `--design hell` | Design wählen: `violett`, `glas` (Standard), `bronze`, `hell`, `schlicht` |
+| `--grundstil` | alte Seiten ohne neue Klassen gestalten (siehe unten), fast immer sinnvoll |
+| `--umschalter` | Besucher können das Design selbst umschalten |
+| `--zuruecksetzen --anwenden` | alle Seiten wieder in den Originalzustand |
+| `--sicherungen-loeschen --anwenden` | die Sicherungskopien `*.vor-cockpit.bak` entfernen, wenn alles passt |
+
+Das Skript kopiert die Design-Dateien in den Unterordner `design/` der Webseite. In jede Seite schreibt es vor `</head>` einen kurzen, markierten Block. Ein zweiter Lauf, zum Beispiel mit einem anderen Design, ersetzt diesen Block, statt einen weiteren anzuhängen. Seitenteile ohne `<head>` lässt es in Ruhe.
+
+Lade anschließend den ganzen Ordner wie gewohnt auf den Webserver hoch, aber **ohne** die `*.vor-cockpit.bak`-Dateien.
+
+### Von Hand, Seite für Seite
+
+Den Ordner `design-kit` als `design` in den Webseiten-Ordner kopieren. In jeder Seite:
+
+```html
+<html lang="de" data-theme="glas">
+<head>
+  …
+  <link rel="stylesheet" href="design/cockpit-design.css">
+  <link rel="stylesheet" href="design/cockpit-basis.css">
+</head>
+<body class="cockpit-auto">
+```
+
+Bei Seiten in Unterordnern beginnt der Pfad mit `../design/…`.
+
+### Was der Grundstil automatisch erledigt
+
+Mit `cockpit-basis.css` und `<body class="cockpit-auto">` sehen übliche HTML-Seiten ohne weitere Änderungen passend aus:
+
+- `<header>` wird zur Leiste oben, `<nav>` mit Links oder einer Liste wird zum Menü. Den aktuellen Menüpunkt mit `class="active"`, `class="aktiv"` oder `aria-current="page"` markieren.
+- `<main>`, `<div id="content">`, `<div id="inhalt">`, `<div class="content">` oder `<div class="container">` wird mittig gesetzt.
+- Jede `<section>` und jedes `<article>` darin wird eine Karte.
+- Überschriften, Texte, Listen, Tabellen, Zitate, Formulare und Knöpfe bekommen das Design. Absende-Knöpfe werden zum Hauptknopf.
+- `<footer>` wird eine ruhige Fußzeile.
+
+Hat eine Seite ein eigenes Stylesheet (z. B. `style.css`), bleibt es eingebunden. Das Cockpit-Design steht danach und gewinnt deshalb meistens. Sieht etwas komisch aus, die Zeile mit dem alten Stylesheet testweise entfernen.
+
+### Neue Seiten
+
+`vorlage.html` kopieren, umbenennen und die mit „HIER“ markierten Stellen anpassen. Weitere Bausteine zum Kopieren stehen in `beispiel.html`. Liegt die neue Seite neben dem Ordner `design/`, den Pfad in der Vorlage zu `design/cockpit-design.css` ändern.
 
 Das fertige ZIP entsteht mit `python3 tools/build_design_kit.py` (liegt danach in `dist/design-kit.zip`).
 
-## In eine Webseite einbauen
+## Grundsätzlich: so funktioniert das Design
 
 1. Den Ordner auf den Webserver kopieren, z. B. nach `/design/`. `cockpit-design.css` und `fonts/` müssen nebeneinander liegen.
 2. Im `<head>` jeder Seite:
