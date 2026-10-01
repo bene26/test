@@ -2404,6 +2404,7 @@ kbd { padding: 1px 5px; border: 1px solid var(--border); border-radius: 5px; bac
 .fb-tafel > div { display: grid; gap: 8px; padding-top: 16px; border-top: 1px solid var(--border); }
 .fb-tafel small { color: var(--muted); font-size: 0.85rem; }
 .k-registrieren { max-width: 420px; }
+@media (max-width: 600px) { .komponenten-seite .komponente { padding: 18px; } }
 .flieger-demo { max-width: 540px; margin: 0 auto; }
 
 @media (prefers-reduced-motion: reduce) {
