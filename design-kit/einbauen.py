@@ -19,7 +19,7 @@ Was passiert:
   * --umschalter: bindet theme-umschalter.js ein (Design im Browser umschaltbar).
   * --komponenten: bindet komponenten.js ein (Fallblatt-Zahlen, Schlüssel, Kassenbon,
     Karteikasten, Papierflieger, Orb; siehe komponenten.html).
-  * --modus, --akzent, --schrift, --ecken, --menue, --zahlen: weitere Einstellungen des Designs,
+  * --modus, --akzent, --schrift, --ecken, --menue, --zahlen, --grafik: weitere Einstellungen,
     wie unter Einstellungen → Darstellung im Projekt-Cockpit.
   * Von jeder geänderten Datei bleibt eine Kopie DATEI.vor-cockpit.bak.
 """
@@ -43,6 +43,7 @@ LOOK = {  # option: (attribute on <html>, allowed values)
     "menue": ("data-menu", ("fluessig", "magnet", "kapsel", "segment", "orbit", "welle", "neon",
                             "blob", "karten", "luxus")),
     "zahlen": ("data-digits", ("fallblatt", "schlicht")),
+    "grafik": ("data-grafik", ("fallblatt", "loch", "bon", "flieger", "kartei", "schluessel")),
 }
 MANAGED = ("data-theme", "data-tone") + tuple(attr for attr, _values in LOOK.values())
 START = "<!-- Cockpit-Design -->"

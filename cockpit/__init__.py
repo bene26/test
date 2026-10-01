@@ -11,7 +11,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from . import auth, data, db, themes, util
 from .meeting_types import MEETING_TYPES
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -161,13 +161,37 @@ def _register_security_headers(app: Flask) -> None:
         return response
 
 
+# Error pages: title, short label for the graphics (capitals) and explanation per status.
+ERRORS = {
+    400: ("Das hat nicht geklappt", "UNGÜLTIG", "Die Anfrage war ungültig."),
+    401: ("Bitte neu anmelden", "BITTE ANMELDEN", "Bitte neu anmelden."),
+    403: ("Kein Zutritt", "KEIN ZUTRITT", "Dafür fehlt die Berechtigung."),
+    404: ("Seite nicht gefunden", "NICHT GEFUNDEN",
+          "Diese Seite gibt es nicht (mehr). Vielleicht wurde der Eintrag gelöscht, oder der "
+          "Link ist falsch geschrieben."),
+    405: ("So geht das nicht", "NICHT ERLAUBT", "Diese Adresse lässt sich so nicht aufrufen."),
+    413: ("Zu groß", "ZU GROSS", "Die Anfrage ist zu groß."),
+    500: ("Etwas ist schiefgelaufen", "STÖRUNG",
+          "Ein interner Fehler ist aufgetreten. Bitte die Seite neu laden oder später noch "
+          "einmal versuchen."),
+}
+
+
 def _register_errors(app: Flask) -> None:
-    messages = {
-        400: "Die Anfrage war ungültig.",
-        401: "Bitte neu anmelden.",
-        404: "Diese Seite gibt es nicht.",
-        413: "Die Anfrage ist zu groß.",
-    }
+    def wants_json() -> bool:
+        if request.headers.get("X-Autosave") or request.headers.get("X-Cockpit-Ajax"):
+            return True
+        best = request.accept_mimetypes.best_match(["application/json", "text/html"])
+        return best == "application/json"
+
+    def page(code: int, text: str | None = None):
+        title, kurz, message = ERRORS.get(code, ERRORS[500])
+        message = text or message
+        if wants_json():
+            return {"ok": False, "error": message, "nachricht": message}, code
+        return render_template("error.html", code=code, title=title, kurz=kurz, message=message,
+                               path=request.path[:200],
+                               now_time=util.now().strftime("%H:%M")), code
 
     def handler(error):
         code = getattr(error, "code", 500) or 500
@@ -175,15 +199,16 @@ def _register_errors(app: Flask) -> None:
         text = getattr(error, "description", None)
         if code != 400 or text == getattr(type(error), "description", None):
             text = None
-        if request.headers.get("X-Autosave"):
-            return {"error": messages.get(code, "Fehler")}, code
-        return render_template("error.html", code=code,
-                               message=text or messages.get(code, "Ein Fehler ist aufgetreten.")), code
+        return page(code if code in ERRORS else 500, text)
 
-    for code in messages:
-        app.register_error_handler(code, handler)
+    for code in ERRORS:
+        if code != 500:
+            app.register_error_handler(code, handler)
 
     @app.errorhandler(500)
     def server_error(_error):
-        return render_template("error.html", code=500,
-                               message="Ein interner Fehler ist aufgetreten."), 500
+        try:
+            return page(500)
+        except Exception:  # the error page itself failed (e.g. database): plain text, no details
+            return ("Etwas ist schiefgelaufen. Bitte die Seite neu laden oder später noch "
+                    "einmal versuchen."), 500, {"Content-Type": "text/plain; charset=utf-8"}

@@ -1,4 +1,4 @@
-# Übergabe: Projekt-Cockpit (Stand Version 0.5)
+# Übergabe: Projekt-Cockpit (Stand Version 0.6)
 
 Dieses Paket beschreibt alles, was im Projekt-Cockpit gebaut wurde: alle Seiten, Funktionen, das Design-System, jede Animation und jeden Übergang. Dazu kommen Vorschaubilder, die Video-Vorlagen und der komplette funktionierende Quellcode. Es ist so geschrieben, dass ein anderer Claude-Agent die Funktionen in eine bestehende App übernehmen kann, egal ob diese mit HTML, React oder React Native gebaut ist.
 
@@ -23,7 +23,7 @@ Dieses Paket beschreibt alles, was im Projekt-Cockpit gebaut wurde: alle Seiten,
 | [`08-vorlagen-aus-den-videos.md`](08-vorlagen-aus-den-videos.md) | die zehn Instagram-Videos und die Design-Vorschläge: was sie zeigen, was übernommen wurde, wo bewusst abgewichen wurde |
 | [`BILDER.md`](BILDER.md) | Verzeichnis aller Vorschaubilder mit Beschreibung |
 | [`design-tokens.json`](design-tokens.json) | alle Farben und Maße je Design, Modus und Akzent als JSON (aus dem CSS erzeugt), z. B. für React Native |
-| `vorschau/` | Screenshots der fertigen App (Version 0.5): Seiten, Designs, Navigation, Komponenten, Handy |
+| `vorschau/` | Screenshots der fertigen App: Seiten, Designs, Navigation, Komponenten, Fehlerseiten, Handy |
 | `vorlagen-videos/` | Einzelbilder aus den Original-Videos als Referenz |
 | `referenz-code/` (nur im ZIP) | der komplette Quellcode der App und das Design-Paket für HTML-Seiten |
 
@@ -31,13 +31,14 @@ Dieses Paket beschreibt alles, was im Projekt-Cockpit gebaut wurde: alle Seiten,
 
 - **Was:** ein selbst gehostetes Werkzeug für Projektleitung mit mehreren Projekten, eigenen Leuten und externen Firmen (Werkvertrag, Dienstvertrag, Arbeitnehmerüberlassung). Sprache der Oberfläche: Deutsch, Du-Form.
 - **Original-Technik:** Python 3.12, Flask, Jinja2, SQLite, ein Docker-Container (UGREEN NAS). Kein JavaScript-Framework, keine externen Dienste, keine KI.
-- **Design:** fünf Designs (Violett, Glas und Orange, Bronze, Hell, Schlicht), jedes hell oder dunkel, sieben Akzentfarben, drei Schriftgrößen, drei Eckenformen, zehn Menü-Stile, Zahlen als Fallblatt-Anzeige. Alles über CSS-Variablen und `data-*`-Attribute am `<html>`.
+- **Design:** fünf Designs (Violett, Glas und Orange, Bronze, Hell, Schlicht), jedes hell oder dunkel, sieben Akzentfarben, drei Schriftgrößen, drei Eckenformen, zehn Menü-Stile, Zahlen als Fallblatt-Anzeige, sechs Grafiken für die Fehlerseiten. Alles über CSS-Variablen und `data-*`-Attribute am `<html>`.
+- **Fehlerseiten:** 404 und andere Fehler mit großer animierter Grafik, sechs Grafiken in den Einstellungen umschaltbar (Abfahrtstafel, Schwarzes Loch, Kassenbon, Papierflieger, Karteikasten, Schlüssel), Standard je Design.
 - **Bewegte Komponenten:** Fallblatt-Zahlen, Schlüssel und Schloss, Kassenbon, Karteikasten (Strg+K), Papierflieger, Orb mit zwölf Kugeln, Login V7, zehn Menü-Stile, einklappbare Seitenleiste, Live-Vorschau mit Änderungsleiste.
 - **Live-Vorschau zum Anklicken:** https://claude.ai/artifact/JELCRezbjMNzKeS2uRGacg (privat, nur mit Freigabe sichtbar). Alle Komponenten stecken zum Ausprobieren auch in `referenz-code/design-kit/komponenten.html`; die Datei einfach im Browser öffnen.
 
 ## Quellcode im Paket
 
-Im ZIP liegt unter `referenz-code/projekt-cockpit/` der Stand des Git-Branches `claude/cool-heisenberg-ydnbag` (Repository `bene26/test`). Die wichtigsten Dateien:
+Im ZIP liegt unter `referenz-code/projekt-cockpit/` der Stand (Version 0.6) des Git-Branches `claude/cool-heisenberg-ydnbag` (Repository `bene26/test`). Die wichtigsten Dateien:
 
 | Datei | Inhalt |
 |---|---|

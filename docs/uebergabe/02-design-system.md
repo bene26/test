@@ -16,9 +16,10 @@ Das ganze Aussehen hängt an wenigen Attributen am `<html>`-Element. Jedes Desig
 | `data-shape` | leer, `rund`, `weich`, `kantig` | Ecken; Bronze bleibt immer abgeschrägt |
 | `data-menu` | leer oder einer der zehn Menü-Stile | Stil des aktuellen Menüpunkts |
 | `data-digits` | leer, `fallblatt`, `schlicht` | Kennzahlen als Fallblatt-Tafel; leer = nur bei Violett |
+| `data-grafik` | leer, `fallblatt`, `loch`, `bon`, `flieger`, `kartei`, `schluessel` | Grafik der Fehlerseiten; leer = je Design (Violett Abfahrtstafel, Glas Schwarzes Loch, Bronze Kassenbon, Hell Papierflieger, Schlicht Karteikasten) |
 | `data-nav` | `voll`, `mini` | Seitenleiste offen oder Symbolleiste; nur bei Violett, Glas, Hell |
 
-Gespeichert wird je Konto (Datenbank: `users.theme` und `users.appearance` als JSON). Zusätzlich setzt der Server zwei Cookies (`pc_theme`, `pc_look` im Format `modus.akzent.schrift.ecken.menue.zahlen`, `-` für leer), damit die Anmeldeseite vor dem Login schon richtig aussieht. Ob die Seitenleiste eingeklappt ist, merkt sich der Browser im Cookie `pc_nav`. Alle Werte werden gegen eine feste Liste geprüft; unbekannte Werte fallen auf „wie im Design“ zurück.
+Gespeichert wird je Konto (Datenbank: `users.theme` und `users.appearance` als JSON). Zusätzlich setzt der Server zwei Cookies (`pc_theme`, `pc_look` im Format `modus.akzent.schrift.ecken.menue.zahlen.grafik`, `-` für leer; ältere, kürzere Cookies gelten weiter), damit die Anmeldeseite vor dem Login schon richtig aussieht. Ob die Seitenleiste eingeklappt ist, merkt sich der Browser im Cookie `pc_nav`. Alle Werte werden gegen eine feste Liste geprüft; unbekannte Werte fallen auf „wie im Design“ zurück.
 
 Die vollständige Liste steht in `referenz-code/projekt-cockpit/cockpit/themes.py`, alle Tokens in `cockpit/static/app.css` ab „Design tokens“.
 
@@ -99,7 +100,7 @@ Bei „Bewegung reduzieren“ laufen keine Endlos-Animationen.
 
 Vorlage: Video 1 der ersten Runde. Bilder: `vorschau/navigation/darstellung-einstellungen.webp`, `live-vorschau-mit-aenderungsleiste.webp`.
 
-- Gruppen: Design (fünf Karten mit Mini-Vorschau im jeweiligen Design), Hell oder dunkel (Segmente), Akzentfarbe (Farbkreise, erster Kreis „Design“ zeigt die Farbe des gewählten Designs), Schriftgröße (Segmente mit „Aa“ in drei Größen), Ecken (Segmente mit kleiner Form), Zahlen (Segmente), Menü-Stil (zehn Kacheln).
+- Gruppen: Design (fünf Karten mit Mini-Vorschau im jeweiligen Design), Hell oder dunkel (Segmente), Akzentfarbe (Farbkreise, erster Kreis „Design“ zeigt die Farbe des gewählten Designs), Schriftgröße (Segmente mit „Aa“ in drei Größen), Ecken (Segmente mit kleiner Form), Zahlen (Segmente), Menü-Stil (zehn Kacheln), Grafik für Fehlerseiten (sieben Kacheln mit kleinem Bild in Akzentfarbe, gewählte Kachel mit Akzent-Rahmen; darunter eine gestrichelt umrandete Vorschau, in der die gewählte Grafik sofort läuft).
 - Jede Auswahl setzt sofort die Attribute am `<html>` und rechnet `data-tone` und `data-nav` neu aus. Die ganze Seite (auch die Seitenleiste) zeigt die Wirkung, bevor gespeichert wird.
 - Unten erscheint eine feste Leiste: „2 Änderungen · Die Vorschau gilt schon für die ganze Seite. · Verwerfen · Übernehmen“. Gezählt wird gegen den gespeicherten Stand. „Verwerfen“ setzt das Formular zurück und wendet den alten Stand wieder an. „Übernehmen“ speichert (normales Formular, POST). Ohne JavaScript gibt es einen normalen Speichern-Knopf.
 

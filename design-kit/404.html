@@ -1,0 +1,121 @@
+<!doctype html>
+<!-- 404-Seite für deine Webseite: sechs Grafiken (Abfahrtstafel, Schwarzes Loch, Kassenbon,
+     Papierflieger, Karteikasten, Schlüssel). Welche erscheint, steuert data-grafik am <html>;
+     ohne data-grafik nimmt jedes Design seine eigene (Violett Abfahrtstafel, Glas Schwarzes Loch,
+     Bronze Kassenbon, Hell Papierflieger, Schlicht Karteikasten).
+     Auf dem Server als 404-Seite eintragen (Apache: ErrorDocument 404 /404.html, nginx:
+     error_page 404 /404.html; bei vielen Hostern genügt die Datei 404.html im Hauptordner).
+     Weil die Seite unter beliebigen Adressen erscheint, die Pfade zu CSS und Skripten absolut
+     schreiben, z. B. /design/cockpit-design.css. Diese Datei wird mit tools/build_404_page.py
+     erzeugt. -->
+<html lang="de" data-theme="glas" data-tone="dunkel">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Seite nicht gefunden · Meine Webseite</title>
+  <link rel="stylesheet" href="../cockpit/static/app.css">
+  <script src="theme-umschalter.js" defer></script>
+  <script src="../cockpit/static/komponenten.js" defer></script>
+</head>
+<body>
+<main>
+  <section class="fehlerseite" aria-labelledby="fehler-titel">
+    <div class="fehler-bild">
+      <div class="grafiken" aria-hidden="true">
+        <div class="grafik gr-fallblatt" data-grafik-bild="fallblatt">
+          <div class="gr-tafel" data-fallblatt="immer">
+            <div class="gr-tafel-kopf"><span>Abfahrt</span><span data-fehler-uhr></span></div>
+            <div class="gr-zeile gr-gross"><small>Zug</small><span data-fallblatt-wert>404</span></div>
+            <div class="gr-zeile"><small>Ziel</small><span data-fallblatt-wert data-fehler-pfad="kurz">/SEITE</span></div>
+            <div class="gr-zeile"><small>Hinweis</small><span data-fallblatt-wert data-fallblatt-wechsel="NICHT GEFUNDEN|BITTE ZURÜCK">NICHT GEFUNDEN</span></div>
+          </div>
+        </div>
+        <div class="grafik gr-loch" data-grafik-bild="loch">
+          <canvas class="gr-loch-kugel" data-orb-bild="loch" width="560" height="560"></canvas>
+          <span class="gr-sog"><span>4</span><span>0</span><span>4</span></span>
+        </div>
+        <div class="grafik gr-bon bon" data-grafik-bild="bon" data-bon>
+          <div class="bon-drucker">
+            <div class="bon-geraet"><span class="bon-status" data-bon-status>Bereit</span><span class="bon-knopf"></span></div>
+            <div class="bon-rolle"><div class="bon-papier" data-bon-papier><div class="bon-inhalt">
+          <div class="bon-kopf"><span class="bon-logo">P</span><strong>Projekt-Cockpit</strong></div>
+          <div class="bon-zeile bon-meta"><span>Beleg Nr. 404</span><span data-fehler-datum></span></div>
+          <div class="bon-trenn"></div>
+          <div class="bon-zeile"><span>Seite</span><span data-fehler-pfad="kurz">/SEITE</span></div>
+          <div class="bon-zeile"><span>Menge</span><span>0</span></div>
+          <div class="bon-zeile bon-fett"><span>Status</span><span>NICHT GEFUNDEN</span></div>
+          <div class="bon-trenn doppelt"></div>
+          <div class="bon-summe"><span>Summe</span><span class="bon-betrag">404</span></div>
+          <div class="bon-zeile bon-leise bon-rechts"><span>Storno · bitte zurück zur Startseite</span></div>
+          <div class="bon-barcode" data-bon-barcode="404"></div>
+          <p class="bon-danke">Vielen Dank</p>
+        </div></div><div class="bon-kante"></div></div>
+          </div>
+          <template data-bon-vorlage="fehler">
+          <div class="bon-kopf"><span class="bon-logo">P</span><strong>Projekt-Cockpit</strong></div>
+          <div class="bon-zeile bon-meta"><span>Beleg Nr. 404</span><span data-fehler-datum></span></div>
+          <div class="bon-trenn"></div>
+          <div class="bon-zeile"><span>Seite</span><span data-fehler-pfad="kurz">/SEITE</span></div>
+          <div class="bon-zeile"><span>Menge</span><span>0</span></div>
+          <div class="bon-zeile bon-fett"><span>Status</span><span>NICHT GEFUNDEN</span></div>
+          <div class="bon-trenn doppelt"></div>
+          <div class="bon-summe"><span>Summe</span><span class="bon-betrag">404</span></div>
+          <div class="bon-zeile bon-leise bon-rechts"><span>Storno · bitte zurück zur Startseite</span></div>
+          <div class="bon-barcode" data-bon-barcode="404"></div>
+          <p class="bon-danke">Vielen Dank</p>
+        </template>
+        </div>
+        <div class="grafik gr-flieger flieger" data-grafik-bild="flieger">
+          <svg class="gr-flieger-bild" viewBox="0 0 420 260" focusable="false">
+            <path class="gr-bahn" d="M210 34C330 34 396 80 396 130C396 184 330 226 210 226C90 226 24 184 24 130C24 80 90 34 210 34Z"/>
+            <text class="gr-flieger-code" x="210" y="152">404</text>
+            <g class="gr-flugzeug" transform="translate(210 34)">
+              <polygon class="fl-blatt" points="-33,-5 -19,-5 33,0 -19,8 -33,8 -33,0"/>
+              <polygon class="fl-klappe" points="-33,0 33,0 -33,8"/>
+              <polyline class="fl-falz" points="-19,-5 14,0 33,0"/>
+            </g>
+          </svg>
+        </div>
+        <div class="grafik gr-kartei" data-grafik-bild="kartei">
+          <div class="kartei-buehne">
+            <div class="kartei-stapel">
+              <div class="kartei-karte"><span class="kk-reiter">Seiten</span><strong class="kk-titel">Start</strong><span class="kk-hinweis">Kennzahlen und Bausteine</span></div>
+              <div class="kartei-karte"><span class="kk-reiter">Seiten</span><strong class="kk-titel">Aufgaben</strong><span class="kk-hinweis">Offene Aufgaben</span></div>
+              <div class="kartei-karte"><span class="kk-reiter">Seiten</span><strong class="kk-titel">Meetings</strong><span class="kk-hinweis">Termine und Protokolle</span></div>
+              <div class="kartei-karte"><span class="kk-reiter">Seiten</span><strong class="kk-titel">Projekte</strong><span class="kk-hinweis">Fortschritt und Meilensteine</span></div>
+              <div class="kartei-karte gr-karte-fehlt"><span class="kk-reiter">Fehlt</span><strong class="kk-titel">404 · nicht im Kasten</strong><span class="kk-hinweis" data-fehler-pfad>/seite</span></div>
+            </div>
+            <div class="kartei-schiene"></div>
+          </div>
+        </div>
+        <div class="grafik gr-schluessel" data-grafik-bild="schluessel">
+          <div class="schluessel-bild" data-schluessel-bild></div>
+        </div>
+      </div>
+    </div>
+    <div class="fehler-text">
+      <p class="eyebrow">Fehler 404</p>
+      <h1 id="fehler-titel">Seite nicht gefunden</h1>
+      <p class="fehler-meldung">Diese Seite gibt es nicht (mehr). Vielleicht wurde sie verschoben, oder der Link ist falsch geschrieben.</p>
+      <p class="fehler-pfad">Adresse: <code data-fehler-pfad>/seite</code></p>
+      <div class="fehler-aktionen">
+        <a class="btn btn-primary" href="/">Zur Startseite</a>
+        <a class="btn" href="/" data-zurueck>Zurück</a>
+      </div>
+      <!-- Zum Ausprobieren; auf der echten Seite weglassen. -->
+      <div class="look-schnell">
+        <label class="sr-only" for="k-design">Design</label>
+        <select id="k-design" data-look="theme">
+          <option value="violett">Violett</option><option value="glas">Glas und Orange</option><option value="bronze">Bronze</option><option value="hell">Hell</option><option value="schlicht">Schlicht</option>
+        </select>
+        <label class="sr-only" for="k-grafik">Grafik</label>
+        <select id="k-grafik" data-look="grafik">
+          <option value="">Grafik wie im Design</option><option value="fallblatt">Abfahrtstafel</option><option value="loch">Schwarzes Loch</option><option value="bon">Kassenbon</option><option value="flieger">Papierflieger</option><option value="kartei">Karteikasten</option><option value="schluessel">Schlüssel</option>
+        </select>
+      </div>
+    </div>
+  </section>
+</main>
+</body>
+</html>

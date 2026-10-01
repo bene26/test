@@ -216,7 +216,26 @@ Klick auf den Pfeil: `data-nav` wechselt zwischen `voll` und `mini`; Breite und 
 
 Bausteine sind ziehbar (`draggable`); der gezogene wird auf 30 % Deckkraft gesetzt (`.dragging`), eine Linie vor oder hinter dem Ziel zeigt die Einfügestelle (bei breiten Bausteinen oben/unten, sonst links/rechts). Loslassen ordnet um; gespeichert wird mit „Fertig“. Häkchen „anzeigen“ und „breit“ wirken sofort.
 
-## 10. Kleinere Übergänge
+## 10. Fehler-Grafiken (404 und andere Fehlerseiten)
+
+Bilder: `vorschau/fehlerseiten/`. Vorlage im Code: `cockpit/templates/_grafiken.html` (alle sechs Grafiken), Abschnitt „Fehlerseiten“ in `app.css`, Abschnitt 7 in `komponenten.js`. Für statische Webseiten: `design-kit/404.html`.
+
+**Prinzip:** Alle sechs Grafiken stehen in der Seite; CSS zeigt genau eine, je nach `data-grafik` am `<html>` oder (ohne Wahl) nach dem Design. Das Skript startet nur die sichtbare Grafik und startet eine andere, sobald sie durch eine Änderung in den Einstellungen sichtbar wird (Beobachtung der Attribute am `<html>`). Endlos-Bewegungen laufen nur, solange die Grafik im Bild und der Tab aktiv ist. Größe: höchstens 440 px breit (in der Einstellungs-Vorschau 380 px), Text der Seite rechts daneben.
+
+| Grafik | Aufbau | Bewegung |
+|---|---|---|
+| **Abfahrtstafel** (`fallblatt`) | dunkle Tafel mit Kopf „ABFAHRT 10:42“ (Uhrzeit des Aufrufs), drei Zeilen mit kleiner Beschriftung: ZUG = Statuscode groß (2,6 rem), ZIEL = aufgerufene Adresse in Großbuchstaben (höchstens 14 Zeichen, sonst mit „…“), HINWEIS = Kurztext („NICHT GEFUNDEN“) | alle Zeilen klappern wie die Fallblatt-Zahlen (Abschnitt 1) beim Erscheinen auf ihren Text; danach wechselt HINWEIS alle 5 s zwischen Kurztext und „BITTE ZURÜCK“ (nur geänderte Stellen klappen, Länge mit festen Leerzeichen angeglichen) |
+| **Schwarzes Loch** (`loch`) | die Kugel „Schwarzes Loch“ (Abschnitt 6) groß (bis 360 px) | Scheibe dreht, Pegel schwingt sanft (0,3 ± 0,2); die drei Ziffern des Codes kreisen nacheinander spiralförmig ins Loch: je 6 s, um 560° gedreht, von 150 px Abstand auf 0, auf 10 % verkleinert, ein- und ausgeblendet, versetzt um 2 s; leuchtend in Akzentfarbe |
+| **Kassenbon** (`bon`) | Drucker und Beleg wie Abschnitt 3: „BELEG NR. 404“, Datum, Seite = Adresse, Menge 0, Status = Kurztext (fett), Summe = Code groß, „STORNO · BITTE ZURÜCK ZUR STARTSEITE“, Strichcode aus Code + Adresse, „VIELEN DANK“ | druckt Zeile für Zeile, sobald er sichtbar wird |
+| **Papierflieger** (`flieger`) | Code sehr groß (84 px, Überschriftenschrift) in der Mitte, eine gestrichelte Umlaufbahn (Ellipse) darum, ein kleiner Papierflieger (Seitenansicht wie Abschnitt 5, Papier `#f2f1f6` mit feiner Kontur und Schatten, 1,3-fach) | der Flieger fliegt mit 150 px/s endlos auf der Bahn, dreht sich in Flugrichtung und wippt leicht (±3 px); die Striche der Bahn laufen mit (1,6 s je Strichlänge) |
+| **Karteikasten** (`kartei`) | Bühne mit Schiene wie Abschnitt 4, vier Karten (Start, Aufgaben, Meetings, Projekte) und als letzte eine Karte mit gestricheltem orangem Rand und Reiter „FEHLT“: „404 · nicht im Kasten“, darunter die Adresse | blättert die Karten durch (erste 1,4 s, dann je 0,9 s, Geometrie und Federung wie Abschnitt 4), bleibt 3,6 s auf der fehlenden Karte stehen, dann richten sich alle wieder auf und es beginnt von vorn; ohne Bewegung steht die fehlende Karte vorn |
+| **Schlüssel** (`schluessel`) | Schlüssel und Schloss wie Abschnitt 2, alle fünf Zähne geschnitten | Schlüssel fährt 150 px ans Schloss (0,7 s), hakt fest: wackelt (−5°, +4°, −2°, 0,64 s), das Schloss ruckelt seitlich (±4 px, 0,52 s), Pause 0,25 s, Schlüssel fährt zurück (0,65 s), 1,5 s Pause, von vorn. Das Schloss bleibt zu |
+
+**Einstellungen:** Kacheln mit kleinen Symbolen (Ziffernkacheln, Ring um Kreis, Beleg mit Zacken, Flieger mit Spur, Kartenstapel, Schlüssel mit Schloss; erste Kachel „Wie im Design“); gewählte Kachel mit Akzentrahmen. Die Vorschau darunter zeigt die Grafik mit Code 404 und Adresse „/beispiel“; jeder Klick auf eine Kachel ändert sie sofort (Teil der Live-Vorschau mit Änderungsleiste).
+
+**„Zurück“:** geht mit `history.back()` zurück, wenn die vorige Seite zur selben Adresse gehört; sonst ist es ein normaler Link zur Startseite.
+
+## 11. Kleinere Übergänge
 
 - Kennzahl-Kacheln: Rahmen in Akzentfarbe beim Überfahren, in Glas und Hell heben sie sich zusätzlich um 2 px an.
 - Knöpfe, Links, Chips: Farbwechsel beim Überfahren; sichtbarer Fokus-Rahmen 2 px in Akzentfarbe mit 2 px Abstand.

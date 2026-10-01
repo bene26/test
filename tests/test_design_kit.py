@@ -78,12 +78,14 @@ def test_package_contains_everything(tmp_path):
     names = zipfile.ZipFile(target).namelist()
     for name in ("cockpit-design.css", "cockpit-basis.css", "einbauen.py", "vorlage.html",
                  "beispiel.html", "anmelden.html", "theme-umschalter.js", "README.md",
-                 "komponenten.js", "komponenten.html", "fonts/sora.woff2"):
+                 "komponenten.js", "komponenten.html", "404.html", "fonts/sora.woff2"):
         assert f"design-kit/{name}" in names
     html = zipfile.ZipFile(target).read("design-kit/vorlage.html").decode()
     assert 'href="cockpit-design.css"' in html
     demo = zipfile.ZipFile(target).read("design-kit/komponenten.html").decode()
     assert 'src="komponenten.js"' in demo and "../cockpit" not in demo
+    page404 = zipfile.ZipFile(target).read("design-kit/404.html").decode()
+    assert 'href="cockpit-design.css"' in page404 and 'data-grafik-bild="kartei"' in page404
 
 
 def test_components_option(tmp_path):

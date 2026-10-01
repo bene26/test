@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros.html" import csrf, icon, password_rules %}
+{% from "_grafiken.html" import fehler_grafiken, grafik_mini %}
 {% block title %}Einstellungen{% endblock %}
 {% block content %}
 <div class="page-head">
@@ -84,6 +85,25 @@
               <strong>{{ label }}</strong>
             </label>
             {% endfor %}
+          </div>
+        </fieldset>
+
+        <fieldset class="look-group" id="grafik">
+          <legend>Grafik für Fehlerseiten</legend>
+          <p class="small muted">Erscheint groß auf der Seite „nicht gefunden“ (404) und bei anderen Fehlern. „Wie im Design“: Violett Abfahrtstafel, Glas Schwarzes Loch, Bronze Kassenbon, Hell Papierflieger, Schlicht Karteikasten.</p>
+          <div class="grafik-picker">
+            {% for value, label in APPEARANCE.grafik[1].items() %}
+            <label class="grafik-option">
+              <input class="vh" type="radio" name="grafik" value="{{ value }}"{% if look.grafik == value %} checked{% endif %}>
+              {{ grafik_mini(value or 'design') }}
+              <strong>{{ label }}</strong>
+            </label>
+            {% endfor %}
+          </div>
+          <div class="grafik-vorschau">
+            <span class="look-title">Vorschau</span>
+            {{ fehler_grafiken(404, 'NICHT GEFUNDEN', '/beispiel', today|datum, '10:42') }}
+            <p class="small"><a href="{{ url_for('main.dashboard') }}seite-gibt-es-nicht" target="_blank" rel="noopener">404-Seite öffnen</a> <span class="muted">(zeigt die gespeicherte Wahl)</span></p>
           </div>
         </fieldset>
       </div>

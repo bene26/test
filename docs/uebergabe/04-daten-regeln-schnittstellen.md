@@ -87,9 +87,13 @@ Die App ist serverseitig gerendert; Formulare schicken per POST mit CSRF-Token (
 
 Antwort 204 bei Erfolg, 400 mit `{"error": "…"}` bei ungültiger Eingabe, 409 wenn das Protokoll abgeschlossen ist, 401 wenn die Sitzung abgelaufen ist.
 
+### Fehler
+
+Alle Fehler (400, 401, 403, 404, 405, 413, 500) als Seite mit Grafik (siehe `01`). Mit `Accept: application/json` oder den Kopfzeilen `X-Autosave` / `X-Cockpit-Ajax` stattdessen JSON `{"ok": false, "error": "…", "nachricht": "…"}` mit dem Status. Keine technischen Einzelheiten in der Antwort.
+
 ### Darstellung speichern: `POST /einstellungen/darstellung`
 
-Felder `theme`, `modus`, `akzent`, `schrift`, `ecken`, `menue`, `zahlen`; jeder Wert muss aus der festen Liste stammen, sonst Fehlermeldung „… hat einen ungültigen Wert“. Unbekannte Felder werden abgelehnt.
+Felder `theme`, `modus`, `akzent`, `schrift`, `ecken`, `menue`, `zahlen`, `grafik`; jeder Wert muss aus der festen Liste stammen, sonst Fehlermeldung „… hat einen ungültigen Wert“. Unbekannte Felder werden abgelehnt.
 
 ### Startseite speichern: `POST /startseite`
 

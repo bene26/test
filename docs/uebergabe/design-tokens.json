@@ -1,5 +1,5 @@
 {
-  "_hinweis": "Automatisch aus cockpit/static/app.css erzeugt (Version 0.5). Werte sind CSS-Werte: Farben als Hex/rgba, Hintergründe (backdrop) als CSS-Verläufe, color-mix() und var() als Text. Für React Native Verläufe z. B. mit expo-linear-gradient, Unschärfe (panel-filter) mit expo-blur nachbauen.",
+  "_hinweis": "Automatisch aus cockpit/static/app.css erzeugt (Version 0.6). Werte sind CSS-Werte: Farben als Hex/rgba, Hintergründe (backdrop) als CSS-Verläufe, color-mix() und var() als Text. Für React Native Verläufe z. B. mit expo-linear-gradient, Unschärfe (panel-filter) mit expo-blur nachbauen.",
   "standard": {
     "design": "glas",
     "modus_je_design": {
@@ -15,6 +15,13 @@
       "hell": "mini",
       "bronze": "oben",
       "schlicht": "oben"
+    },
+    "fehlergrafik": {
+      "violett": "fallblatt",
+      "glas": "loch",
+      "bronze": "bon",
+      "hell": "flieger",
+      "schlicht": "kartei"
     }
   },
   "designs": {
@@ -716,5 +723,13 @@
   "zaehler_abzeichen": {
     "hintergrund": "#d92d20",
     "text": "#ffffff"
-  }
+  },
+  "fehlergrafiken": [
+    "fallblatt",
+    "loch",
+    "bon",
+    "flieger",
+    "kartei",
+    "schluessel"
+  ]
 }

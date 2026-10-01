@@ -23,7 +23,8 @@ Anmelden ─┬─ Start (Startseite mit Bausteinen)        ← Strg+K springt v
           ├─ Berichte ── Projektstatus (drucken, per E-Mail senden)
           ├─ Team & Firmen ── Person │ Firma ── Bestellung (mit Kassenbon)
           ├─ Einstellungen (Darstellung, Startseite, Erinnerungen, Kanäle, Passwort, Sicherung)
-          └─ Frag das Cockpit (Seite ohne JavaScript; normal als Baustein auf der Startseite)
+          ├─ Frag das Cockpit (Seite ohne JavaScript; normal als Baustein auf der Startseite)
+          └─ Fehlerseiten: 404 nicht gefunden, 400, 401, 403, 405, 413, 500
 Konto erstellen (nur beim allerersten Start, mit Einrichtungscode)
 ```
 
@@ -160,7 +161,7 @@ Kopf: Bestellnummer · Bezeichnung, Menge, Projekt, Laufzeit. Vier Kennzahlen: b
 
 ### Einstellungen — `vorschau/seiten/21-einstellungen.webp`, `vorschau/navigation/darstellung-einstellungen.webp`
 
-1. **Darstellung:** Design (fünf Karten mit Mini-Vorschau), Hell oder dunkel, Akzentfarbe (Farbkreise), Schriftgröße (Aa klein/normal/groß), Ecken, Zahlen, Menü-Stil (zehn Kacheln mit Mini-Menü). Rechts eine Vorschau (Kennzahlen, Karte, Knöpfe, Menü). Jede Änderung wirkt sofort auf die ganze Seite; unten erscheint die Leiste „N Änderungen · Verwerfen · Übernehmen“. Ablauf in `03`.
+1. **Darstellung:** Design (fünf Karten mit Mini-Vorschau), Hell oder dunkel, Akzentfarbe (Farbkreise), Schriftgröße (Aa klein/normal/groß), Ecken, Zahlen, Menü-Stil (zehn Kacheln mit Mini-Menü), Grafik für Fehlerseiten (sieben Kacheln mit kleinem Bild, darunter eine Vorschau der gewählten Grafik in Bewegung und der Link „404-Seite öffnen“). Rechts eine Vorschau (Kennzahlen, Karte, Knöpfe, Menü). Jede Änderung wirkt sofort auf die ganze Seite; unten erscheint die Leiste „N Änderungen · Verwerfen · Übernehmen“. Ablauf in `03`.
 2. **Startseite:** „Startseite anpassen“, „Auf Standard zurücksetzen“.
 3. **Erinnerungen:** Uhrzeiten für Morgen-Zusammenfassung (07:30), Wochenplanung (Mo 08:45), Wochenabschluss (Fr 13:45), Meeting-Vorbereitung (15:00 am Vortag), Monatsbericht (09:00); „ohne Update“ nach N Tagen (7); Erinnerungen an/aus.
 4. **Kanäle:** Status von Push (ntfy) und E-Mail (SMTP), Hinweis, dass Zugangsdaten nur in `.env` stehen, „Testnachricht senden“.
@@ -170,6 +171,22 @@ Kopf: Bestellnummer · Bezeichnung, Menge, Projekt, Laufzeit. Vier Kennzahlen: b
 ### Frag das Cockpit ohne JavaScript — `vorschau/seiten/22-frag-das-cockpit-ohne-js.webp`
 
 Fallback-Seite `/assistent?frage=…`: Eingabefeld, die Frage als Sprechblase, Antwortabsätze und Linkliste. Mit JavaScript läuft alles im Baustein auf der Startseite.
+
+### Fehlerseiten — `vorschau/fehlerseiten/`
+
+Eine Vorlage für alle Fehler. Zwei Spalten (Handy: Grafik oben): links eine große, bewegte Grafik, rechts „FEHLER 404“ (klein, gesperrt), Überschrift, Erklärung, bei 404 die aufgerufene Adresse, Knöpfe „Zur Startseite“, „Zurück“ (geht im Verlauf zurück, wenn man von der eigenen Seite kam) und „Suchen Strg K“, darunter „Oder direkt zu: Aufgaben · Meetings · Projekte · Zeitplan · Berichte“.
+
+| Status | Überschrift | Kurztext in der Grafik | Erklärung |
+|---|---|---|---|
+| 404 | Seite nicht gefunden | NICHT GEFUNDEN | Diese Seite gibt es nicht (mehr). Vielleicht wurde der Eintrag gelöscht, oder der Link ist falsch geschrieben. |
+| 400 | Das hat nicht geklappt | UNGÜLTIG | Die Anfrage war ungültig. / Das Formular ist abgelaufen. Bitte Seite neu laden. |
+| 401 | Bitte neu anmelden | BITTE ANMELDEN | Bitte neu anmelden. |
+| 403 | Kein Zutritt | KEIN ZUTRITT | Dafür fehlt die Berechtigung. |
+| 405 | So geht das nicht | NICHT ERLAUBT | Diese Adresse lässt sich so nicht aufrufen. |
+| 413 | Zu groß | ZU GROSS | Die Anfrage ist zu groß. |
+| 500 | Etwas ist schiefgelaufen | STÖRUNG | Ein interner Fehler ist aufgetreten. Bitte die Seite neu laden oder später noch einmal versuchen. |
+
+Welche Grafik erscheint, stellt man unter *Einstellungen → Darstellung → Grafik für Fehlerseiten* ein; ohne Wahl passend zum Design (Violett Abfahrtstafel, Glas Schwarzes Loch, Bronze Kassenbon, Hell Papierflieger, Schlicht Karteikasten). Ablauf der Grafiken in `03`, Abschnitt 10. Anfragen mit `Accept: application/json` (und Autospeichern, Papierflieger) bekommen statt der Seite `{"ok": false, "error": "…", "nachricht": "…"}`. Scheitert die Fehlerseite selbst (z. B. Datenbank weg), kommt ein schlichter Text ohne Einzelheiten. Nicht angemeldete Besucher werden bei unbekannten Adressen zur Anmeldung geleitet.
 
 ### Überall: Karteikasten (Strg+K / ⌘K)
 

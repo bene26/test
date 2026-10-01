@@ -1,6 +1,6 @@
 # Bilder
 
-Alle Screenshots stammen aus der fertigen App (Version 0.5) mit Beispieldaten. Breite Bilder sind auf 1 440 px verkleinert, Handy-Bilder zeigen 390 px Breite in doppelter Auflösung.
+Alle Screenshots stammen aus der fertigen App (Version 0.5, Fehlerseiten aus Version 0.6) mit Beispieldaten. Breite Bilder sind auf 1 440 px verkleinert, Handy-Bilder zeigen 390 px Breite in doppelter Auflösung.
 
 ## `vorschau/seiten/` — jede Seite (Design Glas, Zahlen als Fallblatt)
 
@@ -66,6 +66,20 @@ Alle Screenshots stammen aus der fertigen App (Version 0.5) mit Beispieldaten. B
 | `orb-denkt.webp` | Orb beim Nachdenken (kleine Kugel, Status) |
 | `orb-antwort-kontingente.webp` | Antwort auf „Wie stehen die Kontingente?“ |
 | `orb-zwoelf-kugeln.webp` | alle zwölf Kugeln: Glas, Plasma, Chrom, Schwarm, Hologramm, Stimme / Aurora, Lava, Dither, Blase, Schwarzes Loch, Kristall |
+
+## `vorschau/fehlerseiten/`
+
+| Bild | Zeigt |
+|---|---|
+| `404-abfahrtstafel-violett.webp`, `404-abfahrtstafel-klappert.webp` | 404 in Violett: Abfahrtstafel fertig und beim Klappern |
+| `404-schwarzes-loch-glas.webp` | 404 in Glas: Ziffern werden ins Schwarze Loch gezogen |
+| `404-kassenbon-bronze.webp` | 404 in Bronze: Beleg „Storno“ |
+| `404-papierflieger-hell.webp` | 404 in Hell: Flieger kreist um die 404 |
+| `404-karteikasten-schlicht.webp`, `404-karteikasten-blaettert.webp` | 404 in Schlicht: fehlende Karte vorn, Kasten beim Blättern |
+| `404-schluessel.webp` | 404 mit der Grafik Schlüssel |
+| `404-handy.webp` | 404 auf dem Handy |
+| `einstellungen-grafik-vorschau.webp` | Auswahl der Grafik mit Vorschau in den Einstellungen |
+| `design-paket-404.webp` | `404.html` aus dem Design-Paket |
 
 ## `vorschau/handy/`
 

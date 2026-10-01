@@ -4,7 +4,7 @@ Selbst gehostetes Werkzeug für Projektleitung mit mehreren Projekten, eigenen L
 
 Konzept und Hintergrund: [`docs/konzept.md`](docs/konzept.md). Installation: [`docs/installation-ugreen.md`](docs/installation-ugreen.md). Übergabe an andere Entwickler oder Agenten (alle Seiten, Design, Animationen, Bilder): [`docs/uebergabe/`](docs/uebergabe/README.md).
 
-## Was die Version 0.5 kann
+## Was die Version 0.6 kann
 
 - **Startseite zum Selbst-Zusammenstellen:** 15 Bausteine (Kennzahlen, Frag das Cockpit, Routinen, Schnellerfassung, nächstes Meeting, Überfällig, Diese Woche, Meetings, Protokoll fehlt, Projekte, Kalender, Zeitplan, Kontingente, Auslastung, Zeiten). Mit „Startseite anpassen“ per Ziehen oder Pfeiltasten sortieren, ein- und ausblenden, breit oder schmal; gespeichert je Konto
 - **Aufgaben:** Schnellerfassung in einer Zeile, Filter und Schnellansichten, Status direkt in der Liste ändern, Sammelbearbeitung (Status, verschieben, zuweisen, löschen), CSV-Export für Excel
@@ -27,6 +27,7 @@ Konzept und Hintergrund: [`docs/konzept.md`](docs/konzept.md). Installation: [`d
 - **Fallblatt-Zahlen:** Kennzahlen klappern beim Öffnen wie auf einer Abfahrtstafel (Einstellung „Zahlen“, in jedem Design wählbar)
 - **Kassenbon:** jede Bestellung zeigt einen Beleg, der Zeile für Zeile gedruckt wird (Übersicht oder alle Leistungsnachweise)
 - **Schlüssel und Schloss** bei „Konto erstellen“ und „Passwort ändern“: jede erfüllte Passwort-Regel schneidet einen Zahn, das Schloss geht auf, wenn alles passt
+- **Fehlerseiten** (404 „Seite nicht gefunden“, kein Zutritt, Fehler): große animierte Grafik, unter *Einstellungen → Darstellung → Grafik für Fehlerseiten* umschaltbar zwischen Abfahrtstafel, Schwarzem Loch, Kassenbon, Papierflieger, Karteikasten und Schlüssel (mit Live-Vorschau; ohne Wahl passend zum Design), dazu Wege zurück: Startseite, Zurück, Suche (Strg+K) und direkte Links
 - **Papierflieger:** „Statusbericht per E-Mail senden“ faltet sich beim Senden zum Flieger; schlägt der Versand fehl, faltet er sich wieder auf und zeigt den Grund
 
 Noch nicht enthalten (siehe Konzept): Abwesenheiten und Feiertage, Zuteilungen je Woche, Szenarien, mehrere Benutzer mit Rechten, Firmenportal, Kalender-Abonnement.

@@ -18,7 +18,7 @@ def build(target: Path) -> Path:
         for font in sorted((STATIC / "fonts").iterdir()):
             z.write(font, f"design-kit/fonts/{font.name}")
         z.write(STATIC / "komponenten.js", "design-kit/komponenten.js")
-        for page in ("beispiel.html", "vorlage.html", "anmelden.html", "komponenten.html"):
+        for page in ("beispiel.html", "vorlage.html", "anmelden.html", "komponenten.html", "404.html"):
             html = (KIT / page).read_text(encoding="utf-8").replace(
                 "../cockpit/static/app.css", "cockpit-design.css").replace(
                 "../cockpit/static/komponenten.js", "komponenten.js")

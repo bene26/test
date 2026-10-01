@@ -1,9 +1,29 @@
 {% extends "base.html" %}
-{% block title %}Fehler {{ code }}{% endblock %}
+{% from "_grafiken.html" import fehler_grafiken %}
+{% block title %}{{ title }}{% endblock %}
 {% block content %}
-<div class="card">
-  <h1>Fehler {{ code }}</h1>
-  <p>{{ message }}</p>
-  <p><a href="{{ url_for('main.dashboard') }}">Zur Startseite</a></p>
-</div>
+<section class="fehlerseite" aria-labelledby="fehler-titel">
+  <div class="fehler-bild">{{ fehler_grafiken(code, kurz, path, today|datum, now_time) }}</div>
+  <div class="fehler-text">
+    <p class="eyebrow">Fehler {{ code }}</p>
+    <h1 id="fehler-titel">{{ title }}</h1>
+    <p class="fehler-meldung">{{ message }}</p>
+    {% if code == 404 and path %}<p class="fehler-pfad">Adresse: <code>{{ path }}</code></p>{% endif %}
+    <div class="fehler-aktionen">
+      <a class="btn btn-primary" href="{{ url_for('main.dashboard') }}">Zur Startseite</a>
+      <a class="btn" href="{{ url_for('main.dashboard') }}" data-zurueck>Zurück</a>
+      {% if current_user %}<button class="btn" type="button" data-kartei-oeffnen>Suchen <kbd data-kartei-taste>Strg K</kbd></button>{% endif %}
+    </div>
+    {% if current_user and code in (403, 404, 405) %}
+    <nav class="fehler-links" aria-label="Direkt zu">
+      <span>Oder direkt zu:</span>
+      <a href="{{ url_for('tasks.index') }}">Aufgaben</a>
+      <a href="{{ url_for('meetings.index') }}">Meetings</a>
+      <a href="{{ url_for('projects.index') }}">Projekte</a>
+      <a href="{{ url_for('schedule.index') }}">Zeitplan</a>
+      <a href="{{ url_for('reports.index') }}">Berichte</a>
+    </nav>
+    {% endif %}
+  </div>
+</section>
 {% endblock %}

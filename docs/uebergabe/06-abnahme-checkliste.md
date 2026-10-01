@@ -33,6 +33,15 @@ Zum Abhaken nach der Übernahme. Jeder Punkt ist im Browser oder mit einem Test 
 - [ ] Mit „Bewegung reduzieren“ läuft keine Animation, alles ist trotzdem bedienbar.
 - [ ] Ohne JavaScript lassen sich alle Formulare abschicken, Kassenbon und Zahlen sind lesbar.
 
+## Fehlerseiten
+
+- [ ] Eine unbekannte Adresse zeigt die 404-Seite mit Status 404, Überschrift „Seite nicht gefunden“, der Adresse (maskiert) und den Wegen zurück.
+- [ ] Unter *Darstellung → Grafik für Fehlerseiten* lassen sich sechs Grafiken wählen; die Vorschau darunter wechselt und läuft sofort; nach „Übernehmen“ zeigt die 404-Seite die gewählte Grafik.
+- [ ] „Wie im Design“: Violett Abfahrtstafel, Glas Schwarzes Loch, Bronze Kassenbon, Hell Papierflieger, Schlicht Karteikasten.
+- [ ] Jede Grafik bewegt sich wie in `03`, Abschnitt 10; nur die sichtbare läuft; bei „Bewegung reduzieren“ steht sie still und ist lesbar.
+- [ ] 400 (abgelaufenes Formular), 405 und 500 zeigen deutsche Texte ohne technische Einzelheiten; Anfragen mit `Accept: application/json` bekommen JSON.
+- [ ] „Zurück“ geht im Verlauf zurück, wenn man von der eigenen Seite kam, sonst zur Startseite.
+
 ## Fachfunktionen
 
 - [ ] Startseite: Bausteine ein-/ausblenden, breit/schmal, ziehen und mit Pfeilen sortieren; „Standard“ setzt zurück; gespeichert je Konto.

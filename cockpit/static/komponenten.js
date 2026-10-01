@@ -5,6 +5,7 @@
 //   4. Karteikasten       [data-kartei]           Strg+K / ⌘K: suchen und springen, Karten klappen wie in einer Kartei
 //   5. Papierflieger      [data-flieger]          ein Formular faltet sich beim Absenden zum Flieger
 //   6. Orb                [data-orb]              Eingabebox mit animierter Kugel (12 Stile)
+//   7. Fehler-Grafiken    [data-grafik-bild]      große Bilder der Fehlerseiten, nur das sichtbare läuft
 // Ohne Bibliotheken. Funktioniert mit strenger Content-Security-Policy: im HTML stehen keine
 // Inline-Styles, Bewegungen laufen über CSS-Klassen, die CSSOM und die Web Animations API.
 // Wer im System „Bewegung reduzieren“ eingestellt hat, bekommt alles ohne Animation.
@@ -35,6 +36,7 @@
   }
   function store(key, value) { try { localStorage.setItem(key, value); } catch (e) { /* privater Modus */ } }
   function fetchKey(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+  function visible(el) { return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length); }
   function typing(target) {
     return target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
   }
@@ -87,7 +89,7 @@
   // Turns the text of one element into tiles and lets them clatter to the value.
   function fbBuild(value, delay) {
     if (value.fbNodes) return;
-    const text = value.textContent.replace(/\s+/g, " ").trim();
+    const text = value.textContent.replace(/[ \t\r\n]+/g, " ").trim();
     value.fbNodes = Array.from(value.childNodes);
     value.classList.add("fb-board");
     const tiles = Array.from(text, () => fbTile(" "));
@@ -123,6 +125,7 @@
   function fbRefresh() {
     $$("[data-fallblatt]").forEach((scope, n) => {
       const on = getComputedStyle(scope).getPropertyValue("--fallblatt").trim() === "an";
+      if (on && !visible(scope)) return; // hidden graphic: build when it is shown
       fbValues(scope).forEach((value, i) => (on ? fbBuild(value, n * 120 + i * 140) : fbRestore(value)));
     });
   }
@@ -403,6 +406,29 @@
   const RISE = 27;
   const FALL = 82;
 
+  // Cards behind the front one stand higher, further away and lean back; passed cards
+  // have fallen towards the viewer (values from the "Card File Palette" reference).
+  function placeCards(cards, cur) {
+    cards.forEach((c, i) => {
+      const o = i - cur;
+      let transform;
+      let opacity;
+      if (o >= 0) {
+        transform = `translate3d(0, ${-RISE * o}px, ${-DEPTH_STEP * o}px) rotateX(${Math.min(o, 3) * LEAN}deg)`;
+        opacity = o > 5 ? 0 : 1;
+        c.style.setProperty("--schatten", Math.min(0.55, o * 0.11).toFixed(2));
+      } else {
+        transform = `translate3d(0, 12px, 40px) rotateX(${-Math.min(90, FALL + (-o - 1) * 3)}deg)`;
+        opacity = o < -2 ? 0 : 0.8 + o * 0.25;
+        c.style.setProperty("--schatten", "0.3");
+      }
+      c.style.transform = transform;
+      c.style.opacity = opacity;
+      c.style.zIndex = String(o >= 0 ? 100 - o : 200 + o);
+      c.classList.toggle("vorne", o === 0);
+    });
+  }
+
   function fold(text) {
     return text.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ß/g, "ss");
   }
@@ -446,25 +472,8 @@
       return a;
     }
     function place() {
-      cards.forEach((c, i) => {
-        const o = i - cur;
-        let transform;
-        let opacity;
-        if (o >= 0) {
-          transform = `translate3d(0, ${-RISE * o}px, ${-DEPTH_STEP * o}px) rotateX(${Math.min(o, 3) * LEAN}deg)`;
-          opacity = o > 5 ? 0 : 1;
-          c.style.setProperty("--schatten", Math.min(0.55, o * 0.11).toFixed(2));
-        } else {
-          transform = `translate3d(0, 12px, 40px) rotateX(${-Math.min(90, FALL + (-o - 1) * 3)}deg)`;
-          opacity = o < -2 ? 0 : 0.8 + o * 0.25;
-          c.style.setProperty("--schatten", "0.3");
-        }
-        c.style.transform = transform;
-        c.style.opacity = opacity;
-        c.style.zIndex = String(o >= 0 ? 100 - o : 200 + o);
-        c.classList.toggle("vorne", o === 0);
-        c.setAttribute("aria-selected", o === 0 ? "true" : "false");
-      });
+      placeCards(cards, cur);
+      cards.forEach((c, i) => c.setAttribute("aria-selected", i === cur ? "true" : "false"));
       if (cards[cur]) input.setAttribute("aria-activedescendant", cards[cur].id);
       else input.removeAttribute("aria-activedescendant");
     }
@@ -1172,10 +1181,185 @@
     draw();
   }
 
+  /* ---------- 7. Fehler-Grafiken (404 und andere Fehlerseiten) ---------- */
+
+  // Runs a frame loop only while the element is on screen and the tab is visible.
+  function loop(el, frame) {
+    let raf = 0;
+    let shown = true;
+    let last = performance.now();
+    const tick = (now) => {
+      raf = 0;
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      frame(dt);
+      if (shown && !document.hidden && visible(el)) raf = requestAnimationFrame(tick);
+    };
+    const kick = () => { if (!raf && shown && !document.hidden) { last = performance.now(); raf = requestAnimationFrame(tick); } };
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver((entries) => { shown = entries.some((e) => e.isIntersecting); kick(); }).observe(el);
+    }
+    document.addEventListener("visibilitychange", kick);
+    el.grafikWeiter = kick;
+    kick();
+  }
+
+  // Any of the twelve orbs as a picture: <canvas data-orb-bild="loch">.
+  function orbBild(canvas) {
+    const style = ORB_DRAW[canvas.dataset.orbBild] ? canvas.dataset.orbBild : "loch";
+    const ctx = canvas.getContext("2d");
+    const mem = {};
+    let t = 1.3;
+    const draw = () => {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const w = Math.round(canvas.clientWidth * dpr) || 280;
+      if (canvas.width !== w) { canvas.width = w; canvas.height = w; }
+      ctx.clearRect(0, 0, w, w);
+      ctx.save();
+      ORB_DRAW[style](ctx, w, t, 0.3 + 0.2 * Math.sin(t * 1.7), mem);
+      ctx.restore();
+    };
+    if (!motion) { draw(); return; }
+    loop(canvas, (dt) => { t += dt; draw(); });
+  }
+
+  // Paper plane circling around the code on a dashed orbit.
+  function fliegerBild(el) {
+    const path = $(".gr-bahn", el);
+    const plane = $(".gr-flugzeug", el);
+    if (!path || !plane || !path.getTotalLength) return;
+    const len = path.getTotalLength();
+    let s = len * 0.05;
+    const put = () => {
+      const a = path.getPointAtLength(s % len);
+      const b = path.getPointAtLength((s + 2) % len);
+      const angle = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+      const bob = Math.sin(s / 38) * 3;
+      plane.setAttribute("transform", `translate(${a.x.toFixed(1)} ${(a.y + bob).toFixed(1)}) rotate(${angle.toFixed(1)}) scale(1.3)`);
+    };
+    put();
+    if (!motion) return;
+    loop(el, (dt) => { s += dt * 150; put(); });
+  }
+
+  // Card file: flips through the pages and stops at the card that is missing.
+  function karteiBild(el) {
+    const cards = $$(".kartei-karte", el);
+    if (!cards.length) return;
+    let cur = 0;
+    placeCards(cards, motion ? 0 : cards.length - 1);
+    if (!motion) return;
+    const step = () => {
+      if (!el.isConnected) return;
+      if (visible(el) && !document.hidden) {
+        cur = cur >= cards.length - 1 ? 0 : cur + 1;
+        placeCards(cards, cur);
+      }
+      setTimeout(step, cur === cards.length - 1 ? 3600 : cur === 0 ? 1400 : 900);
+    };
+    setTimeout(step, 900);
+  }
+
+  // A key with every tooth cut that still does not fit: in, jiggle, lock shakes, out.
+  function schluesselBild(el) {
+    const box = $("[data-schluessel-bild]", el);
+    if (!box) return;
+    const parts = keyArt(box);
+    parts.blade.setAttribute("d", bladePath(DEPTH));
+    const key = $(".s-key", box);
+    const lock = $(".s-lock", box);
+    if (!motion || !key) return;
+    key.style.transformBox = "fill-box";
+    key.style.transformOrigin = "50% 50%";
+    const go = async () => {
+      while (el.isConnected) {
+        if (!visible(el) || document.hidden) { await wait(800); continue; }
+        await anim(key, [{ transform: "translateX(0)" }, { transform: "translateX(150px)" }],
+          { duration: 700, easing: "cubic-bezier(.5,0,.2,1)", fill: "forwards" });
+        anim(lock, [{ transform: "translateX(0)" }, { transform: "translateX(4px)" }, { transform: "translateX(-4px)" },
+          { transform: "translateX(2px)" }, { transform: "translateX(0)" }], { duration: 520 });
+        await anim(key, [{ transform: "translateX(150px) rotate(0deg)" }, { transform: "translateX(147px) rotate(-5deg)" },
+          { transform: "translateX(150px) rotate(4deg)" }, { transform: "translateX(148px) rotate(-2deg)" },
+          { transform: "translateX(150px) rotate(0deg)" }], { duration: 640, fill: "forwards" });
+        await wait(250);
+        await anim(key, [{ transform: "translateX(150px)" }, { transform: "translateX(0)" }],
+          { duration: 650, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" });
+        await wait(1500);
+      }
+    };
+    go();
+  }
+
+  // Departure board: the hint row changes between its texts every five seconds.
+  function tafelBild(el) {
+    $$("[data-fallblatt-wechsel]", el).forEach((row) => {
+      const texts = row.dataset.fallblattWechsel.split("|").filter(Boolean);
+      const width = Math.max(...texts.map((t) => t.length));
+      const padded = texts.map((t) => t.padEnd(width, " "));
+      row.textContent = padded[0];
+      if (!motion || padded.length < 2) return;
+      let i = 0;
+      setInterval(() => {
+        if (!visible(row) || document.hidden || !row.fbNodes) return;
+        i = (i + 1) % padded.length;
+        fbSet(row, padded[i]);
+      }, 5000);
+    });
+  }
+
+  const GRAFIK = { loch: (el) => $$("[data-orb-bild]", el).forEach(orbBild), flieger: fliegerBild,
+    kartei: karteiBild, schluessel: schluesselBild, fallblatt: tafelBild };
+
+  // Start the graphics that are visible now (the settings can switch them at any time).
+  function grafikenRefresh() {
+    $$("[data-grafik-bild]").forEach((el) => {
+      if (!visible(el)) return;
+      if (el.grafikGestartet) { if (el.grafikWeiter) el.grafikWeiter(); return; }
+      el.grafikGestartet = true;
+      const start = GRAFIK[el.dataset.grafikBild];
+      if (start) start(el);
+    });
+    $$("canvas[data-orb-bild]").forEach((c) => {
+      if (!c.closest("[data-grafik-bild]") && !c.grafikGestartet && visible(c)) { c.grafikGestartet = true; orbBild(c); }
+    });
+    fbRefresh();
+  }
+
+  // Static 404 pages (design kit) do not know the address, time and date: fill them in here.
+  // data-fehler-pfad="kurz" gives capitals and at most 14 characters, like the app.
+  function fehlerPfad() {
+    const path = location.pathname || "/";
+    const short = path.toUpperCase().length > 14 ? path.toUpperCase().slice(0, 13) + "…" : path.toUpperCase();
+    const now = new Date();
+    const two = (n) => String(n).padStart(2, "0");
+    const fill = (root) => {
+      $$("[data-fehler-pfad]", root).forEach((el) => {
+        el.textContent = el.dataset.fehlerPfad === "kurz" ? short : path;
+      });
+      $$("[data-fehler-uhr]", root).forEach((el) => { el.textContent = `${two(now.getHours())}:${two(now.getMinutes())}`; });
+      $$("[data-fehler-datum]", root).forEach((el) => {
+        el.textContent = `${two(now.getDate())}.${two(now.getMonth() + 1)}.${now.getFullYear()}`;
+      });
+    };
+    fill(document);
+    $$("template").forEach((tpl) => fill(tpl.content));
+  }
+
+  // "Zurück" goes back in the browser history when the visitor came from this site.
+  function zurueck(event) {
+    const link = event.target.closest && event.target.closest("[data-zurueck]");
+    if (!link) return;
+    let sameSite = false;
+    try { sameSite = document.referrer && new URL(document.referrer).origin === location.origin; } catch (e) { sameSite = false; }
+    if (sameSite && history.length > 1) { event.preventDefault(); history.back(); }
+  }
+
   /* ---------- Start ---------- */
 
   function start() {
-    fbRefresh();
+    fehlerPfad();
+    grafikenRefresh();
+    document.addEventListener("click", zurueck);
     $$("[data-fallblatt-nochmal]").forEach((btn) => btn.addEventListener("click", () => {
       const scope = btn.closest("section, .card, body");
       $$("[data-fallblatt]", scope).forEach((board) => fbValues(board).forEach((value, i) => {
@@ -1190,10 +1374,11 @@
     $$("[data-orb]").forEach(orbInit);
     focusTarget();
     window.addEventListener("hashchange", focusTarget);
-    // The settings page and the design switcher change data-* on <html>: re-check the digits.
+    // The settings page and the design switcher change data-* on <html>: re-check the digits
+    // and start the graphic that has become visible.
     if ("MutationObserver" in window) {
-      new MutationObserver(fbRefresh).observe(document.documentElement,
-        { attributes: true, attributeFilter: ["data-theme", "data-digits", "data-mode"] });
+      new MutationObserver(grafikenRefresh).observe(document.documentElement,
+        { attributes: true, attributeFilter: ["data-theme", "data-digits", "data-mode", "data-grafik"] });
     }
   }
 

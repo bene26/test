@@ -16,6 +16,7 @@ Mit diesem Paket bekommt jede Webseite die fünf Designs des Projekt-Cockpits: *
 | `beispiel.html` | Beispielseite mit allen Bausteinen, einfach im Browser öffnen |
 | `komponenten.js` | sechs bewegte Komponenten: Fallblatt-Zahlen, Schlüssel, Kassenbon, Karteikasten, Papierflieger, Orb (optional) |
 | `komponenten.html` | alle sechs Komponenten zum Ausprobieren und Abschauen |
+| `404.html` | Seite „nicht gefunden“ mit sechs umschaltbaren Grafiken |
 
 ## Bestehende HTML-Seiten umstellen
 
@@ -103,6 +104,7 @@ Alles wird über Attribute am `<html>`-Element gesteuert, genau wie unter *Einst
 | `data-shape` | `rund`, `weich`, `kantig` | Ecken (Bronze bleibt abgeschrägt) |
 | `data-menu` | siehe nächste Tabelle | Stil des aktuellen Menüpunkts |
 | `data-nav` | `voll`, `mini` | Seitenleiste offen oder als Symbolleiste (nur bei `violett`, `glas`, `hell`) |
+| `data-grafik` | `fallblatt`, `loch`, `bon`, `flieger`, `kartei`, `schluessel` | Grafik der 404-Seite: Abfahrtstafel, Schwarzes Loch, Kassenbon, Papierflieger, Karteikasten, Schlüssel (ohne Angabe passend zum Design); braucht `komponenten.js` |
 | `data-digits` | `fallblatt`, `schlicht` | Kennzahlen als klappernde Abfahrtstafel (ohne Angabe nur bei Violett); braucht `komponenten.js` |
 
 Menü-Stile (`data-menu`), nach den Vorlagen „10 Next-Gen Navigation Designs“:
@@ -145,6 +147,12 @@ Auf dem Handy wird das Menü der Seitenleiste automatisch zu einem Dock am unter
 | Orb | `[data-orb]` mit `canvas[data-orb-kugel]` und `form[data-orb-form]` | Eingabebox mit animierter Kugel in zwölf Stilen (Glas, Plasma, Chrom, Schwarm, Hologramm, Stimme, Aurora, Lava, Dither, Blase, Schwarzes Loch, Kristall), die auf Tippen, Nachdenken und jedes Wort reagiert. Mit `data-orb-quelle="/antwort"` kommen die Antworten von deinem Server (JSON `{"absaetze": [...], "links": [...]}`) |
 
 Alle Komponenten funktionieren mit strenger Content-Security-Policy, folgen dem gewählten Design und laufen bei „Bewegung reduzieren“ ohne Animation.
+
+## 404-Seite
+
+`404.html` zeigt „Seite nicht gefunden“ mit einer großen, bewegten Grafik. Welche, bestimmt `data-grafik` am `<html>` (oder der Design-Umschalter mit `<select data-look="grafik">`); ohne Angabe nimmt jedes Design seine eigene: Violett die Abfahrtstafel, Glas das Schwarze Loch, Bronze den Kassenbon, Hell den Papierflieger, Schlicht den Karteikasten. Adresse, Uhrzeit und Datum setzt `komponenten.js` ein.
+
+So wird sie zur echten Fehlerseite: Datei in den Hauptordner der Webseite legen und beim Hoster als 404-Seite eintragen (Apache `.htaccess`: `ErrorDocument 404 /404.html`, nginx: `error_page 404 /404.html;`, viele Hoster erkennen `404.html` von selbst). Weil die Seite unter jeder beliebigen Adresse erscheint, die Pfade zu CSS und Skripten absolut schreiben, zum Beispiel `/design/cockpit-design.css` und `/design/komponenten.js`. Die Auswahlfelder am Ende sind nur zum Ausprobieren und können weg.
 
 ## Grundsätzlich: so funktioniert das Design
 

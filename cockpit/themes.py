@@ -1,7 +1,8 @@
 """Selectable designs and appearance options.
 
 The design is stored per user (users.theme), the finer options (light or dark,
-accent colour, text size, corners, menu style, digits) as JSON in users.appearance.
+accent colour, text size, corners, menu style, digits, error page graphic) as JSON in
+users.appearance.
 Everything ends up as data-* attributes on <html>; all colours, fonts and
 layout differences live in static/app.css. Cookies remember the last choice
 so the login page looks the same as the app, and whether the sidebar is
@@ -62,10 +63,18 @@ APPEARANCE = {
         "neon": "Neon", "blob": "Blob", "karten": "Karten", "luxus": "Minimal Luxus"}),
     "zahlen": ("data-digits", {"": "Wie im Design", "fallblatt": "Fallblatt",
                                "schlicht": "Schlicht"}),
+    "grafik": ("data-grafik", {
+        "": "Wie im Design", "fallblatt": "Abfahrtstafel", "loch": "Schwarzes Loch",
+        "bon": "Kassenbon", "flieger": "Papierflieger", "kartei": "Karteikasten",
+        "schluessel": "Schlüssel"}),
 }
+# Graphic on the error pages when "Wie im Design" is chosen (see app.css, Fehlerseiten).
+DEFAULT_GRAFIK = {"violett": "fallblatt", "glas": "loch", "bronze": "bon", "hell": "flieger",
+                  "schlicht": "kartei"}
 DEFAULT_LOOK = {key: "" for key in APPEARANCE}
 LABELS = {"modus": "Hell oder dunkel", "akzent": "Akzentfarbe", "schrift": "Schriftgröße",
-          "ecken": "Ecken", "menue": "Menü-Stil", "zahlen": "Zahlen"}
+          "ecken": "Ecken", "menue": "Menü-Stil", "zahlen": "Zahlen",
+          "grafik": "Grafik für Fehlerseiten"}
 
 
 def resolve(value) -> str:

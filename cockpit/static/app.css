@@ -1817,7 +1817,7 @@ table.workload.compact td.lvl { padding: 4px; font-size: 0.85rem; }
 .seg label { position: relative; display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 8px 14px; border-radius: var(--radius-btn); color: var(--text); font-size: 0.9rem; cursor: pointer; }
 .seg label:has(input:checked) { background: var(--accent); color: var(--accent-contrast); font-weight: 700; }
 .seg label:has(input:focus-visible), .swatch:has(input:focus-visible), .menu-option:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
-.seg input, .swatch input, .menu-option input.vh { position: absolute; width: 1px; height: 1px; margin: 0; opacity: 0; }
+.seg input, .swatch input, .menu-option input.vh, .grafik-option input.vh { position: absolute; width: 1px; height: 1px; margin: 0; opacity: 0; }
 .seg .aa-klein { font-size: 0.8rem; }
 .seg .aa-gross { font-size: 1.15rem; }
 .shape-mark { display: inline-block; width: 18px; height: 14px; border: 2px solid currentColor; }
@@ -2410,6 +2410,135 @@ kbd { padding: 1px 5px; border: 1px solid var(--border); border-radius: 5px; bac
 @media (prefers-reduced-motion: reduce) {
   .s-key, .s-bow, .s-buegel, .kartei, .kartei-fenster, .kartei-karte, .orb-kugel { transition: none; }
   .druckt .bon-status::before { animation: none; }
+}
+
+/* 7 · Fehlerseiten und ihre Grafiken. Six pictures are in the page; one is shown, chosen
+   under Einstellungen → Darstellung (data-grafik) or by the design. */
+.fehlerseite {
+  display: grid;
+  align-items: center;
+  gap: 28px 48px;
+  min-height: min(72vh, 680px);
+  padding: 24px 0;
+}
+@media (min-width: 900px) { .fehlerseite { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); } }
+.fehler-bild { display: grid; place-items: center; min-width: 0; }
+.fehler-text { min-width: 0; max-width: 34rem; }
+.fehler-text h1 { margin: 0 0 12px; font-size: clamp(2rem, 4.5vw, 3.2rem); line-height: 1.05; }
+.fehler-meldung { color: var(--muted); font-size: 1.05rem; }
+.fehler-pfad { color: var(--muted); font-size: 0.9rem; overflow-wrap: anywhere; }
+.fehler-pfad code { padding: 1px 6px; border-radius: 4px; background: var(--surface-2); color: var(--text); }
+.fehler-aktionen { display: flex; flex-wrap: wrap; gap: 10px; margin: 22px 0 18px; }
+.fehler-aktionen kbd { margin-left: 4px; }
+.fehler-links { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.9rem; }
+
+.grafiken { width: 100%; max-width: 440px; }
+.grafik { display: none; place-items: center; width: 100%; }
+:root[data-grafik="fallblatt"] .gr-fallblatt,
+:root:not([data-grafik])[data-theme="violett"] .gr-fallblatt,
+:root[data-grafik="loch"] .gr-loch,
+:root:not([data-grafik])[data-theme="glas"] .gr-loch,
+:root[data-grafik="bon"] .gr-bon,
+:root:not([data-grafik])[data-theme="bronze"] .gr-bon,
+:root[data-grafik="flieger"] .gr-flieger,
+:root:not([data-grafik])[data-theme="hell"] .gr-flieger,
+:root[data-grafik="kartei"] .gr-kartei,
+:root:not([data-grafik]):is([data-theme="schlicht"], :not([data-theme])) .gr-kartei,
+:root[data-grafik="schluessel"] .gr-schluessel { display: grid; }
+
+/* Abfahrtstafel */
+.gr-tafel {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+  padding: 18px 20px 22px;
+  border: 1px solid var(--border);
+  border-radius: max(var(--radius), 12px);
+  background: color-mix(in srgb, var(--surface-solid, #111) 92%, #000);
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  font-size: 1.15rem;
+}
+.gr-tafel-kopf { display: flex; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid var(--border); color: var(--muted); font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; }
+.gr-zeile { display: grid; gap: 6px; }
+.gr-zeile small { color: var(--muted); font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase; }
+.gr-zeile > span { display: flex; flex-wrap: wrap; gap: 3px; min-height: 1.5em; font-family: var(--font-mono); font-weight: 600; letter-spacing: 0.1em; }
+.gr-gross { font-size: 2.6rem; }
+.gr-tafel .fb-board { gap: 3px; }
+.gr-tafel .fb-tile { width: 1.02em; }
+
+/* Schwarzes Loch: the digits are pulled into the hole */
+.gr-loch { position: relative; }
+.gr-loch-kugel { display: block; width: min(100%, 360px); aspect-ratio: 1; }
+.gr-sog { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+.gr-sog span {
+  grid-area: 1 / 1;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 3.4rem;
+  font-weight: 800;
+  text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 60%, transparent);
+  animation: gr-sog 6s cubic-bezier(0.55, 0, 0.8, 0.4) infinite;
+}
+.gr-sog span:nth-child(2) { animation-delay: -2s; }
+.gr-sog span:nth-child(3) { animation-delay: -4s; }
+@keyframes gr-sog {
+  0% { transform: rotate(0deg) translateX(150px) rotate(0deg) scale(1); opacity: 0; }
+  12% { opacity: 1; }
+  80% { opacity: 0.9; }
+  100% { transform: rotate(560deg) translateX(0) rotate(-560deg) scale(0.1); opacity: 0; }
+}
+
+/* Kassenbon */
+.gr-bon .bon-drucker { width: min(320px, 100%); }
+
+/* Papierflieger */
+.gr-flieger-bild { display: block; width: 100%; height: auto; overflow: visible; }
+.gr-bahn { fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-dasharray: 5 8; opacity: 0.5; animation: gr-spur 1.6s linear infinite; }
+@keyframes gr-spur { to { stroke-dashoffset: -26; } }
+.gr-flieger-code { fill: var(--text); font-family: var(--font-display); font-size: 84px; font-weight: 800; text-anchor: middle; }
+.gr-flugzeug { filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.35)); }
+.gr-flugzeug .fl-blatt { stroke: color-mix(in srgb, var(--text) 40%, transparent); stroke-width: 0.8; }
+
+/* Karteikasten */
+.gr-kartei { width: 100%; }
+.gr-kartei .kartei-buehne { width: 100%; height: 300px; border-radius: max(var(--radius), 12px); }
+.gr-karte-fehlt { border: 2px dashed #b4380b; background: repeating-linear-gradient(180deg, transparent 0 23px, rgba(27, 26, 34, 0.07) 23px 24px) 0 46px / 100% calc(100% - 46px) no-repeat, linear-gradient(180deg, #fff7f2, #f3e9e2); }
+.gr-karte-fehlt .kk-reiter { background: #b4380b; color: #fff; }
+
+/* Schlüssel */
+.gr-schluessel .schluessel-bild { width: 100%; }
+.gr-schluessel .s-key, .gr-schluessel .s-buegel { transition: none; }
+
+/* Choice and preview in the settings */
+.grafik-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+.grafik-option { position: relative; display: grid; justify-items: center; gap: 6px; margin: 0; padding: 12px 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm, 8px); background: var(--surface); color: var(--muted); font-size: 0.8rem; text-align: center; cursor: pointer; }
+.grafik-option:hover { border-color: var(--accent); }
+.grafik-option:has(input:checked) { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); color: var(--text); }
+.grafik-option:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.grafik-option strong { color: inherit; font-weight: 700; }
+.grafik-mini { width: 52px; height: 39px; fill: currentColor; stroke: none; color: var(--accent-text); }
+.grafik-mini .mini-linie, .grafik-mini .mini-spur { fill: none; stroke: var(--surface-solid, #fff); stroke-width: 2; }
+.grafik-mini .mini-spur { stroke: currentColor; stroke-dasharray: 3 3; }
+.grafik-mini .mini-ring { fill: none; stroke: currentColor; stroke-width: 3; }
+.grafik-mini .mini-hinten { opacity: 0.35; }
+.grafik-mini .mini-mitte { opacity: 0.65; }
+.grafik-mini text { fill: var(--surface-solid, #fff); font: 700 11px var(--font-mono); text-anchor: middle; }
+.grafik-vorschau { display: grid; justify-items: center; gap: 10px; margin-top: 16px; padding: 18px; border: 1px dashed var(--border); border-radius: var(--radius); }
+.grafik-vorschau .look-title { justify-self: start; }
+.grafik-vorschau .grafiken { max-width: 380px; }
+
+@media (max-width: 600px) {
+  .fehlerseite { min-height: 0; padding-top: 4px; }
+  .gr-gross { font-size: 2rem; }
+  .gr-tafel { font-size: 0.95rem; padding: 14px; }
+  .gr-sog span { font-size: 2.6rem; }
+  .gr-kartei .kartei-buehne { height: 250px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gr-sog span { animation: none; }
+  .gr-sog span:nth-child(1) { transform: translateX(-1.1em); }
+  .gr-sog span:nth-child(3) { transform: translateX(1.1em); }
+  .gr-bahn { animation: none; }
 }
 
 /* ---------- Print: always black on white ---------- */
