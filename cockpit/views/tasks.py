@@ -271,12 +271,7 @@ def bulk():
     return back(url_for("tasks.index"))
 
 
-def _csv_cell(value) -> str:
-    text = "" if value is None else str(value)
-    # Keep spreadsheet programs from evaluating cell content as a formula.
-    if text[:1] in ("=", "+", "-", "@", "\t", "\r"):
-        text = "'" + text
-    return text
+_csv_cell = util.csv_cell
 
 
 @bp.route("/export.csv")

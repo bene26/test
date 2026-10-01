@@ -43,6 +43,9 @@ Die App wird per Portweiterleitung ins Internet gestellt, das Passwort erraten o
 - Login-Begrenzung: nach 5 Fehlversuchen pro IP 15 Minuten Sperre
 - serverseitige Sitzungen; Abmelden löscht die Sitzung in der Datenbank
 - Sitzungs-Cookie `HttpOnly`, `SameSite=Lax`, `Secure` bei HTTPS
+- Projektstunden (Tabelle `time_entries`) sind personenbezogen: nur Stunden je Person, Projekt und Tag, keine Kommentare, keine Abwesenheitsgründe. Sie dienen Plan/Ist je Projekt, nicht der Leistungs- oder Anwesenheitskontrolle. Mit Betriebsrat abstimmen (§ 87 Abs. 1 Nr. 6 BetrVG)
+- Leistungen externer Firmen mit Werk- oder Dienstvertrag werden nur je Bestellung erfasst, nie je Person (Arbeitnehmerüberlassungsgesetz)
+- Statusberichte per E-Mail gehen nur an Adressen, die beim Versand eingegeben werden (höchstens 20, geprüft)
 - Design-Cookie `pc_theme` enthält nur den Namen des gewählten Designs (für die Anmeldeseite), gleiche Cookie-Flags; unbekannte Werte werden ignoriert
 - Schriften liegen im Container (`cockpit/static/fonts`), die Seite lädt nichts von fremden Servern; die CSP erlaubt nur `'self'`
 - CSRF-Token auf jedem Formular und jeder POST-Anfrage

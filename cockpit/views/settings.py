@@ -9,7 +9,7 @@ from pathlib import Path
 from flask import (Blueprint, current_app, flash, g, redirect, render_template, send_file,
                    url_for)
 
-from .. import auth, data, forms, notify, themes, util
+from .. import auth, dashboard, data, forms, notify, themes, util
 from ..db import get_db
 from . import parse_or_flash
 
@@ -39,6 +39,7 @@ def index():
         base_url=current_app.config["BASE_URL"],
         backups=[{"name": b.name, "size": b.stat().st_size} for b in backups],
         scheduler=current_app.config["SCHEDULER"],
+        dashboard_widgets=[w[0] for w in dashboard.WIDGETS.values()],
     )
 
 

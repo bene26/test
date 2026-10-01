@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Zeiten im Team{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="sub"><a href="{{ url_for('times.index', woche=week) }}">← Stundenzettel</a></p>
+    <h1>Zeiten im Team · KW {{ monday.isocalendar()[1] }}</h1>
+    <p class="sub">{{ days[0]|datum }} bis {{ days[6]|datum }} · zusammen {{ total|stunden }}</p>
+  </div>
+  <nav class="presets" aria-label="Woche">
+    <a href="{{ url_for('times.team', woche=prev_week) }}">← Vorwoche</a>
+    <a href="{{ url_for('times.team', woche=this_week) }}"{% if week == this_week %} aria-current="true"{% endif %}>Diese Woche</a>
+    <a href="{{ url_for('times.team', woche=next_week) }}">Nächste →</a>
+  </nav>
+</div>
+<div class="columns">
+  <section class="card">
+    <h2>Je Person</h2>
+    {% if rows %}
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Person</th>{% for d in days %}<th class="num{{ ' today' if d == today }}">{{ d|tag }}</th>{% endfor %}<th class="num">Woche</th></tr></thead>
+      <tbody>
+      {% for r in rows %}
+        <tr>
+          <td><a href="{{ url_for('times.index', person=r.person.id, woche=week) }}">{{ r.person.name }}</a>{% if r.person.firm_name %}<div class="small muted">{{ r.person.firm_name }}</div>{% endif %}</td>
+          {% for h in r.hours %}<td class="num">{{ fmt(h) or '–' }}</td>{% endfor %}
+          <td class="num"><strong>{{ fmt(r.total) or '–' }}</strong></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}<p class="empty">Noch keine Personen.</p>{% endif %}
+  </section>
+  <section class="card">
+    <h2>Je Projekt</h2>
+    {% if projects %}
+    <ul class="plain-list">{% for p in projects %}<li><a href="{{ url_for('projects.detail', project_id=p.project.id) }}">{{ p.project.code or p.project.name }}</a> · {{ p.hours|stunden }}</li>{% endfor %}</ul>
+    {% else %}<p class="empty">In dieser Woche ist noch nichts erfasst.</p>{% endif %}
+    <p class="small"><a href="{{ url_for('times.export', monat=monday.strftime('%Y-%m')) }}">Monat als CSV exportieren</a></p>
+  </section>
+</div>
+{% endblock %}

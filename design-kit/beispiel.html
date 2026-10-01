@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="de" data-theme="glas">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Projekt-Cockpit Design · Beispielseite</title>
+  <!-- Im Paket heißt die Datei cockpit-design.css, im Repository liegt sie unter cockpit/static/app.css -->
+  <link rel="stylesheet" href="../cockpit/static/app.css">
+  <script src="theme-umschalter.js" defer></script>
+</head>
+<body>
+<div class="shell with-nav">
+  <header class="sidenav">
+    <a class="brand" href="#"><span class="logo" aria-hidden="true"></span><span class="nav-label">Meine Webseite</span></a>
+    <nav aria-label="Hauptnavigation">
+      <a href="#" aria-current="page" title="Start"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z"/></svg><span class="nav-label">Start</span></a>
+      <a href="#" title="Aufgaben"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg><span class="nav-label">Aufgaben</span></a>
+      <a href="#" title="Berichte"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8M8 17h5"/></svg><span class="nav-label">Berichte</span></a>
+      <a href="#" title="Einstellungen"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4"/></svg><span class="nav-label">Einstellungen</span></a>
+    </nav>
+    <div class="logout"><button type="button" title="Abmelden"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="nav-label">Abmelden</span></button></div>
+  </header>
+
+  <main>
+    <div class="page-head">
+      <div>
+        <h1>Beispielseite</h1>
+        <p class="sub">Alle Bausteine des Designs auf einer Seite. Oben rechts das Design wechseln.</p>
+      </div>
+      <div class="actions">
+        <label class="sr-only" for="design">Design</label>
+        <select id="design" data-theme-choice>
+          <option value="violett">Violett</option>
+          <option value="glas">Glas und Orange</option>
+          <option value="bronze">Bronze</option>
+          <option value="hell">Hell</option>
+          <option value="schlicht">Schlicht</option>
+        </select>
+        <a class="btn btn-primary" href="#">Hauptaktion</a>
+      </div>
+    </div>
+
+    <ul class="flash" role="status"><li class="ok">So sieht eine Erfolgsmeldung aus.</li></ul>
+
+    <div class="stats">
+      <a class="stat alert" href="#"><div class="value"><span class="digit">5</span></div><div class="label">überfällig</div></a>
+      <a class="stat warn" href="#"><div class="value"><span class="digit">3</span></div><div class="label">heute fällig</div></a>
+      <a class="stat" href="#"><div class="value"><span class="digit">8</span><span class="digit">7</span></div><div class="label">Prozent Auslastung</div></a>
+      <a class="stat" href="#"><div class="value"><span class="digit">1</span></div><div class="label">Protokoll offen</div></a>
+    </div>
+
+    <div class="columns">
+      <section class="card">
+        <h2>Tabelle <span class="count">3 Einträge</span></h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nr.</th><th>Aufgabe</th><th>Zuständig</th><th>Fällig</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td class="muted">#1</td><td><a href="#">Schnittstelle beschreiben</a> <span class="badge red">Hoch</span></td><td>Firma Alpha</td><td><span class="overdue">Mo 28.09.2026</span></td><td><span class="badge offen">Offen</span></td></tr>
+              <tr><td class="muted">#2</td><td><a href="#">Testdaten bereitstellen</a></td><td>Anna K.</td><td><span class="today-due">Do 01.10.2026</span></td><td><span class="badge in_arbeit">In Arbeit</span></td></tr>
+              <tr class="done"><td class="muted">#3</td><td><a href="#">Kick-off vorbereiten</a></td><td>Ben M.</td><td>Fr 25.09.2026</td><td><span class="badge erledigt">Erledigt</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Fortschritt und Ampel</h2>
+        <p>Projekt ERP <span class="light light-gelb">beobachten</span></p>
+        <progress class="bar bar-ok" max="100" value="62" aria-label="Fortschritt">62 %</progress>
+        <p class="small muted">62 % laut Zeitplan</p>
+        <p>Kontingent Firma Beta <span class="light light-rot">handeln</span></p>
+        <progress class="bar bar-ueber" max="100" value="100" aria-label="Kontingent">107 %</progress>
+        <p class="report-lights"><span class="light light-gruen">im Plan</span><span class="light light-gelb">beobachten</span><span class="light light-rot">handeln</span><span class="light light-grau">keine Daten</span></p>
+      </section>
+    </div>
+
+    <section class="card quick-add">
+      <h2>Formular</h2>
+      <form class="inline-form" action="#" method="get">
+        <div class="field grow"><label for="t">Neue Aufgabe</label><input id="t" type="text" placeholder="Was ist zu tun?"></div>
+        <div class="field"><label for="p">Projekt</label><select id="p"><option>ERP-Einführung</option><option>Neubau Halle 3</option></select></div>
+        <div class="field date"><label for="d">Fällig</label><input id="d" type="date"></div>
+        <button class="btn btn-primary" type="button">Anlegen</button>
+      </form>
+    </section>
+
+    <div class="columns-even">
+      <section class="card">
+        <h2>Knöpfe und Hinweise</h2>
+        <p class="actions"><button class="btn btn-primary" type="button">Speichern</button><button class="btn" type="button">Abbrechen</button><button class="btn btn-danger btn-small" type="button">Löschen</button></p>
+        <p class="note">Ein Hinweis, z. B. zu einer Frist.</p>
+        <p class="note info">Eine Information.</p>
+        <nav class="presets" aria-label="Filter"><a href="#" aria-current="true">Alle</a><a href="#">Überfällig</a><a href="#">Heute</a></nav>
+      </section>
+      <section class="card">
+        <h2>Liste</h2>
+        <ul class="plain-list">
+          <li>So 22.11.2026 · <a href="#">Go-live</a> <span class="muted">(ERP)</span></li>
+          <li>Sa 12.12.2026 · <a href="#">Abnahme Elektrik</a> <span class="muted">(H3)</span></li>
+          <li>Sa 09.01.2027 · <a href="#">Inbetriebnahme</a> <span class="muted">(PS2)</span></li>
+        </ul>
+      </section>
+    </div>
+  </main>
+</div>
+</body>
+</html>

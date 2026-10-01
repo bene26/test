@@ -1,6 +1,9 @@
 """HTTP views, one blueprint per area."""
 
-from flask import flash, redirect, request
+import csv
+import io
+
+from flask import Response, flash, redirect, request
 
 from .. import forms, util
 
@@ -17,3 +20,14 @@ def parse_or_flash(spec, extra_allowed=frozenset()):
     except forms.ValidationError as exc:
         flash(str(exc), "error")
         return None
+
+
+def csv_response(filename: str, header: list, rows) -> Response:
+    """Semicolon CSV with BOM so Excel opens umlauts correctly."""
+    out = io.StringIO()
+    writer = csv.writer(out, delimiter=";")
+    writer.writerow(header)
+    for row in rows:
+        writer.writerow([util.csv_cell(v) for v in row])
+    return Response("\ufeff" + out.getvalue(), mimetype="text/csv",
+                    headers={"Content-Disposition": f'attachment; filename="{filename}"'})

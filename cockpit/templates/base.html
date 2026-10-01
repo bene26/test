@@ -17,15 +17,18 @@
 <header class="sidenav">
   <a class="brand" href="{{ url_for('main.dashboard') }}"><span class="logo" aria-hidden="true"></span><span class="nav-label">Projekt-Cockpit</span></a>
   <nav aria-label="Hauptnavigation">
-    {% for endpoint, label, icon_name in [
-        ('main.dashboard', 'Start', 'start'),
-        ('tasks.index', 'Aufgaben', 'tasks'),
-        ('meetings.index', 'Meetings', 'meetings'),
-        ('projects.index', 'Projekte', 'projects'),
-        ('team.index', 'Team & Firmen', 'team'),
-        ('workload.index', 'Auslastung', 'workload'),
-        ('settings.index', 'Einstellungen', 'settings')] %}
-    <a href="{{ url_for(endpoint) }}" title="{{ label }}"{% if request.blueprint == endpoint.split('.')[0] %} aria-current="page"{% endif %}>{{ icon(icon_name) }}<span class="nav-label">{{ label }}</span></a>
+    {% for endpoint, label, icon_name, blueprints in [
+        ('main.dashboard', 'Start', 'start', ('main',)),
+        ('tasks.index', 'Aufgaben', 'tasks', ('tasks',)),
+        ('meetings.index', 'Meetings', 'meetings', ('meetings',)),
+        ('projects.index', 'Projekte', 'projects', ('projects',)),
+        ('schedule.index', 'Zeitplan', 'schedule', ('schedule',)),
+        ('times.index', 'Zeiten', 'times', ('times',)),
+        ('reports.index', 'Berichte', 'reports', ('reports',)),
+        ('team.index', 'Team & Firmen', 'team', ('team', 'orders')),
+        ('workload.index', 'Auslastung', 'workload', ('workload',)),
+        ('settings.index', 'Einstellungen', 'settings', ('settings',))] %}
+    <a href="{{ url_for(endpoint) }}" title="{{ label }}"{% if request.blueprint in blueprints %} aria-current="page"{% endif %}>{{ icon(icon_name) }}<span class="nav-label">{{ label }}</span></a>
     {% endfor %}
   </nav>
   <form class="logout" method="post" action="{{ url_for('auth.logout') }}">

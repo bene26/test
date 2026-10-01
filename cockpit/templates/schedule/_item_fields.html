@@ -1,0 +1,37 @@
+{# Shared by "new item" and "edit item". Expects it (or None), projects, assignees, kinds. #}
+{% from "_macros.html" import assignee_select, project_select %}
+<div class="form-grid" data-kind-form>
+  <div class="field">
+    <label for="s-kind">Art</label>
+    <select id="s-kind" name="kind" data-kind-select>
+      {% for value, label in kinds.items() %}<option value="{{ value }}"{% if (it.kind if it else 'phase') == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="field wide-2">
+    <label for="s-title">Bezeichnung</label>
+    <input id="s-title" type="text" name="title" value="{{ it.title if it else '' }}" required maxlength="150" placeholder="z. B. Testphase oder Kick-off">
+  </div>
+  <div class="field">
+    <label for="s-project">Projekt</label>
+    {{ project_select('project_id', projects, it.project_id if it else project_id, id='s-project', empty='— Projekt wählen —') }}
+  </div>
+  <div class="field">
+    <label for="s-start"><span data-show-for="phase">Start</span><span data-show-for="milestone">Datum</span></label>
+    <input id="s-start" type="date" name="start_date" value="{{ it.start_date if it else '' }}" required>
+  </div>
+  <div class="field" data-show-for="phase">
+    <label for="s-end">Ende</label>
+    <input id="s-end" type="date" name="end_date" value="{{ it.end_date if it else '' }}">
+  </div>
+  <div class="field" data-show-for="phase">
+    <label for="s-progress">Fortschritt (%)</label>
+    <input id="s-progress" type="number" name="progress" min="0" max="100" step="5" value="{{ it.progress if it else 0 }}">
+  </div>
+  <div class="field check-field" data-show-for="milestone">
+    <label class="check"><input type="checkbox" name="reached"{% if it and it.kind == 'milestone' and it.progress == 100 %} checked{% endif %}> Meilenstein erreicht</label>
+  </div>
+  <div class="field">
+    <label for="s-assignee">Zuständig</label>
+    {{ assignee_select('assignee', assignees, it.assignee_value if it else '', id='s-assignee') }}
+  </div>
+</div>

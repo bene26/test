@@ -1,0 +1,24 @@
+{% from "_macros.html" import bar %}
+<h2>Projekte <span class="count">{{ project_rows|length }}</span></h2>
+{% if project_rows %}
+<ul class="project-list">
+  {% for r in project_rows %}
+  <li>
+    <div class="pl-head">
+      <a href="{{ url_for('projects.detail', project_id=r.project.id) }}"><strong>{{ r.project.code or r.project.name }}</strong></a>
+      {% if r.project.code %}<span class="small muted">{{ r.project.name }}</span>{% endif %}
+      <span class="pl-pct">{{ r.progress ~ ' %' if r.progress is not none else '–' }}</span>
+    </div>
+    {{ bar(r.progress or 0, 'ueber' if r.conflicts else 'ok', 'Fortschritt ' ~ (r.project.code or r.project.name)) }}
+    <div class="small muted">
+      {% if r.progress is not none %}laut {{ r.source }}{% else %}noch keine Daten{% endif %}
+      {% if r.next %} · nächster Meilenstein <a href="{{ url_for('schedule.edit', item_id=r.next.id) }}">{{ r.next.title }}</a> am {{ r.next.start|datum }}{% endif %}
+      {% if r.conflicts %} · <a class="overdue" href="{{ url_for('schedule.index', projekt=r.project.id) }}">{{ r.conflicts }} Konflikt{{ 'e' if r.conflicts > 1 }}</a>{% endif %}
+      {% if r.overdue %} · <a class="overdue" href="{{ url_for('tasks.index', projekt=r.project.id, ansicht='ueberfaellig') }}">{{ r.overdue }} überfällig</a>{% endif %}
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty">Keine aktiven Projekte.</p>
+{% endif %}

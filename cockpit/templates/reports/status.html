@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, bar %}
+{% block title %}Projektstatus {{ title }}{% endblock %}
+{% block content %}
+<div class="page-head no-print">
+  <div>
+    <p class="sub"><a href="{{ url_for('reports.index') }}">← Berichte</a></p>
+    <h1>Projektstatus {{ title }}</h1>
+  </div>
+  <div class="actions">
+    <button class="btn btn-primary" type="button" data-print>Drucken / als PDF speichern</button>
+  </div>
+</div>
+
+<details class="card no-print">
+  <summary>Per E-Mail senden</summary>
+  {% if smtp %}
+  <form method="post" action="{{ url_for('reports.send_status') }}" class="inline-form">
+    {{ csrf() }}
+    <input type="hidden" name="monat" value="{{ month }}">
+    <input type="hidden" name="projekt" value="{{ project_id or '' }}">
+    <div class="field grow"><label for="s-to">Empfänger (durch Komma getrennt)</label><input id="s-to" type="text" name="recipients" required maxlength="2000" placeholder="lenkungskreis@firma.de"></div>
+    <button class="btn" type="submit">Senden</button>
+  </form>
+  <p class="small muted">Gesendet wird eine Textfassung ohne Anhänge.</p>
+  {% else %}
+  <p class="small muted">E-Mail-Versand ist nicht eingerichtet (SMTP in der Datei <code>.env</code>). Alternativ als PDF speichern und anhängen.</p>
+  {% endif %}
+</details>
+
+<article class="card report">
+  <header class="report-head">
+    <h1 class="print-only">Projektstatus {{ title }}</h1>
+    <p class="muted">Zeitraum {{ first|datum }} bis {{ last|datum }} · erstellt am {{ today|datum }}</p>
+  </header>
+
+  {% if not reports %}<p class="empty">Keine aktiven Projekte.</p>{% endif %}
+
+  {% if reports|length > 1 %}
+  <table class="report-overview">
+    <thead><tr><th>Projekt</th>{% for k in reports[0].lights %}<th>{{ k }}</th>{% endfor %}<th class="num">Fortschritt</th></tr></thead>
+    <tbody>
+    {% for r in reports %}
+      <tr>
+        <td><a href="#p{{ r.project.id }}">{{ r.project.code or r.project.name }}</a></td>
+        {% for k, v in r.lights.items() %}<td><span class="light light-{{ v }}">{{ lights[v] }}</span></td>{% endfor %}
+        <td class="num">{{ r.progress ~ ' %' if r.progress is not none else '–' }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% for r in reports %}
+  <section class="report-project" id="p{{ r.project.id }}">
+    <h2>{% if r.project.code %}{{ r.project.code }} · {% endif %}{{ r.project.name }} <span class="light light-{{ r.overall }}">{{ lights[r.overall] }}</span></h2>
+    <p class="report-lights">{% for k, v in r.lights.items() %}<span class="light light-{{ v }}">{{ k }}: {{ lights[v] }}</span>{% endfor %}</p>
+    {% if r.progress is not none %}<p>Fortschritt Zeitplan: <strong>{{ r.progress }} %</strong></p>{{ bar(r.progress, 'ok', 'Fortschritt') }}{% endif %}
+
+    <div class="report-grid">
+      <div>
+        <h3>Meilensteine</h3>
+        <ul>
+          {% for m in r.reached %}<li>✓ {{ m.title }} <span class="muted">({{ m.start|datum }})</span></li>{% endfor %}
+          {% for m in r.missed %}<li class="overdue">verpasst: {{ m.title }} ({{ m.start|datum }})</li>{% endfor %}
+          {% for m in r.upcoming %}<li>nächster: {{ m.title }} <span class="muted">({{ m.start|datum }})</span></li>{% endfor %}
+          {% if not (r.reached or r.missed or r.upcoming) %}<li class="muted">keine</li>{% endif %}
+        </ul>
+        {% if r.conflicts or r.late_phases %}
+        <h3>Risiken im Zeitplan</h3>
+        <ul>
+          {% for c in r.conflicts %}<li class="overdue">{{ c.succ.title }} beginnt vor dem Ende von {{ c.pred.title }} ({{ c.pred.end|datum }})</li>{% endfor %}
+          {% for p in r.late_phases %}<li>{{ p.title }} sollte am {{ p.end|datum }} fertig sein, steht bei {{ p.progress }} %</li>{% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+      <div>
+        <h3>Aufgaben</h3>
+        <p>{{ r.open }} offen · <span class="{{ 'overdue' if r.overdue_count }}">{{ r.overdue_count }} überfällig</span> · {{ r.done|length }} im Monat erledigt</p>
+        {% if r.overdue %}<ul class="small">{% for t in r.overdue %}<li>{{ t.title }} <span class="muted">({{ t.assignee or 'niemand' }}, fällig {{ t.due_date|datum }})</span></li>{% endfor %}</ul>{% endif %}
+      </div>
+      <div>
+        <h3>Stunden</h3>
+        <p>Im Monat: <strong>{{ r.hours_month.actual|stunden or '0 h' }}</strong> <span class="muted">(intern {{ r.hours_month.internal|stunden or '0 h' }}, Firmen {{ r.hours_month.firms|stunden or '0 h' }})</span><br>
+        Gesamt: {{ r.hours_total.actual|stunden or '0 h' }} Ist von {{ r.hours_total.plan|stunden or '0 h' }} Plan{% if r.hours_total.percent is not none %} ({{ r.hours_total.percent|round|int }} %){% endif %}</p>
+        {% if r.orders %}
+        <h3>Kontingente</h3>
+        <ul>{% for o in r.orders %}<li>{{ o.firm_name }} · {{ o.label }}: {{ fmt(o.billed, o.unit) }} von {{ fmt(o.amount, o.unit) }}{% for w in o.warnings %} · <span class="overdue">{{ w }}</span>{% endfor %}</li>{% endfor %}</ul>
+        {% endif %}
+      </div>
+      <div>
+        <h3>Entscheidungen im Monat</h3>
+        {% if r.decisions %}<ul>{% for d in r.decisions %}<li><span class="decision-code">E-{{ '%02d' % d.number }}</span> {{ d.text }}</li>{% endfor %}</ul>{% else %}<p class="muted">keine</p>{% endif %}
+        <h3>Meetings im Monat</h3>
+        {% if r.meetings %}<ul>{% for m in r.meetings %}<li>{{ m.starts_at|datum }} {{ m.title }} <span class="muted">({{ 'Protokoll V' ~ m.version if m.protocol_status == 'abgeschlossen' else 'Protokoll offen' }})</span></li>{% endfor %}</ul>{% else %}<p class="muted">keine</p>{% endif %}
+      </div>
+    </div>
+  </section>
+  {% endfor %}
+</article>
+{% endblock %}

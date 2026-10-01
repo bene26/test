@@ -2,7 +2,7 @@
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 
-from .. import data, forms, util
+from .. import data, forms, quotas, util
 from ..db import get_db
 from . import parse_or_flash
 
@@ -116,8 +116,11 @@ def person(person_id):
 @bp.route("/personen/<int:person_id>/loeschen", methods=["POST"])
 def delete_person(person_id):
     db = get_db()
-    if db.execute("SELECT 1 FROM tasks WHERE person_id = ? LIMIT 1", (person_id,)).fetchone():
-        flash("Die Person hat noch Aufgaben. Setze sie stattdessen auf inaktiv.", "error")
+    if db.execute("SELECT 1 FROM tasks WHERE person_id = ? UNION ALL "
+                  "SELECT 1 FROM time_entries WHERE person_id = ? LIMIT 1",
+                  (person_id, person_id)).fetchone():
+        flash("Die Person hat noch Aufgaben oder erfasste Stunden. Setze sie stattdessen auf "
+              "inaktiv.", "error")
         return redirect(url_for("team.person", person_id=person_id))
     db.execute("DELETE FROM people WHERE id = ?", (person_id,))
     db.commit()
@@ -181,8 +184,13 @@ def firm(firm_id):
         "ORDER BY m.starts_at DESC LIMIT 50", (firm_id,)).fetchall()
     staff = db.execute("SELECT * FROM people WHERE firm_id = ? ORDER BY name",
                        (firm_id,)).fetchall()
+    summary = quotas.firm_summary(db, today, firm_id)
     return render_template("team/firm.html", firm=row, meetings=meetings, staff=staff,
-                           tasks=data.find_tasks(db, today, assignee=(None, firm_id)))
+                           tasks=data.find_tasks(db, today, assignee=(None, firm_id)),
+                           orders=quotas.orders(db, today, firm_id=firm_id),
+                           summary=summary[0] if summary else None,
+                           projects=data.project_options(db), units=quotas.UNITS,
+                           fmt=quotas.fmt_amount)
 
 
 @bp.route("/firmen/<int:firm_id>/loeschen", methods=["POST"])
@@ -191,11 +199,12 @@ def delete_firm(firm_id):
     used = db.execute(
         "SELECT (SELECT COUNT(*) FROM tasks WHERE firm_id = ?) + "
         "(SELECT COUNT(*) FROM people WHERE firm_id = ?) + "
-        "(SELECT COUNT(*) FROM meetings WHERE firm_id = ?)", (firm_id, firm_id, firm_id)
+        "(SELECT COUNT(*) FROM meetings WHERE firm_id = ?) + "
+        "(SELECT COUNT(*) FROM orders WHERE firm_id = ?)", (firm_id,) * 4
     ).fetchone()[0]
     if used:
-        flash("Die Firma hat noch Aufgaben, Personen oder Meetings. Setze sie stattdessen auf "
-              "inaktiv.", "error")
+        flash("Die Firma hat noch Aufgaben, Personen, Meetings oder Bestellungen. Setze sie "
+              "stattdessen auf inaktiv.", "error")
         return redirect(url_for("team.firm", firm_id=firm_id))
     db.execute("DELETE FROM firms WHERE id = ?", (firm_id,))
     db.commit()

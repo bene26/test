@@ -1,0 +1,16 @@
+<h2>Zeitplan</h2>
+{% set ov = schedule %}
+{% if ov.conflicts %}
+<p class="note"><strong>{{ ov.conflicts|length }} Konflikt{{ 'e' if ov.conflicts|length > 1 }}:</strong>
+  {% for c in ov.conflicts[:3] %}{{ c.succ.title }} beginnt vor dem Ende von {{ c.pred.title }}{{ '; ' if not loop.last }}{% endfor %}.
+  <a href="{{ url_for('schedule.index') }}">Lösen</a></p>
+{% endif %}
+{% if ov.missed %}
+<h3>Verpasst</h3>
+<ul class="plain-list">{% for m in ov.missed[:4] %}<li><span class="overdue nowrap">{{ m.start|datum }}</span> · <a href="{{ url_for('schedule.edit', item_id=m.id) }}">{{ m.title }}</a> <span class="muted">({{ m.project_label }})</span></li>{% endfor %}</ul>
+{% endif %}
+<h3>Nächste Meilensteine</h3>
+{% if milestones_soon %}
+<ul class="plain-list">{% for m in milestones_soon %}<li><span class="nowrap">{{ m.start|tag }}</span> · <a href="{{ url_for('schedule.edit', item_id=m.id) }}">{{ m.title }}</a> <span class="muted">({{ m.project_label }})</span></li>{% endfor %}</ul>
+{% else %}<p class="empty">In den nächsten sechs Wochen keine.</p>{% endif %}
+<p class="small"><a href="{{ url_for('schedule.index') }}">Zum Zeitplan</a></p>

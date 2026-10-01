@@ -1,0 +1,28 @@
+<div class="cal-head">
+  <h2>{{ cal.label }}</h2>
+  <span class="cal-nav">
+    <a class="btn btn-small" href="{{ url_for('main.dashboard', kal=cal.prev) }}#w-kalender" aria-label="Vormonat">←</a>
+    <a class="btn btn-small" href="{{ url_for('main.dashboard') }}#w-kalender">Heute</a>
+    <a class="btn btn-small" href="{{ url_for('main.dashboard', kal=cal.next) }}#w-kalender" aria-label="Nächster Monat">→</a>
+  </span>
+</div>
+<table class="cal">
+  <thead><tr>{% for d in ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] %}<th scope="col">{{ d }}</th>{% endfor %}</tr></thead>
+  <tbody>
+  {% for week in cal.weeks %}
+    <tr>
+    {% for day in week %}
+      <td class="{{ 'out' if not day.in_month }}{{ ' today' if day.today }}{{ ' has' if day.kinds }}"{% if day.title %} title="{{ day.title }}"{% endif %}>
+        <span class="cal-day">{{ day.date.day }}</span>
+        {% if day.kinds %}<span class="cal-marks" aria-hidden="true">{% for k in day.kinds %}<span class="mk mk-{{ k }}"></span>{% endfor %}</span><span class="sr-only">{{ day.title }}</span>{% endif %}
+      </td>
+    {% endfor %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+<ul class="cal-legend small muted" aria-hidden="true"><li><span class="mk mk-meeting"></span>Meeting</li><li><span class="mk mk-due"></span>Frist</li><li><span class="mk mk-milestone"></span>Meilenstein</li></ul>
+<h3>Nächste 14 Tage</h3>
+{% if cal.upcoming %}
+<ul class="plain-list">{% for e in cal.upcoming %}<li><span class="nowrap">{{ e.date|tag }}</span> · {{ e.text }}</li>{% endfor %}</ul>
+{% else %}<p class="empty">Keine Meetings oder Meilensteine.</p>{% endif %}

@@ -1,0 +1,4 @@
+{% from "_macros.html" import task_table %}
+<h2>Überfällig <span class="count">{{ overdue_total }}</span></h2>
+{{ task_table(overdue, url_for('main.dashboard'), show_project=w.w, empty='Nichts überfällig.') }}
+{% if overdue_total > overdue|length %}<p class="small"><a href="{{ url_for('tasks.index', ansicht='ueberfaellig') }}">Alle {{ overdue_total }} anzeigen</a></p>{% endif %}

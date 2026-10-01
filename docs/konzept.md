@@ -18,7 +18,7 @@ Du leitest mehrere Projekte parallel und verteilst viele Aufgaben, teils an eige
 **Was das Tool bewusst nicht ist:**
 
 - kein Ersatz für die Ticketsysteme der Entwickler: Aufgaben hier sind Arbeitspakete und Maßnahmen auf Steuerungsebene
-- keine Zeiterfassung und kein HR-System
+- keine Arbeitszeiterfassung und kein HR-System (Projektstunden für Plan/Ist sind seit Version 0.3 möglich, siehe README)
 - kein Werkzeug zur Leistungskontrolle
 
 ## 2. Alltagstauglichkeit
@@ -333,7 +333,7 @@ Kontingente      Firma Alpha 90 % verplant · Firma Beta überplant (107 %)
 - einfache Auslastung aus offenen Aufgaben je Person und Firma
 - ein Login (nur du), Docker-Image, tägliches Backup
 
-**Stufe 2**
+**Stufe 2** *(umgesetzt in Version 0.3: Kontingente je Firma, Meilensteine und Zeitleiste mit Abhängigkeiten, automatischer Statusbericht; zusätzlich Projektstunden mit Plan/Ist und eine anpassbare Startseite)*
 
 - volle Kapazitätsplanung intern: Zuteilungen, Bedarf, Abwesenheiten, Feiertage, Ampel-Übersicht
 - Kontingente je Firma

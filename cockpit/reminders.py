@@ -13,7 +13,7 @@ import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from . import data, notify, util
+from . import data, notify, quotas, schedule, util
 from .db import connect
 
 log = logging.getLogger("cockpit")
@@ -101,8 +101,16 @@ def run_due_jobs(config, now: datetime) -> list[str]:
                 (f"{c['missing_protocols']} Protokoll(e) fehlen", c["missing_protocols"]),
                 (f"{c['meetings_today']} Meeting(s) heute", c["meetings_today"]),
             ) if value]
-            if parts and _claim(db, key, now):
-                notify.remind("Guten Morgen", "Aufgaben: " + " · ".join(parts), link)
+            conflicts = len(schedule.overview(db, today)["conflicts"])
+            warnings = quotas.warning_count(db, today)
+            extra = [label for label, value in (
+                (f"{conflicts} Konflikt(e) im Zeitplan", conflicts),
+                (f"{warnings} Kontingent-Warnung(en)", warnings),
+            ) if value]
+            message = " · ".join(filter(None, ["Aufgaben: " + " · ".join(parts) if parts else "",
+                                               *extra]))
+            if message and _claim(db, key, now):
+                notify.remind("Guten Morgen", message, link)
                 ran.append(key)
 
         for routine in data.due_routines(db, today):

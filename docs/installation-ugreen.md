@@ -119,8 +119,9 @@ Nach dem Speichern das Projekt neu starten. Unter **Einstellungen** steht, welch
 
 ## 10. Update auf eine neue Version
 
-1. Neue Dateien herunterladen und in den Projektordner kopieren. **`data/` und `.env` nicht löschen.**
-2. Docker-App: Projekt stoppen und mit **Neu erstellen** bzw. **Build** wieder starten. Oder per SSH:
+1. Zur Sicherheit vorher unter *Einstellungen → Sicherung* die aktuelle Datenbank herunterladen.
+2. Neue Dateien herunterladen und in den Projektordner kopieren. **`data/` und `.env` nicht löschen.**
+3. Docker-App: Projekt stoppen und mit **Neu erstellen** bzw. **Build** wieder starten. Oder per SSH:
 
    ```
    cd /volume1/docker/projekt-cockpit

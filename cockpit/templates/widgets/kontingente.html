@@ -1,0 +1,16 @@
+{% from "_macros.html" import bar %}
+<h2>Kontingente</h2>
+{% if quota_rows %}
+<ul class="project-list">
+  {% for q in quota_rows %}
+  <li>
+    <div class="pl-head"><a href="{{ url_for('team.firm', firm_id=q.firm_id) }}#bestellungen"><strong>{{ q.firm_name }}</strong></a><span class="pl-pct{{ ' overdue' if q.level == 'ueber' }}">{{ q.percent_planned|round|int }} % verplant</span></div>
+    {{ bar(q.percent_planned, q.level, 'Kontingent ' ~ q.firm_name) }}
+    <div class="small muted">{{ q.planned|stunden }} von {{ q.ordered|stunden }} verplant · {{ q.billed|stunden or '0 h' }} abgerechnet{% if q.valid_to %} · bis {{ q.valid_to|datum }}{% endif %}</div>
+    {% if q.warnings %}<div class="small overdue">{{ q.warnings|join(' · ') }}</div>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty">Noch keine Bestellungen. Sie werden bei der jeweiligen Firma angelegt.</p>
+{% endif %}

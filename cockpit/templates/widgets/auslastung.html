@@ -1,0 +1,19 @@
+<h2>Auslastung</h2>
+{% if overbooked %}
+<ul class="plain-list">{% for o in overbooked %}<li><strong>{{ o.name }}</strong>: <span class="overdue">{{ o.percent|round|int }} %</span> in {{ o.week }}</li>{% endfor %}</ul>
+{% else %}
+<p class="empty">In den nächsten zwei Wochen ist niemand überbucht.</p>
+{% endif %}
+{% if workload.people %}
+<div class="table-wrap">
+<table class="workload compact">
+  <thead><tr><th>Person</th>{% for w in workload.weeks %}<th class="num">{{ w.label }}</th>{% endfor %}</tr></thead>
+  <tbody>
+  {% for p in workload.people %}
+    <tr><td>{{ p.name }}</td>{% for c in p.cells %}<td class="lvl lvl-{{ c.level }}">{{ c.percent|round|int }} %</td>{% endfor %}</tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+<p class="small"><a href="{{ url_for('workload.index') }}">Zur Auslastung</a></p>

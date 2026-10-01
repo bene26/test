@@ -2,7 +2,7 @@
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 
-from .. import data, forms, util
+from .. import data, forms, quotas, schedule, util
 from ..db import get_db
 from . import parse_or_flash
 
@@ -95,10 +95,15 @@ def detail(project_id):
         "SELECT d.*, m.title AS meeting_title, m.starts_at FROM decisions d "
         "JOIN meetings m ON m.id = d.meeting_id WHERE d.project_id = ? ORDER BY d.number",
         (project_id,)).fetchall()
+    ov = schedule.overview(db, today, project_id)
     return render_template(
         "projects/detail.html", project=project, meetings=meetings, decisions=decisions,
         tasks=data.find_tasks(db, today, project=str(project_id)),
         assignees=data.assignee_options(db), projects=data.project_options(db, project_id),
+        ov=ov, progress=schedule.project_progress(ov["items"]),
+        hours=data.project_hours(db, project_id),
+        orders=quotas.orders(db, today, project_id=project_id, active_only=True),
+        fmt=quotas.fmt_amount,
     )
 
 
@@ -107,11 +112,14 @@ def delete(project_id):
     db = get_db()
     used = db.execute(
         "SELECT (SELECT COUNT(*) FROM tasks WHERE project_id = ?) + "
-        "(SELECT COUNT(*) FROM meetings WHERE project_id = ?)", (project_id, project_id)
+        "(SELECT COUNT(*) FROM meetings WHERE project_id = ?) + "
+        "(SELECT COUNT(*) FROM schedule_items WHERE project_id = ?) + "
+        "(SELECT COUNT(*) FROM time_entries WHERE project_id = ?) + "
+        "(SELECT COUNT(*) FROM orders WHERE project_id = ?)", (project_id,) * 5
     ).fetchone()[0]
     if used:
-        flash("Das Projekt hat noch Aufgaben oder Meetings. Setze es stattdessen auf "
-              "„Abgeschlossen“.", "error")
+        flash("Das Projekt hat noch Aufgaben, Meetings, einen Zeitplan, Stunden oder "
+              "Bestellungen. Setze es stattdessen auf „Abgeschlossen“.", "error")
         return redirect(url_for("projects.detail", project_id=project_id))
     db.execute("DELETE FROM projects WHERE id = ?", (project_id,))
     db.commit()

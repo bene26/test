@@ -11,7 +11,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from . import auth, db, themes, util
 from .meeting_types import MEETING_TYPES
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -75,8 +75,10 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.before_request(auth.check_csrf)
     app.before_request(auth.require_login)
 
-    from .views import main, meetings, projects, settings, tasks, team, workload
-    for module in (auth, main, tasks, meetings, projects, team, workload, settings):
+    from .views import (main, meetings, orders, projects, reports, schedule, settings, tasks,
+                        team, times, workload)
+    for module in (auth, main, tasks, meetings, projects, schedule, times, reports, team, orders,
+                   workload, settings):
         app.register_blueprint(module.bp)
 
     _register_template_helpers(app)
@@ -93,6 +95,7 @@ def _register_template_helpers(app: Flask) -> None:
     app.jinja_env.filters.update(
         datum=util.fmt_date,
         datum_wt=lambda v: util.fmt_date(v, weekday=True),
+        tag=util.fmt_day,
         zeitpunkt=util.fmt_datetime,
         stunden=util.fmt_hours,
     )

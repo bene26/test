@@ -397,3 +397,29 @@ def auto_table(db, meeting, kind: str, today: date) -> dict:
                 "rows": rows, "empty": "Keine aktiven Projekte."}
 
     return {"columns": [], "rows": [], "empty": ""}
+
+
+def project_hours(db, project_id, since=None, until=None) -> dict:
+    """Plan (effort of the project's tasks) against actual hours.
+
+    Actual = project hours of internal/ANÜ staff plus checked service records of
+    orders bound to the project (person days converted to hours).
+    """
+    span, span_params = "", []
+    if since and until:
+        span, span_params = " AND work_date BETWEEN ? AND ?", [since, until]
+    internal = db.execute("SELECT COALESCE(SUM(hours), 0) FROM time_entries "
+                          "WHERE project_id = ?" + span, [project_id, *span_params]).fetchone()[0]
+    rec_span, rec_params = "", []
+    if since and until:
+        rec_span, rec_params = " AND r.period_end BETWEEN ? AND ?", [since, until]
+    firms = db.execute(
+        "SELECT COALESCE(SUM(r.amount * CASE o.unit WHEN 'pt' THEN o.hours_per_day ELSE 1 END), 0) "
+        "FROM service_records r JOIN orders o ON o.id = r.order_id "
+        "WHERE o.project_id = ? AND r.status = 'geprueft'" + rec_span,
+        [project_id, *rec_params]).fetchone()[0]
+    plan = db.execute("SELECT COALESCE(SUM(effort_hours), 0) FROM tasks WHERE project_id = ?",
+                      (project_id,)).fetchone()[0]
+    actual = internal + firms
+    return {"plan": plan, "internal": internal, "firms": firms, "actual": actual,
+            "percent": actual / plan * 100 if plan else None}

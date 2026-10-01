@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import csrf, quick_add, task_table, meeting_list %}
+{% from "_macros.html" import csrf, bar, quick_add, task_table, meeting_list %}
 {% block title %}{{ project.name }}{% endblock %}
 {% block content %}
 <div class="page-head">
@@ -11,10 +11,27 @@
       {% if project.start_date or project.end_date %} · {{ project.start_date|datum or '?' }} – {{ project.end_date|datum or '?' }}{% endif %}</p>
   </div>
   <div class="actions">
+    <a class="btn btn-primary" href="{{ url_for('schedule.index', projekt=project.id) }}">Zeitplan</a>
     <a class="btn" href="{{ url_for('meetings.index', projekt=project.id) }}">Meeting anlegen</a>
     <a class="btn" href="{{ url_for('tasks.index', projekt=project.id, status='all') }}">Alle Aufgaben</a>
   </div>
 </div>
+
+<div class="stats">
+  <a class="stat{{ ' alert' if ov.conflicts or ov.missed }}" href="{{ url_for('schedule.index', projekt=project.id) }}">
+    <div class="value">{{ progress if progress is not none else '–' }}{% if progress is not none %} %{% endif %}</div>
+    <div class="label">Zeitplan{% if ov.conflicts %} · {{ ov.conflicts|length }} Konflikt{{ 'e' if ov.conflicts|length > 1 }}{% endif %}{% if ov.missed %} · {{ ov.missed|length }} Meilenstein verpasst{% endif %}</div>
+  </a>
+  <a class="stat" href="{{ url_for('schedule.index', projekt=project.id) }}">
+    <div class="value">{{ ov.upcoming[0].start|datum if ov.upcoming else '–' }}</div>
+    <div class="label">{{ ('nächster Meilenstein: ' ~ ov.upcoming[0].title) if ov.upcoming else 'kein offener Meilenstein' }}</div>
+  </a>
+  <div class="stat{{ ' warn' if hours.percent and hours.percent > 100 }}">
+    <div class="value">{{ hours.actual|stunden or '0 h' }}</div>
+    <div class="label">Ist von {{ hours.plan|stunden or '0 h' }} Plan{% if hours.percent is not none %} ({{ hours.percent|round|int }} %){% endif %}</div>
+  </div>
+</div>
+{% if hours.percent is not none %}{{ bar(hours.percent, 'ueber' if hours.percent > 100 else 'voll' if hours.percent >= 80 else 'ok', 'Stunden Ist zu Plan') }}{% endif %}
 
 <section class="card quick-add">
   {{ quick_add(assignees, projects, request.path, project.id) }}
@@ -52,6 +69,21 @@
     <section class="card">
       <h2>Meetings</h2>
       {{ meeting_list(meetings, empty='Noch keine Meetings.') }}
+    </section>
+    <section class="card">
+      <h2>Bestellungen <span class="count">{{ orders|length }}</span></h2>
+      {% if orders %}
+      <ul class="plain-list">
+        {% for o in orders %}
+        <li><a href="{{ url_for('orders.detail', order_id=o.id) }}">{{ o.firm_name }} · {{ o.label }}</a>
+          {{ bar(o.percent, o.level, 'Verbrauch') }}
+          <span class="small muted">{{ fmt(o.billed, o.unit) }} von {{ fmt(o.amount, o.unit) }} abgerechnet{% for w in o.warnings %} · <span class="overdue">{{ w }}</span>{% endfor %}</span></li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="empty">Keine Bestellungen für dieses Projekt. Bestellungen legst du bei der Firma an.</p>
+      {% endif %}
+      <p class="small muted">Stunden: intern {{ hours.internal|stunden or '0 h' }}, Firmen laut Leistungsnachweis {{ hours.firms|stunden or '0 h' }}.</p>
     </section>
     <section class="card">
       <details>

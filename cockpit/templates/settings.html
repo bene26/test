@@ -38,6 +38,17 @@
   </form>
 </section>
 
+<section class="card" id="startseite">
+  <h2>Startseite</h2>
+  <p>Welche Bausteine auf der Startseite stehen, in welcher Reihenfolge und wie breit, stellst du direkt auf der Startseite ein. Zur Auswahl stehen: {{ dashboard_widgets|join(', ') }}.</p>
+  <div class="actions">
+    <a class="btn btn-primary" href="{{ url_for('main.dashboard', anpassen=1) }}">Startseite anpassen</a>
+    <form method="post" action="{{ url_for('main.save_layout') }}" data-confirm="Startseite auf den Standard zurücksetzen?">
+      {{ csrf() }}<input type="hidden" name="reset" value="1"><button class="btn" type="submit">Auf Standard zurücksetzen</button>
+    </form>
+  </div>
+</section>
+
 <div class="columns-even">
   <section class="card">
     <h2>Erinnerungen</h2>

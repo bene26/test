@@ -4,20 +4,24 @@ Selbst gehostetes Werkzeug für Projektleitung mit mehreren Projekten, eigenen L
 
 Konzept und Hintergrund: [`docs/konzept.md`](docs/konzept.md). Installation: [`docs/installation-ugreen.md`](docs/installation-ugreen.md).
 
-## Was die Version 0.2 kann (Stufe 1 des Konzepts)
+## Was die Version 0.3 kann
 
-- **Startseite:** überfällig, heute fällig, ohne Update, fehlende Protokolle, Meetings heute und am nächsten Arbeitstag, Überbuchungen, fällige Routinen mit Checkliste
+- **Startseite zum Selbst-Zusammenstellen:** 14 Bausteine (Kennzahlen, Routinen, Schnellerfassung, nächstes Meeting, Überfällig, Diese Woche, Meetings, Protokoll fehlt, Projekte, Kalender, Zeitplan, Kontingente, Auslastung, Zeiten). Mit „Startseite anpassen“ per Ziehen oder Pfeiltasten sortieren, ein- und ausblenden, breit oder schmal; gespeichert je Konto
 - **Aufgaben:** Schnellerfassung in einer Zeile, Filter und Schnellansichten, Status direkt in der Liste ändern, Sammelbearbeitung (Status, verschieben, zuweisen, löschen), CSV-Export für Excel
 - **Zuständigkeit:** interne Person, Person einer Firma mit Arbeitnehmerüberlassung oder die Firma selbst (Werk-/Dienstvertrag); Externe unter Werk-/Dienstvertrag lassen sich bewusst nicht einzeln planen
-- **Meetings:** acht Vorlagen (Jour fixe, Kick-off, Team, Management, Abnahme, Eskalation, Lessons Learned, Sonstiges); Agenda mit Live-Daten (offene Maßnahmen, Aufgaben der Firma, Auslastung, Projektstatus); Notizen mit automatischem Speichern; Entscheidungen mit Nummer je Projekt; Maßnahmen werden sofort Aufgaben; Folgetermin mit einem Klick
+- **Zeitplan:** Vorgänge und Meilensteine (z. B. Kick-off) je Projekt als Gantt-Diagramm; Abhängigkeiten „erst wenn das andere fertig ist“, auch projektübergreifend und mit Puffer; Konflikte werden rot markiert und mit einem Klick gelöst (Nachfolger rücken mit); Kreise werden verhindert; Gesamtansicht über alle Projekte
+- **Meetings:** acht Vorlagen (Jour fixe, Kick-off, Team, Management, Abnahme, Eskalation, Lessons Learned, Sonstiges); Agenda mit Live-Daten; Notizen mit automatischem Speichern; Entscheidungen mit Nummer je Projekt; Maßnahmen werden sofort Aufgaben; Folgetermin mit einem Klick
 - **Protokolle:** Abschluss friert das Protokoll ein, Korrekturen erzeugen neue Versionen; Druckansicht bzw. PDF; Versand per E-Mail an die Teilnehmenden
+- **Berichte:** monatlicher Projektstatus mit Ampel (Termine, Kontingent, Aufgaben), Meilensteinen, Risiken, Entscheidungen, Stunden und Kontingenten; drucken, als PDF speichern oder per E-Mail senden; Archiv aller Protokolle; CSV-Exporte (Aufgaben, Projektstunden, Kontingente)
+- **Kontingente externer Firmen:** Bestellungen in Stunden oder Personentagen mit Laufzeit; Leistungsnachweise je Bestellung (eingereicht, geprüft, abgelehnt); verplant, abgerechnet, frei; Warnungen bei 80 %, Überplanung und vier Wochen vor Ablauf
+- **Zeiten:** Wochen-Stundenzettel je Person und Projekt mit Summen, Vorwoche übernehmen, Team-Übersicht, Plan/Ist je Projekt; nur eigene Leute und Arbeitnehmerüberlassung (Firmen über Leistungsnachweise)
 - **Entscheidungsregister** je Projekt
-- **Auslastung:** aus Aufwand und Fälligkeit der offenen Aufgaben, je Person in Prozent mit Ampel, je Firma in Stunden
-- **Erinnerungen** per Push (ntfy) und/oder E-Mail: Morgen-Zusammenfassung, Wochenplanung (Mo–Mi, bis erledigt), Wochenabschluss (Fr), Meeting-Vorbereitung am Vortag, Monatsbericht; Uhrzeiten einstellbar
+- **Auslastung:** aus Aufwand und Fälligkeit der offenen Aufgaben, je Person in Prozent mit Ampel, je Firma in Stunden und gegen das Kontingent
+- **Erinnerungen** per Push (ntfy) und/oder E-Mail: Morgen-Zusammenfassung (inkl. Zeitplan-Konflikten und Kontingent-Warnungen), Wochenplanung, Wochenabschluss, Meeting-Vorbereitung, Monatsbericht
 - **Sicherung:** tägliche Datenbank-Kopie (14 Tage), Download in den Einstellungen
 - **Designs:** unter *Einstellungen → Darstellung* wählbar: Violett, Glas und Orange (Standard), Bronze, Hell und Schlicht. Die Wahl gilt pro Konto, mit Vorschau vor dem Speichern. Schriften werden lokal ausgeliefert (keine Verbindung zu Google Fonts), Ausdrucke bleiben schwarz auf weiß
 
-Noch nicht enthalten (Stufe 2/3 im Konzept): Abwesenheiten und Feiertage, Kontingente je Bestellung, Meilensteine, Szenarien, mehrere Benutzer, Firmenportal.
+Noch nicht enthalten (siehe Konzept): Abwesenheiten und Feiertage, Zuteilungen je Woche, Szenarien, mehrere Benutzer mit Rechten, Firmenportal, Kalender-Abonnement.
 
 ## Schnellstart mit Docker
 
@@ -48,8 +52,18 @@ Aufbau:
 | `cockpit/data.py` | gemeinsame Abfragen, Auslastung, Routinen |
 | `cockpit/reminders.py`, `notify.py` | Erinnerungs-Dienst, ntfy, E-Mail, Sicherungen |
 | `cockpit/meeting_types.py` | Meeting-Vorlagen |
+| `cockpit/schedule.py` | Zeitplan: Konflikte, Verschieben, Gantt-Layout |
+| `cockpit/quotas.py` | Kontingente, Bestellungen, Leistungsnachweise |
+| `cockpit/reports.py` | Projektstatus-Bericht |
+| `cockpit/dashboard.py` | Bausteine der Startseite und gespeicherte Anordnung |
+| `cockpit/themes.py` | die fünf Designs |
 | `cockpit/views/` | Seiten je Bereich |
-| `cockpit/schema.sql` | Datenbankschema (SQLite) |
+| `cockpit/templates/` | HTML-Vorlagen (Jinja), `widgets/` = Startseiten-Bausteine |
+| `cockpit/static/app.css` | alle Designs als CSS-Variablen je `data-theme` |
+| `cockpit/schema.sql`, `migration_3.sql` | Datenbankschema (SQLite) und Erweiterungen |
+| `design-kit/` | Design zum Übernehmen in andere Webseiten |
 | `tests/` | pytest |
+
+Den Code in eine andere oder neue Webseite übernehmen: [`docs/code-uebernehmen.md`](docs/code-uebernehmen.md).
 
 Sicherheit: siehe [`SECURITY.md`](SECURITY.md).

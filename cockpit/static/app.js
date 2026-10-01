@@ -23,6 +23,88 @@
     });
   });
 
+  // Timeline form: show the fields that belong to a phase or a milestone.
+  document.querySelectorAll("[data-kind-form]").forEach(function (box) {
+    var select = box.querySelector("[data-kind-select]");
+    if (!select) return;
+    var apply = function () {
+      box.querySelectorAll("[data-show-for]").forEach(function (el) {
+        el.hidden = el.getAttribute("data-show-for") !== select.value;
+      });
+    };
+    select.addEventListener("change", apply);
+    apply();
+  });
+
+  // Timesheet: live day, row and week totals while typing.
+  var sheet = document.querySelector("table.timesheet");
+  if (sheet) {
+    var num = function (v) { var n = parseFloat(String(v).replace(",", ".")); return isNaN(n) ? 0 : n; };
+    var show = function (n) { return String(Math.round(n * 100) / 100).replace(".", ","); };
+    var recalc = function () {
+      var days = [0, 0, 0, 0, 0, 0, 0], week = 0;
+      sheet.querySelectorAll("tbody tr").forEach(function (row) {
+        var sum = 0;
+        row.querySelectorAll("input.hours").forEach(function (input) {
+          var v = num(input.value);
+          sum += v;
+          days[+input.getAttribute("data-day")] += v;
+        });
+        var cell = row.querySelector("[data-row-total]");
+        if (cell) cell.textContent = show(sum);
+        week += sum;
+      });
+      days.forEach(function (v, i) {
+        var cell = sheet.querySelector('[data-day-total="' + i + '"]');
+        if (cell) cell.textContent = show(v);
+      });
+      var total = sheet.querySelector("[data-week-total]");
+      if (total) total.textContent = show(week);
+    };
+    sheet.addEventListener("input", recalc);
+  }
+
+  // Start page editor: drag widgets to reorder, preview "show" and "wide" right away.
+  var board = document.querySelector("[data-widgets].editing");
+  if (board) {
+    var dragged = null;
+    board.querySelectorAll("[data-widget]").forEach(function (widget) {
+      widget.setAttribute("draggable", "true");
+      widget.addEventListener("dragstart", function (event) {
+        dragged = widget;
+        widget.classList.add("dragging");
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", widget.getAttribute("data-widget"));
+      });
+      widget.addEventListener("dragend", function () {
+        widget.classList.remove("dragging");
+        dragged = null;
+        board.querySelectorAll(".drop-before, .drop-after").forEach(function (el) {
+          el.classList.remove("drop-before", "drop-after");
+        });
+      });
+    });
+    board.addEventListener("dragover", function (event) {
+      if (!dragged) return;
+      var target = event.target.closest ? event.target.closest("[data-widget]") : null;
+      if (!target || target === dragged) return;
+      event.preventDefault();
+      var rect = target.getBoundingClientRect();
+      var before = target.classList.contains("wide") || rect.width > board.clientWidth * 0.75
+        ? event.clientY < rect.top + rect.height / 2
+        : event.clientX < rect.left + rect.width / 2;
+      board.insertBefore(dragged, before ? target : target.nextSibling);
+    });
+    board.addEventListener("drop", function (event) { event.preventDefault(); });
+    board.addEventListener("change", function (event) {
+      var box = event.target;
+      var widget = box.closest ? box.closest("[data-widget]") : null;
+      if (!widget) return;
+      if (box.hasAttribute("data-widget-show")) widget.classList.toggle("off", !box.checked);
+      if (box.hasAttribute("data-widget-wide")) widget.classList.toggle("wide", box.checked);
+    });
+  }
+
   // Print buttons.
   document.addEventListener("click", function (event) {
     var el = event.target.closest ? event.target.closest("[data-print]") : null;

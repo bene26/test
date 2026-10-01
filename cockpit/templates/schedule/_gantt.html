@@ -1,0 +1,75 @@
+{# Gantt chart as inline SVG. Positions come from schedule.gantt(); colours from app.css. #}
+{% macro gantt(g) %}
+<div class="gantt-wrap" tabindex="0" aria-label="Zeitplan, horizontal scrollbar">
+<svg class="gantt" width="{{ g.width }}" height="{{ g.height }}" viewBox="0 0 {{ g.width }} {{ g.height }}" role="img" aria-labelledby="gantt-title">
+  <title id="gantt-title">Zeitplan mit Vorgängen, Meilensteinen und Abhängigkeiten</title>
+  <defs>
+    <marker id="g-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="g-head" d="M0 0 L10 5 L0 10 z"/></marker>
+    <marker id="g-arrow-bad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="g-head bad" d="M0 0 L10 5 L0 10 z"/></marker>
+  </defs>
+  {% for w in g.weeks %}<rect class="g-week{{ ' alt' if loop.index is even }}" x="{{ w.x }}" y="{{ g.head_h - 22 }}" width="{{ g.week_w }}" height="{{ g.height - g.head_h + 22 }}"/>{% endfor %}
+  {% for r in g.rows if r.type == 'project' %}<rect class="g-band" x="0" y="{{ r.y }}" width="{{ g.width }}" height="{{ g.row_h }}"/>{% endfor %}
+  <rect class="g-labels" x="0" y="0" width="{{ g.label_w }}" height="{{ g.height }}"/>
+  <line class="g-sep" x1="{{ g.label_w }}" y1="0" x2="{{ g.label_w }}" y2="{{ g.height }}"/>
+  {% for m in g.months %}<text class="g-month" x="{{ m.x + 4 }}" y="16">{{ m.label }}</text>{% endfor %}
+  {% for w in g.weeks %}<text class="g-kw" x="{{ w.x + g.week_w / 2 }}" y="{{ g.head_h - 8 }}">{{ w.label }}</text>{% endfor %}
+  <text class="g-kw-label" x="12" y="{{ g.head_h - 8 }}">KW</text>
+  {% if g.today_x %}
+  <line class="g-today" x1="{{ g.today_x }}" y1="{{ g.head_h - 22 }}" x2="{{ g.today_x }}" y2="{{ g.height }}"/>
+  <text class="g-today-label" x="{{ g.today_x + 4 }}" y="{{ g.height - 6 }}">heute</text>
+  {% endif %}
+  {% for a in g.arrows %}<path class="g-link{{ ' bad' if a.conflict }}{{ ' cross' if a.cross }}" d="{{ a.path }}" marker-end="url(#g-arrow{{ '-bad' if a.conflict }})"/>{% endfor %}
+  {% for r in g.rows %}
+    {% if r.type == 'project' %}
+    <a href="{{ url_for('schedule.index', projekt=r.project_id) }}"><text class="g-project" x="12" y="{{ r.y + g.row_h / 2 + 5 }}">{{ r.label }}</text></a>
+    {% else %}
+    {% set it = r.item %}
+    <a href="{{ url_for('schedule.edit', item_id=it.id) }}">
+      <title>{{ it.title }} · {{ it.start|datum }}{% if r.type == 'phase' %} – {{ it.end|datum }} · {{ it.progress }} %{% elif it.progress == 100 %} · erreicht{% endif %}{% if it.assignee %} · {{ it.assignee }}{% endif %}</title>
+      <text class="g-label" x="24" y="{{ r.mid + 4 }}">{{ r.label }}</text>
+      {% if r.type == 'phase' %}
+      <rect class="g-bar{{ ' late' if r.late }}" x="{{ r.x1 }}" y="{{ r.mid - 8 }}" width="{{ r.width }}" height="16" rx="4"/>
+      {% if r.done_w %}<rect class="g-done{{ ' late' if r.late }}" x="{{ r.x1 }}" y="{{ r.mid - 8 }}" width="{{ r.done_w }}" height="16" rx="4"/>{% endif %}
+      {% else %}
+      <polygon class="g-ms{{ ' reached' if it.progress == 100 }}{{ ' missed' if r.missed }}" points="{{ r.diamond }}"/>
+      <text class="g-ms-date" x="{{ r.cx + 13 }}" y="{{ r.mid + 4 }}">{{ it.start.strftime('%d.%m.') }}</text>
+      {% endif %}
+    </a>
+    {% endif %}
+  {% endfor %}
+</svg>
+</div>
+<ul class="gantt-legend" aria-label="Legende">
+  <li><span class="lg lg-bar"></span>Vorgang mit Fortschritt</li>
+  <li><span class="lg lg-ms"></span>Meilenstein</li>
+  <li><span class="lg lg-ms reached"></span>erreicht</li>
+  <li><span class="lg lg-late"></span>überfällig</li>
+  <li><span class="lg lg-link"></span>Abhängigkeit</li>
+  <li><span class="lg lg-cross"></span>projektübergreifend</li>
+  <li><span class="lg lg-bad"></span>Konflikt</li>
+  <li><span class="lg lg-today"></span>heute</li>
+</ul>
+{% endmacro %}
+
+{% macro conflict_list(conflicts, next_url) %}
+{% if conflicts %}
+<section class="card conflict-card" aria-labelledby="konflikte">
+  <h2 id="konflikte">Konflikte im Zeitplan <span class="count">{{ conflicts|length }}</span></h2>
+  <ul class="conflicts">
+  {% for c in conflicts %}
+    <li>
+      <div><strong><a href="{{ url_for('schedule.edit', item_id=c.succ.id) }}">{{ c.succ.title }}</a></strong>
+        <span class="muted">({{ c.succ.project_label }})</span> beginnt am {{ c.succ.start|datum }},
+        aber <a href="{{ url_for('schedule.edit', item_id=c.pred.id) }}">{{ c.pred.title }}</a>
+        <span class="muted">({{ c.pred.project_label }})</span> {{ 'endet' if c.pred.kind == 'phase' else 'ist' }} erst am {{ c.pred.end|datum }}.</div>
+      <form method="post" action="{{ url_for('schedule.resolve', link_id=c.link.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ next_url }}">
+        <button class="btn btn-small btn-primary" type="submit">Auf {{ c.required|datum }} schieben</button>
+      </form>
+    </li>
+  {% endfor %}
+  </ul>
+  <p class="small muted">Beim Verschieben behält der Eintrag seine Dauer, und alles, was von ihm abhängt, rückt mit.</p>
+</section>
+{% endif %}
+{% endmacro %}

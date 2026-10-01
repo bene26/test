@@ -1,0 +1,43 @@
+{# Order form fields. Expects o (or None), projects, units. #}
+{% from "_macros.html" import project_select %}
+<div class="form-grid">
+  <div class="field">
+    <label for="o-number">Bestellnummer</label>
+    <input id="o-number" type="text" name="number" value="{{ o.number if o else '' }}" maxlength="40" placeholder="z. B. 4500123456">
+  </div>
+  <div class="field wide-2">
+    <label for="o-title">Bezeichnung</label>
+    <input id="o-title" type="text" name="title" value="{{ o.title if o else '' }}" required maxlength="150" placeholder="z. B. Schnittstellen ERP">
+  </div>
+  <div class="field">
+    <label for="o-project">Projekt</label>
+    {{ project_select('project_id', projects, o.project_id if o else None, id='o-project', empty='— alle Projekte —') }}
+  </div>
+  <div class="field">
+    <label for="o-amount">Menge</label>
+    <input id="o-amount" type="text" inputmode="decimal" name="amount" value="{{ (o.amount|string).replace('.', ',') if o else '' }}" required pattern="[0-9]{1,6}([,.][0-9]{1,2})?">
+  </div>
+  <div class="field">
+    <label for="o-unit">Einheit</label>
+    <select id="o-unit" name="unit">
+      {% for value, label in units.items() %}<option value="{{ value }}"{% if (o.unit if o else 'h') == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="o-hpd">Stunden je Personentag</label>
+    <input id="o-hpd" type="number" name="hours_per_day" value="{{ (o.hours_per_day|round(2)) if o else 8 }}" min="1" max="24" step="0.5">
+  </div>
+  <div class="field">
+    <label for="o-from">Gültig ab</label>
+    <input id="o-from" type="date" name="valid_from" value="{{ o.valid_from or '' if o else '' }}">
+  </div>
+  <div class="field">
+    <label for="o-to">Gültig bis</label>
+    <input id="o-to" type="date" name="valid_to" value="{{ o.valid_to or '' if o else '' }}">
+  </div>
+  <div class="field wide">
+    <label for="o-notes">Notizen</label>
+    <textarea id="o-notes" name="notes" rows="2" maxlength="2000">{{ o.notes if o else '' }}</textarea>
+  </div>
+  {% if o %}<div class="field"><label class="check"><input type="checkbox" name="active"{% if o.active %} checked{% endif %}> Aktiv</label></div>{% endif %}
+</div>

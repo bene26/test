@@ -1,14 +1,23 @@
-"""Start page, routine check-off and health check."""
+"""Start page with configurable widgets, routine check-off and health check."""
 
 import re
-from datetime import timedelta
 
-from flask import Blueprint, abort, flash, redirect, render_template, url_for
+from flask import Blueprint, abort, flash, g, redirect, render_template, request, url_for
 
-from .. import data, util
+from .. import dashboard, data, forms, util
 from ..db import get_db
+from . import parse_or_flash
 
 bp = Blueprint("main", __name__)
+
+LAYOUT_FIELDS = {
+    "order": forms.KeyList("Reihenfolge", dashboard.WIDGETS),
+    "show": forms.KeyList("Anzeigen", dashboard.WIDGETS),
+    "wide": forms.KeyList("Breit", dashboard.WIDGETS),
+    "move": forms.Text("Verschieben", max_len=40),
+    "reset": forms.Checkbox("Zurücksetzen"),
+    "done": forms.Checkbox("Fertig"),
+}
 
 
 @bp.route("/health")
@@ -17,43 +26,43 @@ def health():
     return "ok", 200, {"Content-Type": "text/plain"}
 
 
-@bp.route("/")
-def dashboard():
+@bp.route("/", endpoint="dashboard")
+def dashboard_view():
     db = get_db()
     now = util.now()
-    today = now.date()
-    settings = data.settings(db)
-    stale_days = int(settings["stale_days"])
-    week_end = util.week_start(today) + timedelta(days=6)
-    next_day = util.next_workday(today)
+    editing = request.args.get("anpassen") == "1"
+    layout = dashboard.load(g.user.get("dashboard", ""))
+    ctx = dashboard.context(db, now, layout, request.args, editing)
+    return render_template("dashboard.html", layout=layout, widgets=dashboard.WIDGETS,
+                           editing=editing, **ctx)
 
-    overdue = data.find_tasks(db, today, preset="ueberfaellig", limit=20)
-    due_week = data.find_tasks(db, today, preset="woche", limit=20)
-    workload = data.workload(db, today, weeks=2)
-    overbooked = [
-        {"name": p["name"], "week": w["label"], "percent": c["percent"]}
-        for p in workload["people"]
-        for w, c in zip(workload["weeks"], p["cells"])
-        if c["level"] == "ueber"
-    ]
-    return render_template(
-        "dashboard.html",
-        now=now,
-        week=util.week_number(today),
-        counts=data.counts(db, now, stale_days),
-        stale_days=stale_days,
-        routines=data.due_routines(db, today),
-        overdue=overdue,
-        due_week=due_week,
-        week_end=week_end,
-        missing=data.missing_protocols(db, now),
-        meetings_today=data.meetings_between(db, today, today),
-        meetings_next=data.meetings_between(db, today + timedelta(days=1), next_day),
-        next_day=next_day,
-        overbooked=overbooked,
-        assignees=data.assignee_options(db),
-        projects=data.project_options(db),
-    )
+
+@bp.route("/startseite", methods=["POST"])
+def save_layout():
+    values = parse_or_flash(LAYOUT_FIELDS)
+    if values is None:
+        return redirect(url_for("main.dashboard", anpassen=1))
+    move = values["move"]
+    if move and not re.fullmatch(r"[a-z_]{1,30}:(up|down)", move):
+        flash("Ungültige Aktion.", "error")
+        return redirect(url_for("main.dashboard", anpassen=1))
+    if values["reset"]:
+        layout = dashboard.default_layout()
+    else:
+        layout = dashboard.apply_form(values["order"], set(values["show"]), set(values["wide"]),
+                                      move)
+    db = get_db()
+    db.execute("UPDATE users SET dashboard = ? WHERE id = ?",
+               (dashboard.dump(layout), g.user["id"]))
+    db.commit()
+    if values["done"]:
+        flash("Startseite gespeichert.", "ok")
+        return redirect(url_for("main.dashboard"))
+    if values["reset"]:
+        flash("Startseite auf den Standard zurückgesetzt.", "ok")
+        return redirect(url_for("main.dashboard"))
+    anchor = "#w-" + move.split(":")[0] if move else ""
+    return redirect(url_for("main.dashboard", anpassen=1) + anchor)
 
 
 @bp.route("/routine/<key>/<period>/erledigt", methods=["POST"])

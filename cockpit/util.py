@@ -110,6 +110,12 @@ def fmt_date(value, weekday: bool = False) -> str:
     return f"{WEEKDAYS[d.weekday()]} {text}" if weekday else text
 
 
+def fmt_day(value) -> str:
+    """Short day label for column heads: 'Mo 05.10.'"""
+    d = to_date(value)
+    return f"{WEEKDAYS[d.weekday()]} {d.strftime('%d.%m.')}" if d else ""
+
+
 def fmt_datetime(value, weekday: bool = True) -> str:
     dt = to_datetime(value)
     if dt is None:
@@ -135,3 +141,19 @@ def safe_next(target: str | None, default: str) -> str:
     if "\\" in target:
         return default
     return target
+
+
+def csv_cell(value) -> str:
+    text = "" if value is None else str(value)
+    # Keep spreadsheet programs from evaluating cell content as a formula.
+    if text[:1] in ("=", "+", "-", "@", "\t", "\r"):
+        text = "'" + text
+    return text
+
+
+def fmt_number(value) -> str:
+    """German decimal for CSV and inputs: 7.5 -> '7,5', 8.0 -> '8'."""
+    if value is None:
+        return ""
+    value = round(float(value), 2)
+    return f"{value:.0f}" if value == int(value) else f"{value:.2f}".rstrip("0").replace(".", ",")

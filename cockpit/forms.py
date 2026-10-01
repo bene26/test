@@ -163,6 +163,25 @@ class IdList(Field):
         return values
 
 
+class KeyList(Field):
+    """Several values, each from a fixed set of keys (checkbox groups, ordering)."""
+    multi = True
+
+    def __init__(self, label, options, required=False):
+        super().__init__(label, required)
+        self.options = set(options)
+
+    def parse(self, raw_list):
+        if len(raw_list) > 200:
+            raise ValidationError("Zu viele Einträge auf einmal.")
+        for raw in raw_list:
+            if raw not in self.options:
+                raise ValidationError(f"„{self.label}“ enthält ungültige Werte.")
+        if self.required and not raw_list:
+            raise ValidationError(f"Bitte mindestens einen Eintrag für „{self.label}“ auswählen.")
+        return list(raw_list)
+
+
 def parse(form, spec: dict[str, Field], extra_allowed: set[str] = frozenset()) -> dict:
     unknown = set(form.keys()) - set(spec) - ALWAYS_ALLOWED - set(extra_allowed)
     if unknown:
