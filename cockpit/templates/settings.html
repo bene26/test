@@ -6,6 +6,38 @@
   <div><h1>Einstellungen</h1></div>
 </div>
 
+<section class="card" id="darstellung" aria-labelledby="darstellung-titel">
+  <h2 id="darstellung-titel">Darstellung</h2>
+  <form method="post" action="{{ url_for('settings.save_theme') }}">
+    {{ csrf() }}
+    <fieldset class="theme-picker">
+      <legend class="sr-only">Design wählen</legend>
+      {% for key, t in THEMES.items() %}
+      <label class="theme-option">
+        <span class="theme-preview" data-theme="{{ key }}" aria-hidden="true">
+          <span class="tp-nav"><span></span><span></span><span></span></span>
+          <span class="tp-main">
+            <span class="tp-title">Aa 12</span>
+            <span class="tp-cards"><span></span><span></span><span></span></span>
+            <span class="tp-panel"><span class="tp-btn"></span></span>
+          </span>
+        </span>
+        <span class="theme-text">
+          <input type="radio" name="theme" value="{{ key }}"{% if key == theme %} checked{% endif %}>
+          <span class="theme-name">{{ t.label }}{% if key == theme %} <span class="badge green">aktiv</span>{% endif %}</span>
+          <span class="theme-desc">{{ t.description }}</span>
+        </span>
+      </label>
+      {% endfor %}
+    </fieldset>
+    <div class="actions">
+      <button class="btn btn-primary" type="submit">Design übernehmen</button>
+      <span class="small muted" data-theme-hint hidden>Vorschau: Zum Behalten auf „Design übernehmen“ klicken.</span>
+    </div>
+    <p class="small muted">Das Design gilt für dein Konto auf allen Geräten. Die Anmeldeseite merkt sich das zuletzt gewählte Design. Ausdrucke und PDFs bleiben immer schwarz auf weiß.</p>
+  </form>
+</section>
+
 <div class="columns-even">
   <section class="card">
     <h2>Erinnerungen</h2>

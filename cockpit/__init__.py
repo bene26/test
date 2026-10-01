@@ -8,10 +8,10 @@ from pathlib import Path
 from flask import Flask, g, render_template, request
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from . import auth, db, util
+from . import auth, db, themes, util
 from .meeting_types import MEETING_TYPES
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -105,12 +105,16 @@ def _register_template_helpers(app: Flask) -> None:
         PROJECT_STATUS=util.PROJECT_STATUS,
         CONTRACT_TYPES=util.CONTRACT_TYPES,
         MEETING_TYPES=MEETING_TYPES,
+        THEMES=themes.THEMES,
         app_version=__version__,
     )
 
     @app.context_processor
     def inject():
-        return {"current_user": g.get("user"), "today": util.today()}
+        return {"current_user": g.get("user"), "today": util.today(),
+                "theme": themes.current()}
+
+    app.after_request(themes.remember)
 
 
 def _register_security_headers(app: Flask) -> None:

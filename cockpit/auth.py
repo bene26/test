@@ -127,12 +127,12 @@ def load_user():
     if not token or len(token) > 100:
         return
     row = get_db().execute(
-        "SELECT s.token_hash, s.csrf_token, u.id, u.username FROM sessions s "
+        "SELECT s.token_hash, s.csrf_token, u.id, u.username, u.theme FROM sessions s "
         "JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND s.expires_at > ?",
         (_hash_token(token), util.stamp()),
     ).fetchone()
     if row:
-        g.user = {"id": row["id"], "username": row["username"]}
+        g.user = {"id": row["id"], "username": row["username"], "theme": row["theme"]}
         g.csrf_token = row["csrf_token"]
         g.session_hash = row["token_hash"]
 

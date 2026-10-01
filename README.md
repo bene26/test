@@ -4,7 +4,7 @@ Selbst gehostetes Werkzeug für Projektleitung mit mehreren Projekten, eigenen L
 
 Konzept und Hintergrund: [`docs/konzept.md`](docs/konzept.md). Installation: [`docs/installation-ugreen.md`](docs/installation-ugreen.md).
 
-## Was die Version 0.1 kann (Stufe 1 des Konzepts)
+## Was die Version 0.2 kann (Stufe 1 des Konzepts)
 
 - **Startseite:** überfällig, heute fällig, ohne Update, fehlende Protokolle, Meetings heute und am nächsten Arbeitstag, Überbuchungen, fällige Routinen mit Checkliste
 - **Aufgaben:** Schnellerfassung in einer Zeile, Filter und Schnellansichten, Status direkt in der Liste ändern, Sammelbearbeitung (Status, verschieben, zuweisen, löschen), CSV-Export für Excel
@@ -15,6 +15,7 @@ Konzept und Hintergrund: [`docs/konzept.md`](docs/konzept.md). Installation: [`d
 - **Auslastung:** aus Aufwand und Fälligkeit der offenen Aufgaben, je Person in Prozent mit Ampel, je Firma in Stunden
 - **Erinnerungen** per Push (ntfy) und/oder E-Mail: Morgen-Zusammenfassung, Wochenplanung (Mo–Mi, bis erledigt), Wochenabschluss (Fr), Meeting-Vorbereitung am Vortag, Monatsbericht; Uhrzeiten einstellbar
 - **Sicherung:** tägliche Datenbank-Kopie (14 Tage), Download in den Einstellungen
+- **Designs:** unter *Einstellungen → Darstellung* wählbar: Violett, Glas und Orange (Standard), Bronze, Hell und Schlicht. Die Wahl gilt pro Konto, mit Vorschau vor dem Speichern. Schriften werden lokal ausgeliefert (keine Verbindung zu Google Fonts), Ausdrucke bleiben schwarz auf weiß
 
 Noch nicht enthalten (Stufe 2/3 im Konzept): Abwesenheiten und Feiertage, Kontingente je Bestellung, Meilensteine, Szenarien, mehrere Benutzer, Firmenportal.
 

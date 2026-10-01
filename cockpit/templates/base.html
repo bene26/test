@@ -1,5 +1,6 @@
+{% from "_macros.html" import icon -%}
 <!doctype html>
-<html lang="de">
+<html lang="de" data-theme="{{ theme }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,24 +12,25 @@
   <script src="{{ url_for('static', filename='app.js') }}?v={{ app_version }}" defer></script>
 </head>
 <body>
+<div class="shell{% if current_user %} with-nav{% endif %}">
 {% if current_user %}
-<header class="topbar">
-  <a class="brand" href="{{ url_for('main.dashboard') }}">Projekt-Cockpit</a>
+<header class="sidenav">
+  <a class="brand" href="{{ url_for('main.dashboard') }}"><span class="logo" aria-hidden="true"></span><span class="nav-label">Projekt-Cockpit</span></a>
   <nav aria-label="Hauptnavigation">
-    {% for endpoint, label in [
-        ('main.dashboard', 'Start'),
-        ('tasks.index', 'Aufgaben'),
-        ('meetings.index', 'Meetings'),
-        ('projects.index', 'Projekte'),
-        ('team.index', 'Team & Firmen'),
-        ('workload.index', 'Auslastung'),
-        ('settings.index', 'Einstellungen')] %}
-    <a href="{{ url_for(endpoint) }}"{% if request.blueprint == endpoint.split('.')[0] %} aria-current="page"{% endif %}>{{ label }}</a>
+    {% for endpoint, label, icon_name in [
+        ('main.dashboard', 'Start', 'start'),
+        ('tasks.index', 'Aufgaben', 'tasks'),
+        ('meetings.index', 'Meetings', 'meetings'),
+        ('projects.index', 'Projekte', 'projects'),
+        ('team.index', 'Team & Firmen', 'team'),
+        ('workload.index', 'Auslastung', 'workload'),
+        ('settings.index', 'Einstellungen', 'settings')] %}
+    <a href="{{ url_for(endpoint) }}" title="{{ label }}"{% if request.blueprint == endpoint.split('.')[0] %} aria-current="page"{% endif %}>{{ icon(icon_name) }}<span class="nav-label">{{ label }}</span></a>
     {% endfor %}
   </nav>
   <form class="logout" method="post" action="{{ url_for('auth.logout') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button class="btn-link" type="submit">Abmelden</button>
+    <button type="submit" title="Abmelden">{{ icon('logout') }}<span class="nav-label">Abmelden</span></button>
   </form>
 </header>
 {% endif %}
@@ -42,5 +44,6 @@
   {% endwith %}
   {% block content %}{% endblock %}
 </main>
+</div>
 </body>
 </html>

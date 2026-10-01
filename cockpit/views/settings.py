@@ -1,4 +1,4 @@
-"""Reminder times, channel test, password change and database download."""
+"""Design, reminder times, channel test, password change and database download."""
 
 import io
 import os
@@ -9,7 +9,7 @@ from pathlib import Path
 from flask import (Blueprint, current_app, flash, g, redirect, render_template, send_file,
                    url_for)
 
-from .. import auth, data, forms, notify, util
+from .. import auth, data, forms, notify, themes, util
 from ..db import get_db
 from . import parse_or_flash
 
@@ -54,6 +54,18 @@ def save_reminders():
         db.commit()
         flash("Erinnerungen gespeichert.", "ok")
     return redirect(url_for("settings.index"))
+
+
+@bp.route("/darstellung", methods=["POST"])
+def save_theme():
+    values = parse_or_flash({"theme": forms.Choice("Design", themes.THEMES, required=True)})
+    if values is not None:
+        db = get_db()
+        db.execute("UPDATE users SET theme = ? WHERE id = ?", (values["theme"], g.user["id"]))
+        db.commit()
+        g.user["theme"] = values["theme"]
+        flash(f"Design „{themes.THEMES[values['theme']]['label']}“ gespeichert.", "ok")
+    return redirect(url_for("settings.index") + "#darstellung")
 
 
 @bp.route("/test", methods=["POST"])

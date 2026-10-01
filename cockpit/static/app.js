@@ -13,6 +13,16 @@
     }
   });
 
+  // Design picker: preview the chosen design right away, saving stays a normal POST.
+  document.querySelectorAll('.theme-picker input[name="theme"]').forEach(function (radio) {
+    radio.addEventListener("change", function () {
+      if (!radio.checked) return;
+      document.documentElement.setAttribute("data-theme", radio.value);
+      var hint = document.querySelector("[data-theme-hint]");
+      if (hint) hint.hidden = false;
+    });
+  });
+
   // Print buttons.
   document.addEventListener("click", function (event) {
     var el = event.target.closest ? event.target.closest("[data-print]") : null;

@@ -43,6 +43,8 @@ Die App wird per Portweiterleitung ins Internet gestellt, das Passwort erraten o
 - Login-Begrenzung: nach 5 Fehlversuchen pro IP 15 Minuten Sperre
 - serverseitige Sitzungen; Abmelden löscht die Sitzung in der Datenbank
 - Sitzungs-Cookie `HttpOnly`, `SameSite=Lax`, `Secure` bei HTTPS
+- Design-Cookie `pc_theme` enthält nur den Namen des gewählten Designs (für die Anmeldeseite), gleiche Cookie-Flags; unbekannte Werte werden ignoriert
+- Schriften liegen im Container (`cockpit/static/fonts`), die Seite lädt nichts von fremden Servern; die CSP erlaubt nur `'self'`
 - CSRF-Token auf jedem Formular und jeder POST-Anfrage
 - Eingaben werden je Formular gegen eine erlaubte Feldliste, Typen und Längen geprüft; unbekannte Felder werden abgelehnt
 - Sicherheits-Header: Content-Security-Policy ohne Inline-Skripte, `frame-ancestors 'none'`, `X-Content-Type-Options`, `Referrer-Policy`, HSTS bei HTTPS

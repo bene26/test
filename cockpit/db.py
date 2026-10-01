@@ -8,6 +8,8 @@ from flask import current_app, g
 # Each entry upgrades the schema by one version. Append, never edit.
 MIGRATIONS: list[str] = [
     resources.files("cockpit").joinpath("schema.sql").read_text(encoding="utf-8"),
+    # 2: per-user design (see themes.py). Empty means the default design.
+    "ALTER TABLE users ADD COLUMN theme TEXT NOT NULL DEFAULT '';",
 ]
 
 
