@@ -14,6 +14,8 @@ Mit diesem Paket bekommt jede Webseite die fünf Designs des Projekt-Cockpits: *
 | `vorlage.html` | leere Seite mit Seitenleiste zum Kopieren für neue Seiten |
 | `anmelden.html` | Anmeldeseite im Stil „Login form V7“ mit Aufklapp-Animation |
 | `beispiel.html` | Beispielseite mit allen Bausteinen, einfach im Browser öffnen |
+| `komponenten.js` | sechs bewegte Komponenten: Fallblatt-Zahlen, Schlüssel, Kassenbon, Karteikasten, Papierflieger, Orb (optional) |
+| `komponenten.html` | alle sechs Komponenten zum Ausprobieren und Abschauen |
 
 ## Bestehende HTML-Seiten umstellen
 
@@ -101,6 +103,7 @@ Alles wird über Attribute am `<html>`-Element gesteuert, genau wie unter *Einst
 | `data-shape` | `rund`, `weich`, `kantig` | Ecken (Bronze bleibt abgeschrägt) |
 | `data-menu` | siehe nächste Tabelle | Stil des aktuellen Menüpunkts |
 | `data-nav` | `voll`, `mini` | Seitenleiste offen oder als Symbolleiste (nur bei `violett`, `glas`, `hell`) |
+| `data-digits` | `fallblatt`, `schlicht` | Kennzahlen als klappernde Abfahrtstafel (ohne Angabe nur bei Violett); braucht `komponenten.js` |
 
 Menü-Stile (`data-menu`), nach den Vorlagen „10 Next-Gen Navigation Designs“:
 
@@ -126,6 +129,22 @@ Auf dem Handy wird das Menü der Seitenleiste automatisch zu einem Dock am unter
 ### Anmeldeseite
 
 `anmelden.html` zeigt die Anmeldung im Stil „Login form V7“: abgeschrägte Glaskarte, die beim Öffnen aus dem Logo aufklappt, Symbole in den Feldern und ein Auge zum Anzeigen des Passworts. Das Formular braucht auf deiner Webseite ein eigenes Ziel (`action`), etwa ein Login-Skript beim Hoster.
+
+## Komponenten (komponenten.js)
+
+`komponenten.html` zeigt alle sechs zum Ausprobieren. Einbinden mit
+`<script src="komponenten.js" defer></script>` (oder `einbauen.py … --komponenten`). Jede Komponente startet über ein `data-`-Attribut; alles Weitere steht als Kommentar in `komponenten.html`.
+
+| Komponente | Start mit | Was sie macht |
+|---|---|---|
+| Fallblatt-Zahlen | `[data-fallblatt]` um Kennzahlen, `[data-fallblatt-wert]` für einzelne Zahlen | Zahlen klappern wie auf einer Abfahrtstafel ins Bild. `data-fallblatt="immer"` gilt in jedem Design. Aus eigenem Code: `cockpitKomponenten.fallblatt(element, "12.481")` |
+| Schlüssel | `[data-schluessel data-passwort="id" data-wiederholung="id"]` mit `[data-schluessel-bild]`, `[data-regel]`, `[data-staerke]` | jede erfüllte Passwort-Regel schneidet einen Zahn in den Schlüssel; sind 12 Zeichen erreicht und die Wiederholung stimmt, dreht der Schlüssel im Schloss |
+| Kassenbon | `[data-bon]` mit Drucker und `[data-bon-papier]` | Preistabelle: Pakete (`data-preis`, `data-name`, `data-zeilen`), Monatlich/Jährlich mit `data-rabatt`; der Beleg wird Zeile für Zeile gedruckt, beim Wechsel abgerissen und neu gedruckt. Eigene Belege als `<template data-bon-vorlage>` |
+| Karteikasten | `div.kartei[data-kartei]` und eine Liste `[data-kartei-eintraege]` | `Strg+K` / `⌘K` öffnet eine Kartei zum Suchen und Springen, ↑/↓ oder Mausrad blättert, Enter zieht die Karte. „g“ und dann ein Buchstabe springt direkt. Optional fragt `data-kartei-suche="/suche.json"` einen Server |
+| Papierflieger | `[data-flieger]` mit `[data-flieger-karte]` und `[data-flieger-fertig]` | ein Formular faltet sich beim Absenden zum Flieger und fliegt davon. Mit `action="…"` wird danach ganz normal abgeschickt (z. B. an den Newsletter-Anbieter); ohne `action` ist es eine Vorschau |
+| Orb | `[data-orb]` mit `canvas[data-orb-kugel]` und `form[data-orb-form]` | Eingabebox mit animierter Kugel in zwölf Stilen (Glas, Plasma, Chrom, Schwarm, Hologramm, Stimme, Aurora, Lava, Dither, Blase, Schwarzes Loch, Kristall), die auf Tippen, Nachdenken und jedes Wort reagiert. Mit `data-orb-quelle="/antwort"` kommen die Antworten von deinem Server (JSON `{"absaetze": [...], "links": [...]}`) |
+
+Alle Komponenten funktionieren mit strenger Content-Security-Policy, folgen dem gewählten Design und laufen bei „Bewegung reduzieren“ ohne Animation.
 
 ## Grundsätzlich: so funktioniert das Design
 
@@ -202,7 +221,7 @@ Die wichtigsten Variablen: `--bg`, `--surface`, `--surface-2`, `--border`, `--te
 | Menüpunkt | `nav > a` mit `svg.icon` und `span.nav-label`, aktueller mit `aria-current="page"` |
 | Kopfzeile | `.page-head` mit `h1`, `p.sub` und `.actions` |
 | Karte | `section.card` mit `h2` und optional `span.count` |
-| Kennzahlen | `.stats` > `a.stat` (+ `.alert` / `.warn`) mit `.value` und `.label`; Ziffern als `span.digit` für die Klapp-Anzeige im Design Violett |
+| Kennzahlen | `.stats` > `a.stat` (+ `.alert` / `.warn`) mit `.value` und `.label`; mit `data-fallblatt` an `.stats` als Fallblatt-Anzeige (siehe Komponenten) |
 | Spalten | `.columns` (3:2) oder `.columns-even` (1:1) |
 | Tabelle | `.table-wrap > table`; erledigte Zeilen `tr.done` |
 | Etiketten | `.badge` (+ `.red`, `.green`, `.offen`, `.in_arbeit`, `.wartet`, `.erledigt`) |

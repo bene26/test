@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import csrf, icon %}
+{% from "_macros.html" import csrf, icon, password_rules %}
 {% block title %}Einstellungen{% endblock %}
 {% block content %}
 <div class="page-head">
@@ -67,6 +67,14 @@
         </fieldset>
 
         <fieldset class="look-group">
+          <legend>Zahlen</legend>
+          <div class="seg">
+            {% for value, label in APPEARANCE.zahlen[1].items() %}<label><input type="radio" name="zahlen" value="{{ value }}"{% if look.zahlen == value %} checked{% endif %}>{{ label }}</label>{% endfor %}
+          </div>
+          <p class="small muted">Fallblatt: Die Kennzahlen auf der Startseite klappern beim Öffnen wie auf einer Abfahrtstafel. „Wie im Design“ heißt: nur bei Violett.</p>
+        </fieldset>
+
+        <fieldset class="look-group">
           <legend>Menü-Stil</legend>
           <div class="menu-picker">
             {% for value, label in APPEARANCE.menue[1].items() %}
@@ -82,7 +90,7 @@
 
       <aside class="look-preview" aria-label="Vorschau">
         <span class="look-title">Vorschau</span>
-        <div class="stats">
+        <div class="stats" data-fallblatt>
           <div class="stat alert"><div class="value"><span class="digit">5</span></div><div class="label">überfällig</div></div>
           <div class="stat"><div class="value"><span class="digit">8</span><span class="digit">7</span></div><div class="label">Prozent</div></div>
         </div>
@@ -156,17 +164,22 @@
     </form>
   </section>
 
-  <section class="card">
+  <section class="card" id="passwort">
     <h2>Passwort ändern</h2>
-    <form method="post" action="{{ url_for('settings.change_password') }}">
-      {{ csrf() }}
-      <div class="form-grid">
-        <div class="field wide"><label for="pw-current">Aktuelles Passwort</label><input id="pw-current" type="password" name="current" required maxlength="200" autocomplete="current-password"></div>
-        <div class="field"><label for="pw-new">Neues Passwort (mind. 12 Zeichen)</label><input id="pw-new" type="password" name="new" required minlength="12" maxlength="200" autocomplete="new-password"></div>
-        <div class="field"><label for="pw-new2">Wiederholen</label><input id="pw-new2" type="password" name="new2" required minlength="12" maxlength="200" autocomplete="new-password"></div>
-      </div>
-      <button class="btn" type="submit">Passwort ändern</button>
-    </form>
+    <div class="schluessel pw-schluessel" data-schluessel data-passwort="pw-new" data-wiederholung="pw-new2">
+      <div class="schluessel-bild" data-schluessel-bild aria-hidden="true"></div>
+      <form method="post" action="{{ url_for('settings.change_password') }}">
+        {{ csrf() }}
+        <div class="form-grid">
+          <div class="field wide"><label for="pw-current">Aktuelles Passwort</label><input id="pw-current" type="password" name="current" required maxlength="200" autocomplete="current-password"></div>
+          <div class="field"><label for="pw-new">Neues Passwort (mind. 12 Zeichen)</label><input id="pw-new" type="password" name="new" required minlength="12" maxlength="200" autocomplete="new-password" aria-describedby="pw-staerke"></div>
+          <div class="field"><label for="pw-new2">Wiederholen</label><input id="pw-new2" type="password" name="new2" required minlength="12" maxlength="200" autocomplete="new-password"></div>
+        </div>
+        {{ password_rules('pw-staerke') }}
+        <button class="btn" type="submit">Passwort ändern</button>
+        <p class="schluessel-status" data-schluessel-status aria-live="polite"></p>
+      </form>
+    </div>
   </section>
 
   <section class="card">

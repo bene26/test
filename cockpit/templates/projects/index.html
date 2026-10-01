@@ -32,7 +32,7 @@
 </section>
 
 <section class="card">
-  <details{% if not projects %} open{% endif %}>
+  <details id="neu" data-fokus{% if not projects %} open{% endif %}>
     <summary>Neues Projekt</summary>
     <form method="post" action="{{ url_for('projects.create') }}">
       {{ csrf() }}

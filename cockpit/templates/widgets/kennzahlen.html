@@ -1,6 +1,6 @@
 {% from "_macros.html" import digits %}
 <h2 class="sr-only">Kennzahlen</h2>
-<div class="stats">
+<div class="stats" data-fallblatt>
   <a class="stat{{ ' alert' if counts.overdue }}" href="{{ url_for('tasks.index', ansicht='ueberfaellig') }}">
     <div class="value">{{ digits(counts.overdue) }}</div><div class="label">überfällig</div></a>
   <a class="stat{{ ' warn' if counts.due_today }}" href="{{ url_for('tasks.index', ansicht='heute') }}">

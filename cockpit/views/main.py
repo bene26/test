@@ -2,9 +2,10 @@
 
 import re
 
-from flask import Blueprint, abort, flash, g, redirect, render_template, request, url_for
+from flask import (Blueprint, abort, flash, g, jsonify, redirect, render_template, request,
+                   url_for)
 
-from .. import dashboard, data, forms, util
+from .. import assistent, dashboard, data, forms, util
 from ..db import get_db
 from . import parse_or_flash
 
@@ -35,6 +36,27 @@ def dashboard_view():
     ctx = dashboard.context(db, now, layout, request.args, editing)
     return render_template("dashboard.html", layout=layout, widgets=dashboard.WIDGETS,
                            editing=editing, **ctx)
+
+
+def _wants_json() -> bool:
+    best = request.accept_mimetypes.best_match(["application/json", "text/html"])
+    return best == "application/json"
+
+
+@bp.route("/suche.json")
+def search():
+    """Search for the Strg+K card file: tasks, projects, meetings, people, firms, orders."""
+    return jsonify(treffer=assistent.search(get_db(), request.args.get("q", "")[:100]))
+
+
+@bp.route("/assistent")
+def assistant():
+    """Answers for "Frag das Cockpit"; JSON for the start page, a page without JavaScript."""
+    question = " ".join(request.args.get("frage", "").split())[:assistent.MAX_QUERY]
+    result = assistent.answer(get_db(), util.now(), question)
+    if _wants_json():
+        return jsonify(result)
+    return render_template("assistent.html", question=question, result=result)
 
 
 @bp.route("/startseite", methods=["POST"])

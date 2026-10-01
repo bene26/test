@@ -11,7 +11,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from . import auth, data, db, themes, util
 from .meeting_types import MEETING_TYPES
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 
 def _env_bool(name: str, default: bool) -> bool:

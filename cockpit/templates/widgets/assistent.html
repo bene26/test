@@ -1,0 +1,23 @@
+{% from "_macros.html" import icon %}
+<div class="orb" data-orb data-orb-quelle="{{ url_for('main.assistant') }}" data-orb-stil="plasma">
+  <h2 class="sr-only">Frag das Cockpit</h2>
+  <div class="orb-stile" data-orb-stile role="group" aria-label="Kugel wählen"></div>
+  <div class="orb-kopf">
+    <canvas class="orb-kugel" data-orb-kugel width="264" height="264" aria-hidden="true"></canvas>
+    <p class="orb-name"><strong>Cockpit</strong><span data-orb-status>Bereit</span></p>
+    <p class="orb-frage" aria-hidden="true">Wie kann ich helfen?</p>
+    <div class="orb-chips">
+      <button type="button" data-orb-chip>Fasse meine Woche zusammen</button>
+      <button type="button" data-orb-chip>Was ist überfällig?</button>
+      <button type="button" data-orb-chip>Wie stehen die Kontingente?</button>
+      <button type="button" data-orb-chip>Gibt es Konflikte im Zeitplan?</button>
+    </div>
+  </div>
+  <div class="orb-verlauf" data-orb-verlauf aria-live="polite" hidden></div>
+  <form class="orb-eingabe" data-orb-form method="get" action="{{ url_for('main.assistant') }}">
+    <label class="sr-only" for="orb-frage">Frage an das Cockpit</label>
+    <input id="orb-frage" type="text" name="frage" maxlength="200" autocomplete="off" placeholder="Frag etwas, z. B. „Wer ist überbucht?“">
+    <button type="submit" aria-label="Senden">{{ icon('arrow') }}</button>
+  </form>
+  <p class="orb-fuss"><span data-orb-hinweis>Enter zum Senden · ohne KI, direkt aus deinen Daten</span><button class="orb-neu" type="button" data-orb-neu>Neu beginnen</button></p>
+</div>

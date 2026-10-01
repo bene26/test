@@ -2,7 +2,7 @@
 
 The layout is stored as JSON in users.dashboard: a list of
 {"k": key, "v": visible, "w": wide}. Unknown keys are dropped, widgets added
-in a later version are appended with their defaults.
+in a later version are inserted behind their default predecessor.
 """
 
 import json
@@ -14,6 +14,8 @@ from . import data, quotas, schedule, util
 WIDGETS = {
     "kennzahlen": ("Kennzahlen", "Überfällig, heute fällig, ohne Update, Protokolle, ohne Termin",
                    True, True),
+    "assistent": ("Frag das Cockpit", "Fragen zu Woche, Überfälligem, Meetings, Kontingenten "
+                  "und Zeitplan; ohne KI, direkt aus deinen Daten", True, True),
     "routinen": ("Routinen", "Wochenplanung, Wochenabschluss und Monatsbericht, wenn fällig",
                  True, True),
     "schnellerfassung": ("Schnellerfassung", "Neue Aufgabe in einer Zeile anlegen", True, True),
@@ -55,9 +57,14 @@ def load(raw: str) -> list[dict]:
                 layout.append({"k": key, "v": bool(entry.get("v")), "w": bool(entry.get("w"))})
     if not layout:
         return default_layout()
+    order = list(WIDGETS)
     for entry in default_layout():
         if entry["k"] not in seen:
-            layout.append(entry)
+            # A widget from a later version goes behind its default predecessor.
+            keys = [e["k"] for e in layout]
+            before = [k for k in order[:order.index(entry["k"])] if k in keys]
+            layout.insert(keys.index(before[-1]) + 1 if before else len(layout), entry)
+            seen.add(entry["k"])
     return layout
 
 

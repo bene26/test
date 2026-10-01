@@ -10,6 +10,7 @@
   <link rel="icon" href="{{ url_for('static', filename='icon.svg') }}" type="image/svg+xml">
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v={{ app_version }}">
   <script src="{{ url_for('static', filename='app.js') }}?v={{ app_version }}" defer></script>
+  <script src="{{ url_for('static', filename='komponenten.js') }}?v={{ app_version }}" defer></script>
 </head>
 <body class="{% block body_class %}{% endblock %}">
 <div class="shell{% if current_user %} with-nav{% endif %}">
@@ -27,7 +28,8 @@
   <form class="nav-search" role="search" method="get" action="{{ url_for('tasks.index') }}">
     <label class="sr-only" for="nav-q">Aufgaben durchsuchen</label>
     {{ icon('search') }}
-    <input id="nav-q" type="search" name="q" placeholder="Aufgaben suchen …" maxlength="100" value="{{ request.args.get('q', '') if request.blueprint == 'tasks' else '' }}">
+    <input id="nav-q" type="search" name="q" placeholder="Suchen …" maxlength="100" value="{{ request.args.get('q', '') if request.blueprint == 'tasks' else '' }}">
+    <button class="nav-kbd" type="button" data-kartei-oeffnen data-kartei-taste title="Suchen oder springen (Karteikasten)">Strg K</button>
   </form>
   <nav id="hauptmenue" aria-label="Hauptnavigation">
     {% for section, items in [
@@ -67,5 +69,6 @@
   {% block content %}{% endblock %}
 </main>
 </div>
+{% if current_user %}{% include "_kartei.html" %}{% endif %}
 </body>
 </html>

@@ -671,9 +671,11 @@ p { margin: 0 0 12px; }
   background: var(--surface-2);
   color: var(--muted);
 }
-.nav-search .icon { width: 16px; height: 16px; }
+.nav-search .icon { flex: none; width: 16px; height: 16px; }
 .nav-search input[type="search"] {
+  flex: 1;
   width: 150px;
+  min-width: 0;
   min-height: 0;
   padding: 0;
   border: 0;
@@ -1011,20 +1013,21 @@ main { max-width: 1240px; margin: 0 auto; padding: 20px 16px 48px; min-width: 0;
 [data-theme="schlicht"] .stat.alert { background: var(--danger-bg); }
 [data-theme="schlicht"] .stat.warn { background: var(--warn-bg); }
 
-/* Violett: split-flap digits that flip in on load. */
-[data-theme="violett"] .stat .value { display: flex; gap: 4px; font-family: var(--font-mono); font-weight: 600; font-size: 1.7rem; margin-bottom: 4px; }
-[data-theme="violett"] .stat .digit {
+/* Split-flap digits (Violett, or data-digits="fallblatt"): without JavaScript they flip in
+   once; komponenten.js turns them into real flap tiles. */
+:is([data-theme="violett"]:not([data-digits="schlicht"]), [data-digits="fallblatt"]) .stat .value { display: flex; gap: 4px; font-family: var(--font-mono); font-weight: 600; font-size: 1.7rem; margin-bottom: 4px; }
+:is([data-theme="violett"]:not([data-digits="schlicht"]), [data-digits="fallblatt"]) .stat .digit {
   position: relative;
   display: inline-block;
   min-width: 1.1em;
   padding: 3px 0;
   border-radius: 8px;
-  background: #1d1828;
+  background: color-mix(in srgb, var(--surface-solid) 88%, var(--text));
   text-align: center;
   box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.35);
   animation: flap 0.8s cubic-bezier(0.3, 1.5, 0.5, 1) both;
 }
-[data-theme="violett"] .stat .digit::after {
+:is([data-theme="violett"]:not([data-digits="schlicht"]), [data-digits="fallblatt"]) .stat .digit::after {
   content: "";
   position: absolute;
   left: 0;
@@ -1033,12 +1036,12 @@ main { max-width: 1240px; margin: 0 auto; padding: 20px 16px 48px; min-width: 0;
   height: 1px;
   background: rgba(0, 0, 0, 0.55);
 }
-[data-theme="violett"][data-mode="hell"] .stat .digit { background: #efecf8; box-shadow: inset 0 -2px 0 rgba(27, 21, 48, 0.1); }
-[data-theme="violett"][data-mode="hell"] .stat .digit::after { background: rgba(27, 21, 48, 0.14); }
-[data-theme="violett"] .stat:nth-child(2) .digit { animation-delay: 0.08s; }
-[data-theme="violett"] .stat:nth-child(3) .digit { animation-delay: 0.16s; }
-[data-theme="violett"] .stat:nth-child(4) .digit { animation-delay: 0.24s; }
-[data-theme="violett"] .stat:nth-child(5) .digit { animation-delay: 0.32s; }
+:is([data-theme="violett"]:not([data-digits="schlicht"]), [data-digits="fallblatt"])[data-tone="hell"] .stat .digit { box-shadow: inset 0 -2px 0 rgba(27, 21, 48, 0.1); }
+:is([data-theme="violett"]:not([data-digits="schlicht"]), [data-digits="fallblatt"])[data-tone="hell"] .stat .digit::after { background: rgba(27, 21, 48, 0.14); }
+:is([data-theme="violett"]:not([data-digits="schlicht"]), [data-digits="fallblatt"]) .stat:nth-child(2) .digit { animation-delay: 0.08s; }
+:is([data-theme="violett"]:not([data-digits="schlicht"]), [data-digits="fallblatt"]) .stat:nth-child(3) .digit { animation-delay: 0.16s; }
+:is([data-theme="violett"]:not([data-digits="schlicht"]), [data-digits="fallblatt"]) .stat:nth-child(4) .digit { animation-delay: 0.24s; }
+:is([data-theme="violett"]:not([data-digits="schlicht"]), [data-digits="fallblatt"]) .stat:nth-child(5) .digit { animation-delay: 0.32s; }
 @keyframes flap {
   0% { transform: perspective(200px) rotateX(-90deg); opacity: 0.3; }
   65% { transform: perspective(200px) rotateX(14deg); }
@@ -1948,6 +1951,466 @@ table.workload.compact td.lvl { padding: 4px; font-size: 0.85rem; }
 }
 @media (max-width: 600px) { .v7-card { padding: 30px 20px 24px; } .v7-card h1 { font-size: 1.7rem; } }
 
+/* ---------- Komponenten (static/komponenten.js) ----------
+   Fallblatt-Zahlen, Schlüssel, Kassenbon, Karteikasten (Strg+K), Papierflieger, Orb.
+   Everything uses the design tokens, so the pieces follow the chosen design. */
+
+/* 1 · Fallblatt-Zahlen: tiles with a top and a bottom half; a falling flap shows the old
+   character, a rising one the new. On for Violett, or for every design with data-digits. */
+:is([data-theme="violett"]:not([data-digits="schlicht"]), [data-digits="fallblatt"]) [data-fallblatt],
+[data-fallblatt="immer"] { --fallblatt: an; }
+.fb-board { display: inline-flex; gap: 4px; perspective: 400px; }
+.fb-tile {
+  --fb-bg: color-mix(in srgb, var(--surface-solid) 88%, var(--text));
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 1.08em;
+  height: 1.5em;
+  border-radius: 7px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5em;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.28), 0 6px 14px rgba(0, 0, 0, 0.18);
+}
+.fb-tile::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  top: calc(50% - 0.5px);
+  height: 1px;
+  background: rgba(0, 0, 0, 0.45);
+}
+.fb-half {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  overflow: hidden;
+  background: var(--fb-bg);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.fb-top {
+  top: 0;
+  border-radius: 7px 7px 0 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--fb-bg) 90%, #fff), var(--fb-bg));
+  transform-origin: 50% 100%;
+}
+.fb-bot { bottom: 0; border-radius: 0 0 7px 7px; transform-origin: 50% 0; }
+.fb-ch { display: block; height: 200%; text-align: center; }
+.fb-bot .fb-ch { transform: translateY(-50%); }
+.fb-flap { z-index: 2; visibility: hidden; }
+.fb-flap.an { visibility: visible; }
+.fb-flap.fb-top { box-shadow: inset 0 -10px 12px -10px rgba(0, 0, 0, 0.5); }
+.stat.alert .fb-tile { color: var(--stat-alert); }
+.stat.warn .fb-tile { color: var(--stat-warn); }
+
+/* 2 · Schlüssel: every password rule cuts a tooth, the lock opens. */
+.schluessel-bild { display: grid; place-items: center; min-width: 0; }
+.s-svg { display: block; width: 100%; max-width: 420px; height: auto; overflow: visible; }
+.s-schatten { fill: rgba(0, 0, 0, 0.3); }
+.s-rille { fill: none; stroke: rgba(40, 42, 52, 0.32); stroke-width: 2; stroke-linecap: round; }
+.s-spaene circle { fill: #eceef4; }
+.s-buegel { fill: none; stroke-width: 11; stroke-linecap: round; }
+.s-zylinder { fill: #8d8b96; }
+.s-rippe { stroke: rgba(255, 255, 255, 0.07); stroke-width: 2; }
+.s-key, .s-bow, .s-buegel { transition: transform 0.55s cubic-bezier(0.5, 0, 0.2, 1); }
+.s-bow { transform-box: fill-box; transform-origin: 50% 50%; }
+.offen .s-key { transform: translateX(180px); }
+.offen .s-bow { transform: scaleX(0.16); transition-delay: 0.5s; }
+.offen .s-buegel { transform: translateY(-14px); transition: transform 0.45s cubic-bezier(0.3, 1.6, 0.5, 1) 0.8s; }
+.schluessel-staerke { margin: 8px 0 6px; color: var(--muted); font-size: 0.82rem; }
+.schluessel-regeln {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px 14px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.schluessel-regeln li { display: flex; align-items: center; gap: 7px; transition: color 0.2s; }
+.schluessel-regeln li::before {
+  content: "";
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  opacity: 0.55;
+}
+.schluessel-regeln li.ok { color: var(--text); }
+.schluessel-regeln li.ok::before { content: "✓"; border-color: var(--accent); background: var(--accent); color: var(--accent-contrast); opacity: 1; }
+.schluessel-status {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-align: center;
+  text-transform: uppercase;
+}
+.schluessel.offen .schluessel-status { color: var(--accent-text); }
+.schluessel.offen .v7-submit .icon-lock { transform: translateY(-2px); }
+.auth-v7.breit > div { width: min(900px, 100%); }
+.v7-split .v7-body { display: grid; gap: 4px 30px; align-items: center; }
+.v7-split .schluessel-bild { max-width: 360px; margin: -6px auto 4px; }
+@media (min-width: 820px) {
+  .v7-split .v7-body { grid-template-columns: minmax(0, 1fr) minmax(0, 380px); }
+  .v7-split .schluessel-bild { max-width: none; margin: 0; }
+}
+/* Key beside the form when there is room, otherwise above it. */
+.pw-schluessel { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 30px; }
+.pw-schluessel > .schluessel-bild { flex: 1 1 260px; max-width: 360px; margin: 0 auto; }
+.pw-schluessel > form { flex: 999 1 420px; min-width: 0; }
+
+/* 3 · Kassenbon: a small printer, the paper grows row by row. */
+.bon { --bon-papier: #fbfaf6; --bon-tinte: #23222a; --bon-leise: #85838e; }
+.bon-drucker { position: relative; width: min(330px, 100%); margin: 0 auto; }
+.bon-geraet {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 46px;
+  padding: 0 14px 8px;
+  border-radius: 14px 14px 10px 10px;
+  background: linear-gradient(180deg, #3a3843, #1c1b23);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+}
+.bon-geraet::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 9px;
+  height: 5px;
+  border-radius: 3px;
+  background: #0a090e;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+.bon-status { display: inline-flex; align-items: center; gap: 7px; color: #a19ead; font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; }
+.bon-status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #5f5d69; }
+.druckt .bon-status::before { background: #f5f3fa; box-shadow: 0 0 8px #fff; animation: bon-blink 0.7s steps(2) infinite; }
+.bon-knopf { width: 18px; height: 6px; border-radius: 3px; background: #4b4955; }
+@keyframes bon-blink { 50% { opacity: 0.25; } }
+.bon-rolle { position: relative; z-index: 1; margin: -12px 20px 0; filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.3)); }
+.bon-papier { overflow: hidden; background: var(--bon-papier); color: var(--bon-tinte); }
+.bon-kante {
+  height: 7px;
+  background: var(--bon-papier);
+  -webkit-mask: conic-gradient(from -45deg at 50% 100%, #000 90deg, #0000 0) 0 0 / 10px 100% repeat-x;
+  mask: conic-gradient(from -45deg at 50% 100%, #000 90deg, #0000 0) 0 0 / 10px 100% repeat-x;
+}
+.bon-abriss { position: absolute; z-index: 1; margin: 0; pointer-events: none; }
+.bon-inhalt {
+  position: relative;
+  padding: 24px 16px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+.bon-kopf { display: grid; justify-items: center; gap: 6px; margin-bottom: 12px; font-size: 0.78rem; letter-spacing: 0.2em; }
+.bon-logo { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; background: var(--bon-tinte); color: var(--bon-papier); font-size: 0.72rem; letter-spacing: 0; }
+.bon-zeile { display: flex; justify-content: space-between; gap: 10px; padding: 1px 0; }
+.bon-zeile > span:first-child { display: flex; flex: 1; gap: 8px; min-width: 0; }
+.bon-zeile > span:first-child::after { content: ""; flex: 1; min-width: 12px; margin-bottom: 0.45em; border-bottom: 1px solid rgba(35, 34, 42, 0.14); }
+.bon-zeile:is(.bon-meta, .bon-rechts) > span:first-child::after { content: none; }
+.bon-zeile > span:last-child { white-space: nowrap; }
+.bon-zeile > span:only-child { white-space: normal; }
+.bon-meta, .bon-leise { color: var(--bon-leise); }
+.bon-fett { font-weight: 700; }
+.bon-rechts { justify-content: flex-end; }
+.bon-trenn { margin: 8px 0; border-top: 1px dashed rgba(35, 34, 42, 0.32); }
+.bon-trenn.doppelt { border-top: 3px double rgba(35, 34, 42, 0.5); }
+.bon-summe { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: 0.8rem; font-weight: 700; }
+.bon-betrag { font-size: 1.35rem; letter-spacing: 0; white-space: nowrap; }
+.bon-betrag small { color: var(--bon-leise); font-size: 0.6rem; }
+.bon-barcode { height: 34px; margin: 14px 0 6px; color: var(--bon-tinte); }
+.bon-barcode svg { display: block; width: 100%; height: 100%; fill: currentColor; }
+.bon-danke { margin: 0; color: var(--bon-leise); font-size: 0.6rem; letter-spacing: 0.3em; text-align: center; }
+.bon-wahl { display: grid; gap: 14px; align-content: start; }
+.bon-wahl .eyebrow { margin: 0 0 -6px; }
+.bon-preise { display: grid; gap: 28px; align-items: start; }
+@media (min-width: 760px) { .bon-preise { grid-template-columns: minmax(0, 1fr) 330px; } }
+.bon-rabatt { padding: 1px 6px; border: 1px solid currentColor; border-radius: 999px; font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.08em; opacity: 0.8; }
+.bon-plaene { display: grid; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.bon-option { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; margin: 0; padding: 14px 16px; border-top: 1px solid var(--border); cursor: pointer; }
+.bon-option:first-child { border-top: 0; }
+.bon-option:has(input:checked) { background: var(--surface-2); }
+.bon-option:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: -2px; }
+.bon-option input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+.bon-option strong { display: block; }
+.bon-option small { color: var(--muted); }
+.bon-option b { font-size: 1.05rem; white-space: nowrap; }
+.bon-option b small { font-weight: 400; }
+.bon-tag { margin-left: 6px; padding: 1px 6px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-family: var(--font-mono); font-size: 0.58rem; font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase; vertical-align: 2px; }
+.bon-cta { display: flex; justify-content: center; width: 100%; margin-top: 18px; }
+.bon-ansicht { margin-bottom: 14px; }
+
+/* 4 · Karteikasten: Strg+K opens a card file, ↑/↓ flips, Enter pulls the card. */
+.kartei {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: start center;
+  padding: 9vh 16px 16px;
+  background: rgba(8, 7, 12, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.kartei[hidden] { display: none; }
+.kartei.offen { opacity: 1; }
+.kartei-fenster {
+  width: min(620px, 100%);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface-solid);
+  color: var(--text);
+  box-shadow: 0 40px 90px rgba(0, 0, 0, 0.45);
+  transform: translateY(10px) scale(0.98);
+  transition: transform 0.28s cubic-bezier(0.3, 1.3, 0.5, 1);
+}
+.kartei.offen .kartei-fenster { transform: none; }
+.kartei-suche { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+.kartei-suche:focus-within { box-shadow: inset 0 -2px 0 var(--accent); }
+.kartei-suche .icon { flex: none; width: 18px; height: 18px; color: var(--muted); }
+.kartei-suche input { flex: 1; min-height: 42px; padding: 0; border: 0; background: transparent; color: var(--text); font-size: 1.05rem; }
+.kartei-suche input:focus { outline: none; }
+.kartei kbd, .nav-kbd {
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+.kartei-zu { padding: 0; border: 0; background: none; cursor: pointer; }
+.kartei-buehne {
+  position: relative;
+  height: 300px;
+  overflow: hidden;
+  background: radial-gradient(70% 60% at 50% 100%, color-mix(in srgb, var(--accent) 10%, transparent), transparent);
+  perspective: 1000px;
+  perspective-origin: 50% 0%;
+}
+.kartei-stapel { position: absolute; inset: 0 0 34px; transform-style: preserve-3d; }
+.kartei-karte {
+  --schatten: 0;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: block;
+  width: min(400px, 84%);
+  height: 150px;
+  margin: 0 auto;
+  padding: 8px 16px 12px;
+  border-radius: 10px 10px 4px 4px;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 23px, rgba(27, 26, 34, 0.07) 23px 24px) 0 46px / 100% calc(100% - 46px) no-repeat,
+    linear-gradient(180deg, #fbfbfd, #e9e8ef);
+  color: #1b1a22;
+  text-decoration: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 10px 28px rgba(0, 0, 0, 0.28);
+  filter: brightness(calc(1 - var(--schatten)));
+  transform-origin: 50% 100%;
+  transition: transform 0.5s cubic-bezier(0.3, 1.3, 0.5, 1), opacity 0.35s, filter 0.35s;
+  will-change: transform;
+}
+.kartei-karte:hover { color: #1b1a22; }
+.kartei-karte:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.kk-titel { display: block; padding: 2px 70px 8px 0; border-bottom: 1px solid rgba(27, 26, 34, 0.12); font-size: 1rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kk-reiter {
+  position: absolute;
+  top: 9px;
+  right: 14px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(27, 26, 34, 0.08);
+  color: #55535f;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.kk-hinweis { display: block; margin-top: 10px; color: #55535f; font-family: var(--font-mono); font-size: 0.75rem; line-height: 24px; }
+.kk-tasten { position: absolute; right: 14px; bottom: 12px; display: flex; gap: 4px; }
+.kk-tasten kbd { background: #fff; color: #55535f; border-color: rgba(27, 26, 34, 0.18); }
+.kartei-karte:not(.vorne) .kk-tasten { display: none; }
+.kartei-karte.gezogen { transform: translate3d(0, -60px, 80px) !important; opacity: 0 !important; }
+.kartei-leer { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: var(--muted); }
+.kartei-schiene {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  width: min(470px, 92%);
+  height: 20px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #4a4853, #22212a);
+  box-shadow: 0 14px 24px rgba(0, 0, 0, 0.4);
+  transform: translateX(-50%);
+}
+.kartei-schiene::before, .kartei-schiene::after {
+  content: "";
+  position: absolute;
+  top: -24px;
+  width: 12px;
+  height: 40px;
+  border-radius: 3px;
+  background: repeating-linear-gradient(180deg, #a3a1ac 0 2px, #5a5863 2px 4px);
+}
+.kartei-schiene::before { left: -5px; }
+.kartei-schiene::after { right: -5px; }
+.kartei-fuss { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 10px 16px; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.78rem; }
+.kartei-fuss span { display: inline-flex; align-items: center; gap: 4px; }
+.kartei-zahl { margin-left: auto; font-family: var(--font-mono); }
+html.kartei-offen { overflow: hidden; }
+.nav-kbd { margin-left: auto; cursor: pointer; white-space: nowrap; }
+.nav-kbd:hover { color: var(--text); }
+@media (max-width: 600px) {
+  .kartei { padding-top: 4vh; }
+  .kartei-buehne { height: 250px; }
+  .kartei-fuss span:not(.kartei-zahl) { display: none; }
+}
+
+/* 5 · Papierflieger: the form folds into a plane while it sends. */
+/* The sheet is always light paper, also in dark designs. */
+.flieger { --flieger-papier: #f2f1f6; position: relative; }
+.flieger-weg { visibility: hidden; }
+.flieger-buehne { position: absolute; z-index: 5; overflow: visible; pointer-events: none; }
+.flieger-buehne svg { display: block; overflow: visible; }
+.fl-blatt { fill: var(--flieger-papier); stroke: rgba(0, 0, 0, 0.1); stroke-width: 1; }
+.fl-klappe { fill: #8f8d99; }
+.fl-falz { fill: none; stroke: rgba(0, 0, 0, 0.16); stroke-width: 1.2; }
+.fl-flieger { transform-box: fill-box; transform-origin: 50% 50%; filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.3)); }
+.fl-spur { fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-dasharray: 5 7; opacity: 0; }
+.flieger-fehler { margin: 10px 0 0; color: var(--danger); font-size: 0.85rem; }
+.flieger-fertig { display: grid; justify-items: center; gap: 6px; padding: 22px 12px 8px; text-align: center; }
+.flieger-fertig[hidden] { display: none; }
+.flieger-fertig .icon { width: 22px; height: 22px; color: var(--accent-text); }
+.flieger-fertig h3 { margin: 4px 0 0; font-size: 1.5rem; }
+.flieger-fertig p { margin: 0; color: var(--muted); }
+.flieger-adresse { padding: 3px 10px; border-radius: 999px; background: var(--surface-2); font-family: var(--font-mono); font-size: 0.75rem; }
+.flieger-fertig .btn { margin-top: 10px; }
+.flieger-papier { --flieger-papier: #f5f4f8; }
+.flieger-papier [data-flieger-karte] {
+  padding: 26px 28px 20px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #fbfbfd, #eeedf3);
+  color: #1b1a22;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35);
+}
+.flieger-papier [data-flieger-karte] :is(p, small) { color: #55535f; }
+.flieger-papier [data-flieger-karte] h3 { margin: 4px 0 6px; color: #15141b; font-size: 1.5rem; }
+.flieger-papier [data-flieger-karte] input { background: #fff; color: #1b1a22; border-color: #c9c7d2; }
+.flieger-papier [data-flieger-karte] .btn-primary { background: #15141b; border-color: #15141b; color: #fff; }
+.flieger-zeile { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 10px; }
+.flieger-zeile input { flex: 1 1 200px; }
+.flieger-zeile .btn .icon { width: 16px; height: 16px; }
+
+/* 6 · Orb: input box with an animated sphere in twelve styles. */
+.orb { display: grid; gap: 12px; }
+.orb-stile { display: flex; gap: 4px; margin: -4px -4px 0; padding: 2px 4px 10px; overflow-x: auto; border-bottom: 1px solid var(--border); scrollbar-width: thin; }
+.orb-stil {
+  display: grid;
+  flex: none;
+  justify-items: center;
+  gap: 4px;
+  width: 68px;
+  padding: 7px 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.66rem;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.orb-stil:hover { color: var(--text); }
+.orb-stil[aria-pressed="true"] { border-color: var(--border); background: var(--surface-2); color: var(--text); font-weight: 700; }
+.orb-mini { width: 28px; height: 28px; }
+.orb-kopf { display: grid; justify-items: center; gap: 10px; padding: 6px 0 2px; text-align: center; }
+.orb-kugel { display: block; width: 132px; height: 132px; transition: width 0.4s, height 0.4s; }
+.orb-name { display: none; margin: 0; font-size: 0.85rem; }
+.orb-name span { margin-left: 6px; color: var(--muted); }
+.orb-frage { margin: 0; font-size: 1.45rem; }
+.orb-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.orb-chips button { padding: 6px 13px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); color: var(--text); font: inherit; font-size: 0.82rem; cursor: pointer; }
+.orb-chips button:hover { border-color: var(--accent); }
+.orb.im-gespraech .orb-kugel { width: 58px; height: 58px; }
+.orb.im-gespraech .orb-name { display: block; }
+.orb.im-gespraech :is(.orb-frage, .orb-chips) { display: none; }
+.orb-verlauf { display: grid; align-content: start; gap: 10px; max-height: 320px; overflow-y: auto; }
+.orb-verlauf[hidden] { display: none; }
+.orb-ich { justify-self: end; max-width: 80%; margin: 0; padding: 8px 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-2); }
+.orb-antwort p { margin: 0 0 8px; line-height: 1.55; }
+.orb-links { display: grid; gap: 4px; margin: 2px 0 0; padding-left: 18px; }
+.orb-links span { color: var(--muted); font-size: 0.85rem; }
+.orb-eingabe { position: relative; display: flex; align-items: center; margin: 0; }
+.orb-eingabe input { min-height: 48px; padding: 0 56px 0 18px; border-radius: 999px; }
+.orb-eingabe button {
+  position: absolute;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  cursor: pointer;
+}
+.orb-eingabe button .icon { width: 18px; height: 18px; transform: rotate(-90deg); }
+.orb-eingabe button.stopp .icon { display: none; }
+.orb-eingabe button.stopp::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: currentColor; }
+.orb-fuss { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px; margin: -4px 0 0; color: var(--muted); font-size: 0.72rem; text-align: center; }
+.orb-neu { padding: 0; border: 0; background: none; color: var(--accent-text); font: inherit; text-decoration: underline; cursor: pointer; }
+.orb:not(.im-gespraech) .orb-neu { display: none; }
+
+/* Small caps label above headings, and the component demo page (design kit). */
+.eyebrow { margin: 0 0 4px; color: var(--muted); font-family: var(--font-mono); font-size: 0.68rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; }
+kbd { padding: 1px 5px; border: 1px solid var(--border); border-radius: 5px; background: var(--surface-2); font-family: var(--font-mono); font-size: 0.78em; }
+.komponenten-seite .komponente { margin-bottom: 22px; padding: 26px; }
+.komponenten-seite .komponente > h2 { margin: 0 0 18px; }
+.komponenten-inhalt { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 20px; }
+.komponenten-inhalt a { padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); font-size: 0.85rem; text-decoration: none; }
+.komponenten-inhalt a:hover { border-color: var(--accent); }
+.look-schnell { display: flex; flex-wrap: wrap; gap: 8px; }
+.look-schnell select { width: auto; }
+.fb-tafel { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 26px 30px; margin-bottom: 18px; font-size: 1.9rem; }
+.fb-tafel > div { display: grid; gap: 8px; padding-top: 16px; border-top: 1px solid var(--border); }
+.fb-tafel small { color: var(--muted); font-size: 0.85rem; }
+.k-registrieren { max-width: 420px; }
+.flieger-demo { max-width: 540px; margin: 0 auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  .s-key, .s-bow, .s-buegel, .kartei, .kartei-fenster, .kartei-karte, .orb-kugel { transition: none; }
+  .druckt .bon-status::before { animation: none; }
+}
+
 /* ---------- Print: always black on white ---------- */
 
 @media print {
@@ -1992,7 +2455,7 @@ table.workload.compact td.lvl { padding: 4px; font-size: 0.85rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-theme="violett"] .stat .digit { animation: none; }
+  :is([data-theme="violett"]:not([data-digits="schlicht"]), [data-digits="fallblatt"]) .stat .digit { animation: none; }
   [data-theme="glas"] .stat:hover, [data-theme="hell"] .stat:hover { transform: none; }
 }
 

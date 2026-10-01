@@ -1,0 +1,205 @@
+<!doctype html>
+<!-- Die sechs Komponenten zum Ausprobieren: Fallblatt-Zahlen, Schlüssel-Registrierung, Kassenbon-Preise,
+     Karteikasten (Strg+K), Papierflieger-Newsletter und Orb-Eingabebox.
+     Alles läuft ohne Server; was du für deine Seite anpassen musst, steht jeweils im Kommentar. -->
+<html lang="de" data-theme="violett" data-tone="dunkel">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Komponenten · Projekt-Cockpit Design</title>
+  <link rel="stylesheet" href="../cockpit/static/app.css">
+  <script src="theme-umschalter.js" defer></script>
+  <script src="../cockpit/static/komponenten.js" defer></script>
+</head>
+<body>
+<main class="komponenten-seite">
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Projekt-Cockpit Design</p>
+      <h1>Komponenten</h1>
+      <p class="sub">Sechs bewegte Bausteine für deine Seiten. Alle folgen dem gewählten Design und funktionieren ohne Bibliotheken.</p>
+    </div>
+    <div class="actions look-schnell">
+      <label class="sr-only" for="k-design">Design</label>
+      <select id="k-design" data-look="theme">
+        <option value="violett">Violett</option><option value="glas">Glas und Orange</option><option value="bronze">Bronze</option><option value="hell">Hell</option><option value="schlicht">Schlicht</option>
+      </select>
+      <label class="sr-only" for="k-akzent">Akzentfarbe</label>
+      <select id="k-akzent" data-look="akzent">
+        <option value="">Akzent wie im Design</option><option value="violett">Violett</option><option value="blau">Blau</option><option value="pink">Pink</option><option value="gruen">Grün</option><option value="orange">Orange</option><option value="gelb">Gelb</option><option value="rot">Rot</option>
+      </select>
+    </div>
+  </div>
+
+  <nav class="komponenten-inhalt" aria-label="Komponenten">
+    <a href="#fallblatt">Fallblatt-Zahlen</a><a href="#schluessel">Schlüssel</a><a href="#kassenbon">Kassenbon</a><a href="#karteikasten">Karteikasten</a><a href="#papierflieger">Papierflieger</a><a href="#orb">Orb</a>
+  </nav>
+
+  <!-- 1 · Fallblatt-Zahlen. data-fallblatt="immer" schaltet die Tafel in jedem Design ein;
+       ohne "immer" gilt sie nur für Violett oder mit data-digits="fallblatt" auf <html>. -->
+  <section class="card komponente" id="fallblatt">
+    <p class="eyebrow">1 · Fallblatt-Zahlen</p>
+    <h2>Deine Zahlen auf einer Abfahrtstafel</h2>
+    <div class="fb-tafel" data-fallblatt="immer">
+      <div><span data-fallblatt-wert>12.480</span><small>Teams an Bord</small></div>
+      <div><span data-fallblatt-wert>99,98%</span><small>Verfügbarkeit dieses Jahr</small></div>
+      <div><span data-fallblatt-wert>4,9/5</span><small>Durchschnittliche Bewertung</small></div>
+      <div><span data-fallblatt-wert>38ms</span><small>Mittlere Antwortzeit</small></div>
+    </div>
+    <p class="small muted">Neu klappern lassen: <button class="btn btn-small" type="button" data-fallblatt-nochmal>Noch einmal</button> · Aus eigenem Code: <code>cockpitKomponenten.fallblatt(element, "12.481")</code></p>
+  </section>
+
+  <!-- 2 · Schlüssel. data-passwort / data-wiederholung nennen die id der Passwortfelder.
+       Das Formular braucht auf deiner Seite ein eigenes Ziel (action). -->
+  <section class="card komponente" id="schluessel">
+    <p class="eyebrow">2 · Schlüssel</p>
+    <h2>Jede Passwort-Regel schneidet einen Zahn</h2>
+    <div class="schluessel pw-schluessel" data-schluessel data-passwort="k-pw" data-wiederholung="k-pw2">
+      <div class="schluessel-bild" data-schluessel-bild aria-hidden="true"></div>
+      <form method="post" action="#" class="k-registrieren">
+        <div class="v7-field">
+          <label for="k-mail">E-Mail-Adresse</label>
+          <div class="v7-input"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM3 7l9 6 9-6"/></svg><input id="k-mail" type="email" name="email" autocomplete="email" placeholder="du@deine-seite.de"></div>
+        </div>
+        <div class="v7-field">
+          <label for="k-pw">Passwort</label>
+          <div class="v7-input"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 11h12v10H6zM8 11V8a4 4 0 0 1 8 0v3"/></svg><input id="k-pw" type="password" name="passwort" minlength="12" autocomplete="new-password" aria-describedby="k-staerke"><button class="v7-eye" type="button" data-toggle-password aria-controls="k-pw" aria-pressed="false" aria-label="Passwort anzeigen"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6"/></svg></button></div>
+          <p class="schluessel-staerke" id="k-staerke" data-staerke aria-live="polite">Stärke: 0 von 5</p>
+          <ul class="schluessel-regeln">
+            <li data-regel="laenge">12+ Zeichen</li><li data-regel="mix">Groß und klein</li>
+            <li data-regel="zahl">Eine Zahl</li><li data-regel="zeichen">Ein Sonderzeichen</li>
+            <li data-regel="lang">16+ Zeichen</li>
+          </ul>
+        </div>
+        <div class="v7-field">
+          <label for="k-pw2">Passwort wiederholen</label>
+          <div class="v7-input"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 11h12v10H6zM8 11V8a4 4 0 0 1 8 0v3"/></svg><input id="k-pw2" type="password" name="passwort2" autocomplete="new-password"></div>
+        </div>
+        <button class="btn btn-primary v7-submit" type="button">Konto erstellen <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        <p class="schluessel-status" data-schluessel-status aria-live="polite">Mindestens 12 Zeichen öffnen das Schloss.</p>
+      </form>
+    </div>
+  </section>
+
+  <!-- 3 · Kassenbon-Preise. Preise und Leistungen stehen in data-preis, data-name und data-zeilen
+       (Leistungen mit | getrennt). data-rabatt am Abschnitt ist der Jahresrabatt in Prozent. -->
+  <section class="card komponente bon" id="kassenbon" data-bon data-firma="Meine Firma" data-rabatt="20">
+    <div class="bon-preise">
+      <div class="bon-wahl">
+        <p class="eyebrow">3 · Kassenbon</p>
+        <h2>Einfache Preise</h2>
+        <p class="eyebrow">Abrechnung</p>
+        <div class="seg">
+          <label><input type="radio" name="k-takt" value="monat" data-bon-takt checked> Monatlich</label>
+          <label><input type="radio" name="k-takt" value="jahr" data-bon-takt> Jährlich <span class="bon-rabatt">−20 %</span></label>
+        </div>
+        <p class="eyebrow">Paket</p>
+        <div class="bon-plaene">
+          <label class="bon-option"><input type="radio" name="k-plan" value="starter" data-bon-plan data-name="Starter" data-preis="10" data-zeilen="3 Projekte|1 Teammitglied|E-Mail-Support" checked><span><strong>Starter</strong><small>Für Nebenprojekte und erste Schritte.</small></span><b data-bon-betrag>10 €</b></label>
+          <label class="bon-option"><input type="radio" name="k-plan" value="pro" data-bon-plan data-name="Pro" data-preis="20" data-zeilen="Unbegrenzte Projekte|Bis zu 5 Personen|Bevorzugter Support"><span><strong>Pro <span class="bon-tag">Beliebt</span></strong><small>Für Produkte mit echten Nutzern.</small></span><b data-bon-betrag>20 €</b></label>
+          <label class="bon-option"><input type="radio" name="k-plan" value="team" data-bon-plan data-name="Team" data-preis="50" data-zeilen="Unbegrenzte Projekte|Unbegrenzte Personen|Telefon-Support|Eigene Domain"><span><strong>Team</strong><small>Für Firmen, die gemeinsam liefern.</small></span><b data-bon-betrag>50 €</b></label>
+        </div>
+        <p class="small muted">Preise pro Monat, jährlich abgerechnet mit 20 % Rabatt.</p>
+      </div>
+      <div class="bon-drucker">
+        <div class="bon-geraet"><span class="bon-status" data-bon-status>Bereit</span><span class="bon-knopf" aria-hidden="true"></span></div>
+        <div class="bon-rolle"><div class="bon-papier" data-bon-papier aria-live="polite"></div><div class="bon-kante"></div></div>
+        <a class="btn btn-primary bon-cta" href="#kassenbon" data-bon-cta>Starter wählen <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · Karteikasten. Einträge kommen aus der versteckten Liste [data-kartei-eintraege];
+       data-tasten="G S" heißt: erst g, dann s drücken. data-kartei-suche="/suche.json" fragt zusätzlich einen Server. -->
+  <section class="card komponente" id="karteikasten">
+    <p class="eyebrow">4 · Karteikasten</p>
+    <h2>Suchen und springen mit <span data-kartei-taste>Strg K</span></h2>
+    <p>Öffnet sich auf jeder Seite mit <kbd>Strg</kbd> + <kbd>K</kbd> (Mac: <kbd>⌘</kbd> + <kbd>K</kbd>). Mit <kbd>↑</kbd> <kbd>↓</kbd> oder dem Mausrad blättern, mit <kbd>Enter</kbd> die Karte ziehen.</p>
+    <button class="btn btn-primary" type="button" data-kartei-oeffnen>Karteikasten öffnen</button>
+  </section>
+
+  <!-- 5 · Papierflieger. Mit action="https://…" (z. B. von deinem Newsletter-Anbieter) wird nach dem Flug
+       ganz normal abgeschickt. Ohne action bleibt es eine Vorschau. -->
+  <section class="card komponente" id="papierflieger">
+    <p class="eyebrow">5 · Papierflieger</p>
+    <h2>Eine Anmeldung, die sich zum Flieger faltet</h2>
+    <div class="flieger flieger-papier flieger-demo" data-flieger>
+      <div data-flieger-karte>
+        <p class="eyebrow">— Meine Firma wöchentlich</p>
+        <h3>Der Wochenrückblick</h3>
+        <p>Eine kurze E-Mail pro Woche: was fertig wurde, was wir gelernt haben und was als Nächstes kommt.</p>
+        <form method="post">
+          <div class="flieger-zeile">
+            <label class="sr-only" for="k-news">E-Mail-Adresse</label>
+            <input id="k-news" type="email" name="email" required placeholder="du@deine-seite.de" autocomplete="email">
+            <button class="btn btn-primary" type="submit">Abonnieren <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
+          </div>
+        </form>
+        <small>Kein Spam. Jederzeit abbestellbar.</small>
+        <p class="flieger-fehler" data-flieger-fehler hidden></p>
+      </div>
+      <div class="flieger-fertig" data-flieger-fertig hidden>
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>
+        <h3>Du bist dabei.</h3>
+        <p data-flieger-text>Schau in dein Postfach, die nächste Ausgabe ist unterwegs.</p>
+        <p class="flieger-adresse" data-flieger-adresse></p>
+        <button class="btn" type="button" data-flieger-nochmal>Noch eine Adresse</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · Orb. data-orb-quelle="/antwort" fragt einen Server (Antwort als JSON: {"absaetze": [...], "links": [...]});
+       ohne Quelle antwortet die Vorschau mit einem Beispieltext. Die gewählte Kugel merkt sich der Browser. -->
+  <section class="card komponente orb" id="orb" data-orb data-orb-stil="plasma">
+    <p class="eyebrow">6 · Orb</p>
+    <div class="orb-stile" data-orb-stile role="group" aria-label="Kugel wählen"></div>
+    <div class="orb-kopf">
+      <canvas class="orb-kugel" data-orb-kugel width="264" height="264" aria-hidden="true"></canvas>
+      <p class="orb-name"><strong>Assistent</strong><span data-orb-status>Bereit</span></p>
+      <h2 class="orb-frage">Wie kann ich helfen?</h2>
+      <div class="orb-chips">
+        <button type="button" data-orb-chip>Fasse meine Woche zusammen</button>
+        <button type="button" data-orb-chip>Was ist überfällig?</button>
+        <button type="button" data-orb-chip>Plane ein Teamtreffen</button>
+      </div>
+    </div>
+    <div class="orb-verlauf" data-orb-verlauf aria-live="polite" hidden></div>
+    <form class="orb-eingabe" data-orb-form>
+      <label class="sr-only" for="k-frage">Frage</label>
+      <input id="k-frage" type="text" name="frage" maxlength="200" autocomplete="off" placeholder="Frag etwas …">
+      <button type="submit" aria-label="Senden"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    </form>
+    <p class="orb-fuss"><span data-orb-hinweis>Enter zum Senden</span><button class="orb-neu" type="button" data-orb-neu>Neu beginnen</button></p>
+  </section>
+</main>
+
+<!-- Karteikasten: einmal pro Seite, am Ende von <body>. -->
+<div class="kartei" data-kartei hidden>
+  <div class="kartei-fenster" role="dialog" aria-modal="true" aria-label="Suchen oder springen">
+    <div class="kartei-suche">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-4.35-4.35"/></svg>
+      <input type="text" data-kartei-eingabe role="combobox" aria-expanded="true" aria-controls="kartei-liste" aria-autocomplete="list" aria-label="Suchen oder springen" placeholder="Suchen oder springen …" autocomplete="off">
+      <button class="kartei-zu" type="button" data-kartei-zu aria-label="Schließen"><kbd>Esc</kbd></button>
+    </div>
+    <div class="kartei-buehne" data-kartei-buehne>
+      <div class="kartei-stapel" id="kartei-liste" role="listbox" aria-label="Treffer" data-kartei-stapel></div>
+      <div class="kartei-schiene" aria-hidden="true"></div>
+    </div>
+    <div class="kartei-fuss"><span><kbd>↑</kbd><kbd>↓</kbd> Blättern</span><span><kbd>↵</kbd> Öffnen</span><span><kbd>Esc</kbd> Schließen</span><span class="kartei-zahl" data-kartei-zahl aria-live="polite"></span></div>
+  </div>
+</div>
+<ul hidden data-kartei-eintraege>
+  <li><a href="#fallblatt" data-gruppe="Seiten" data-hinweis="Zahlen wie auf einer Abfahrtstafel" data-tasten="G F">Fallblatt-Zahlen</a></li>
+  <li><a href="#schluessel" data-gruppe="Seiten" data-hinweis="Registrieren mit Schlüssel und Schloss" data-tasten="G S">Schlüssel</a></li>
+  <li><a href="#kassenbon" data-gruppe="Seiten" data-hinweis="Preistabelle, die einen Beleg druckt" data-tasten="G B">Kassenbon</a></li>
+  <li><a href="#papierflieger" data-gruppe="Seiten" data-hinweis="Newsletter, der davonfliegt" data-tasten="G P">Papierflieger</a></li>
+  <li><a href="#orb" data-gruppe="Seiten" data-hinweis="Eingabebox mit zwölf Kugeln" data-tasten="G O">Orb</a></li>
+  <li><a href="beispiel.html" data-gruppe="Seiten" data-hinweis="Alle Grundbausteine des Designs">Beispielseite</a></li>
+  <li><a href="anmelden.html" data-gruppe="Seiten" data-hinweis="Login im Stil V7">Anmeldeseite</a></li>
+  <li><a href="vorlage.html" data-gruppe="Seiten" data-hinweis="Leere Seite zum Kopieren">Vorlage</a></li>
+  <li><a href="#kassenbon" data-gruppe="Aktionen" data-hinweis="Paket wählen und Beleg drucken">Preise ansehen</a></li>
+  <li><a href="#papierflieger" data-gruppe="Aktionen" data-hinweis="Für den Wochenrückblick eintragen">Newsletter abonnieren</a></li>
+  <li><a href="#schluessel" data-gruppe="Aktionen" data-hinweis="Neues Konto anlegen">Konto erstellen</a></li>
+</ul>
+</body>
+</html>

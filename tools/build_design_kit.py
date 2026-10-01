@@ -17,9 +17,11 @@ def build(target: Path) -> Path:
         z.write(STATIC / "app.css", "design-kit/cockpit-design.css")
         for font in sorted((STATIC / "fonts").iterdir()):
             z.write(font, f"design-kit/fonts/{font.name}")
-        for page in ("beispiel.html", "vorlage.html", "anmelden.html"):
+        z.write(STATIC / "komponenten.js", "design-kit/komponenten.js")
+        for page in ("beispiel.html", "vorlage.html", "anmelden.html", "komponenten.html"):
             html = (KIT / page).read_text(encoding="utf-8").replace(
-                "../cockpit/static/app.css", "cockpit-design.css")
+                "../cockpit/static/app.css", "cockpit-design.css").replace(
+                "../cockpit/static/komponenten.js", "komponenten.js")
             z.writestr(f"design-kit/{page}", html)
         for name in ("cockpit-basis.css", "theme-umschalter.js", "einbauen.py", "README.md"):
             z.write(KIT / name, f"design-kit/{name}")

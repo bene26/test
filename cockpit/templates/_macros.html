@@ -161,6 +161,17 @@
 {%- endmacro %}
 
 {# One span per character so the Violett design can draw split-flap tiles. #}
+{# Strength line and rules for the key and lock (komponenten.js, [data-schluessel]).
+   Only 12 characters are required; the other rules make the password stronger. #}
+{% macro password_rules(id) -%}
+<p class="schluessel-staerke" id="{{ id }}" data-staerke aria-live="polite">Stärke: 0 von 5</p>
+<ul class="schluessel-regeln" aria-label="Regeln für ein starkes Passwort">
+  <li data-regel="laenge">12+ Zeichen (Pflicht)</li><li data-regel="mix">Groß und klein</li>
+  <li data-regel="zahl">Eine Zahl</li><li data-regel="zeichen">Ein Sonderzeichen</li>
+  <li data-regel="lang">16+ Zeichen</li>
+</ul>
+{%- endmacro %}
+
 {% macro digits(value) -%}
 {%- for ch in value|string %}<span class="digit">{{ ch }}</span>{% endfor -%}
 {%- endmacro %}
@@ -186,6 +197,7 @@
   'user': 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0',
   'key': 'M15 7a4 4 0 1 1-3.9 4.9L3 20v-3h3v-3h3l2.1-2.1A4 4 0 0 1 15 7zM16 9h.01',
   'arrow': 'M5 12h14M13 6l6 6-6 6',
+  'send': 'M22 2L11 13M22 2l-7 20-4-9-9-4z',
 } %}
 {% macro icon(name) -%}
 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ ICON_PATHS[name] }}"/></svg>

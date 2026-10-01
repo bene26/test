@@ -1,0 +1,45 @@
+{# Karteikasten (Strg+K / ⌘K): pages and actions below, plus server search (main.search). #}
+{% from "_macros.html" import icon %}
+<div class="kartei" data-kartei data-kartei-suche="{{ url_for('main.search') }}" hidden>
+  <div class="kartei-fenster" role="dialog" aria-modal="true" aria-label="Suchen oder springen">
+    <div class="kartei-suche">
+      {{ icon('search') }}
+      <input type="text" data-kartei-eingabe role="combobox" aria-expanded="true" aria-controls="kartei-liste" aria-autocomplete="list" aria-label="Suchen oder springen" placeholder="Suchen oder springen …" autocomplete="off" maxlength="100">
+      <button class="kartei-zu" type="button" data-kartei-zu aria-label="Schließen"><kbd>Esc</kbd></button>
+    </div>
+    <div class="kartei-buehne" data-kartei-buehne>
+      <div class="kartei-stapel" id="kartei-liste" role="listbox" aria-label="Treffer" data-kartei-stapel></div>
+      <div class="kartei-schiene" aria-hidden="true"></div>
+    </div>
+    <div class="kartei-fuss"><span><kbd>↑</kbd><kbd>↓</kbd> Blättern</span><span><kbd>↵</kbd> Öffnen</span><span><kbd>Esc</kbd> Schließen</span><span class="kartei-zahl" data-kartei-zahl aria-live="polite"></span></div>
+  </div>
+</div>
+<ul hidden data-kartei-eintraege>
+  {% for endpoint, args, label, group, hint, keys in [
+      ('main.dashboard', {}, 'Start', 'Seiten', 'Kennzahlen, Meetings und Bausteine', 'G S'),
+      ('tasks.index', {}, 'Aufgaben', 'Seiten', 'Offene Aufgaben filtern und bearbeiten', 'G A'),
+      ('meetings.index', {}, 'Meetings', 'Seiten', 'Termine, Agenden und Protokolle', 'G M'),
+      ('projects.index', {}, 'Projekte', 'Seiten', 'Fortschritt, Meilensteine, Konflikte', 'G P'),
+      ('schedule.index', {}, 'Zeitplan', 'Seiten', 'Gantt mit Abhängigkeiten', 'G Z'),
+      ('times.index', {}, 'Zeiten', 'Seiten', 'Stundenzettel der Woche', 'G H'),
+      ('workload.index', {}, 'Auslastung', 'Seiten', 'Wer in den nächsten Wochen voll ist', 'G L'),
+      ('reports.index', {}, 'Berichte', 'Seiten', 'Projektstatus, Protokolle, Exporte', 'G B'),
+      ('team.index', {}, 'Team & Firmen', 'Seiten', 'Personen, Firmen, Bestellungen', 'G T'),
+      ('settings.index', {}, 'Einstellungen', 'Seiten', 'Darstellung, Erinnerungen, Passwort', 'G E'),
+      ('tasks.index', {'_anchor': 'qa-title'}, 'Neue Aufgabe', 'Aktionen', 'In einer Zeile anlegen', ''),
+      ('meetings.index', {'_anchor': 'neu'}, 'Neues Meeting', 'Aktionen', 'Termin mit Agenda anlegen', ''),
+      ('projects.index', {'_anchor': 'neu'}, 'Neues Projekt', 'Aktionen', 'Projekt mit Kürzel und Zeitraum', ''),
+      ('schedule.index', {}, 'Neuer Meilenstein', 'Aktionen', 'Projekt wählen, dann Vorgang oder Meilenstein anlegen', ''),
+      ('times.index', {}, 'Stunden erfassen', 'Aktionen', 'Zeiten dieser Woche eintragen', ''),
+      ('team.index', {'_anchor': 'neue-person'}, 'Person anlegen', 'Aktionen', 'Für Zuständigkeit und Auslastung', ''),
+      ('team.index', {'_anchor': 'neue-firma'}, 'Firma anlegen', 'Aktionen', 'Mit Vertragsart und Ansprechpartner', ''),
+      ('tasks.index', {'ansicht': 'ueberfaellig'}, 'Überfällige Aufgaben', 'Ansichten', 'Alles, was über dem Termin ist', ''),
+      ('tasks.index', {'ansicht': 'heute'}, 'Heute fällig', 'Ansichten', 'Aufgaben mit Termin heute', ''),
+      ('tasks.index', {'ansicht': 'woche'}, 'Diese Woche', 'Ansichten', 'Fällig bis Sonntag', ''),
+      ('reports.status', {}, 'Statusbericht', 'Ansichten', 'Projektstatus dieses Monats', ''),
+      ('main.dashboard', {'anpassen': 1}, 'Startseite anpassen', 'Aktionen', 'Bausteine ein- und ausblenden', ''),
+      ('settings.index', {'_anchor': 'darstellung'}, 'Darstellung ändern', 'Aktionen', 'Design, Farbe, Menü, Zahlen', ''),
+    ] %}
+  <li><a href="{{ url_for(endpoint, **args) }}" data-gruppe="{{ group }}" data-hinweis="{{ hint }}"{% if keys %} data-tasten="{{ keys }}"{% endif %}>{{ label }}</a></li>
+  {% endfor %}
+</ul>

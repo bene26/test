@@ -18,7 +18,7 @@
   var lookForm = document.querySelector("[data-look-form]");
   if (lookForm) {
     var root = document.documentElement;
-    var ATTRS = { modus: "data-mode", akzent: "data-accent", schrift: "data-size", ecken: "data-shape", menue: "data-menu" };
+    var ATTRS = { modus: "data-mode", akzent: "data-accent", schrift: "data-size", ecken: "data-shape", menue: "data-menu", zahlen: "data-digits" };
     var TONES = { violett: "dunkel", glas: "dunkel", bronze: "dunkel", hell: "hell", schlicht: "" };
     var SIDEBAR = { violett: true, glas: true, hell: true };
     var bar = lookForm.querySelector("[data-changes-bar]");

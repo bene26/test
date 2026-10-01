@@ -3,7 +3,7 @@ from cockpit import themes
 from .conftest import PASSWORD, add_task
 
 LOOK = {"theme": "violett", "modus": "hell", "akzent": "blau", "schrift": "gross",
-        "ecken": "rund", "menue": "neon"}
+        "ecken": "rund", "menue": "neon", "zahlen": "fallblatt"}
 
 
 def test_save_appearance_renders_attributes_and_cookies(app, browser, db):
@@ -15,9 +15,10 @@ def test_save_appearance_renders_attributes_and_cookies(app, browser, db):
     head = page.split(">", 2)[1]
     for attr in ('data-theme="violett"', 'data-mode="hell"', 'data-accent="blau"',
                  'data-size="gross"', 'data-shape="rund"', 'data-menu="neon"',
-                 'data-tone="hell"', 'data-nav="voll"'):
+                 'data-digits="fallblatt"', 'data-tone="hell"', 'data-nav="voll"'):
         assert attr in head, attr
-    assert browser.client.get_cookie(themes.LOOK_COOKIE).value == "hell.blau.gross.rund.neon"
+    assert browser.client.get_cookie(themes.LOOK_COOKIE).value == \
+        "hell.blau.gross.rund.neon.fallblatt"
 
     browser.post("/abmelden")
     login = browser.get("/anmelden").get_data(as_text=True).split(">", 2)[1]
@@ -46,6 +47,12 @@ def test_forged_cookies_are_ignored(app):
     head = page.split(">", 2)[1]
     assert "<x>" not in page and "data-accent" not in head
     assert themes.look_from_cookie("a.b") == themes.DEFAULT_LOOK
+    assert themes.look_from_cookie("a.b.c.d.e.f.g") == themes.DEFAULT_LOOK
+
+
+def test_cookie_from_before_the_digits_option_still_works():
+    look = themes.look_from_cookie("hell.blau.gross.rund.neon")
+    assert look["menue"] == "neon" and look["zahlen"] == ""
 
 
 def test_sidebar_state_from_cookie_only_for_sidebar_designs(browser):

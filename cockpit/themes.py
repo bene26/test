@@ -1,7 +1,7 @@
 """Selectable designs and appearance options.
 
 The design is stored per user (users.theme), the finer options (light or dark,
-accent colour, text size, corners, menu style) as JSON in users.appearance.
+accent colour, text size, corners, menu style, digits) as JSON in users.appearance.
 Everything ends up as data-* attributes on <html>; all colours, fonts and
 layout differences live in static/app.css. Cookies remember the last choice
 so the login page looks the same as the app, and whether the sidebar is
@@ -60,10 +60,12 @@ APPEARANCE = {
         "": "Wie im Design", "fluessig": "Liquid", "magnet": "Magnet-Dock",
         "kapsel": "Glas-Kapsel", "segment": "Segmente", "orbit": "Orbit", "welle": "Welle",
         "neon": "Neon", "blob": "Blob", "karten": "Karten", "luxus": "Minimal Luxus"}),
+    "zahlen": ("data-digits", {"": "Wie im Design", "fallblatt": "Fallblatt",
+                               "schlicht": "Schlicht"}),
 }
 DEFAULT_LOOK = {key: "" for key in APPEARANCE}
 LABELS = {"modus": "Hell oder dunkel", "akzent": "Akzentfarbe", "schrift": "Schriftgröße",
-          "ecken": "Ecken", "menue": "Menü-Stil"}
+          "ecken": "Ecken", "menue": "Menü-Stil", "zahlen": "Zahlen"}
 
 
 def resolve(value) -> str:
@@ -98,8 +100,9 @@ def look_cookie(look: dict) -> str:
 
 def look_from_cookie(value) -> dict:
     parts = (value or "").split(".")
-    if len(parts) != len(APPEARANCE):
+    if len(parts) > len(APPEARANCE):
         return dict(DEFAULT_LOOK)
+    parts += ["-"] * (len(APPEARANCE) - len(parts))  # cookies from before an option existed
     return clean_look({key: "" if part == "-" else part for key, part in zip(APPEARANCE, parts)})
 
 

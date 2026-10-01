@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import csrf, bar %}
+{% from "_macros.html" import csrf, bar, icon %}
 {% block title %}Projektstatus {{ title }}{% endblock %}
 {% block content %}
 <div class="page-head no-print">
@@ -15,14 +15,26 @@
 <details class="card no-print">
   <summary>Per E-Mail senden</summary>
   {% if smtp %}
-  <form method="post" action="{{ url_for('reports.send_status') }}" class="inline-form">
-    {{ csrf() }}
-    <input type="hidden" name="monat" value="{{ month }}">
-    <input type="hidden" name="projekt" value="{{ project_id or '' }}">
-    <div class="field grow"><label for="s-to">Empfänger (durch Komma getrennt)</label><input id="s-to" type="text" name="recipients" required maxlength="2000" placeholder="lenkungskreis@firma.de"></div>
-    <button class="btn" type="submit">Senden</button>
-  </form>
-  <p class="small muted">Gesendet wird eine Textfassung ohne Anhänge.</p>
+  <div class="flieger" data-flieger data-flieger-modus="abruf">
+    <div data-flieger-karte>
+      <form method="post" action="{{ url_for('reports.send_status') }}" class="inline-form">
+        {{ csrf() }}
+        <input type="hidden" name="monat" value="{{ month }}">
+        <input type="hidden" name="projekt" value="{{ project_id or '' }}">
+        <div class="field grow"><label for="s-to">Empfänger (durch Komma getrennt)</label><input id="s-to" type="text" name="recipients" required maxlength="2000" placeholder="lenkungskreis@firma.de"></div>
+        <button class="btn" type="submit">Senden {{ icon('send') }}</button>
+      </form>
+      <p class="small muted">Gesendet wird eine Textfassung ohne Anhänge. Beim Senden faltet sich das Formular zum Papierflieger.</p>
+      <p class="flieger-fehler" data-flieger-fehler role="alert" hidden></p>
+    </div>
+    <div class="flieger-fertig" data-flieger-fertig hidden>
+      {{ icon('send') }}
+      <h3>Unterwegs.</h3>
+      <p data-flieger-text>Der Statusbericht ist verschickt.</p>
+      <p class="flieger-adresse" data-flieger-adresse></p>
+      <button class="btn" type="button" data-flieger-nochmal>An weitere Empfänger senden</button>
+    </div>
+  </div>
   {% else %}
   <p class="small muted">E-Mail-Versand ist nicht eingerichtet (SMTP in der Datei <code>.env</code>). Alternativ als PDF speichern und anhängen.</p>
   {% endif %}

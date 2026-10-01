@@ -48,6 +48,7 @@ Die App wird per Portweiterleitung ins Internet gestellt, das Passwort erraten o
 - Statusberichte per E-Mail gehen nur an Adressen, die beim Versand eingegeben werden (höchstens 20, geprüft)
 - Design-Cookies `pc_theme` und `pc_look` enthalten nur die gewählten Darstellungs-Optionen (für die Anmeldeseite), gleiche Cookie-Flags; `pc_nav` (Seitenleiste offen oder eingeklappt) setzt der Browser selbst. Der Server übernimmt aus allen dreien nur bekannte Werte aus einer festen Liste, alles andere wird ignoriert
 - Schriften liegen im Container (`cockpit/static/fonts`), die Seite lädt nichts von fremden Servern; die CSP erlaubt nur `'self'`
+- Suche (`/suche.json`, Strg+K) und „Frag das Cockpit“ (`/assistent`) nur nach Anmeldung; feste SQL-Abfragen mit Parametern, Platzhalter `%` und `_` werden maskiert, Fragen auf 200 Zeichen gekürzt. Kein Sprachmodell und kein externer Dienst: Antworten entstehen aus festen Regeln und der eigenen Datenbank. Das Skript fügt Antworten nur als Text ein, nie als HTML
 - CSRF-Token auf jedem Formular und jeder POST-Anfrage
 - Eingaben werden je Formular gegen eine erlaubte Feldliste, Typen und Längen geprüft; unbekannte Felder werden abgelehnt
 - Sicherheits-Header: Content-Security-Policy ohne Inline-Skripte, `frame-ancestors 'none'`, `X-Content-Type-Options`, `Referrer-Policy`, HSTS bei HTTPS

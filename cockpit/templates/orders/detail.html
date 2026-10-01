@@ -78,6 +78,55 @@
     </section>
   </div>
   <div>
+    {% set bon_kopf %}
+      <div class="bon-kopf"><span class="bon-logo">P</span><strong>Projekt-Cockpit</strong></div>
+      <div class="bon-zeile bon-meta"><span>Kontingent-Beleg</span><span>{{ today|datum }}</span></div>
+      <div class="bon-trenn"></div>
+      <div class="bon-zeile"><span>Firma</span><span>{{ o.firm_name|truncate(22, True, '…', 0) }}</span></div>
+      {% if o.number %}<div class="bon-zeile"><span>Bestellung</span><span>{{ o.number|truncate(22, True, '…', 0) }}</span></div>{% endif %}
+      {% if o.project_name %}<div class="bon-zeile"><span>Projekt</span><span>{{ (o.project_code or o.project_name)|truncate(22, True, '…', 0) }}</span></div>{% endif %}
+      {% if o.valid_from or o.valid_to %}<div class="bon-zeile"><span>Gültig</span><span>{{ o.valid_from|datum or '…' }} – {{ o.valid_to|datum or '…' }}</span></div>{% endif %}
+      <div class="bon-trenn"></div>
+    {% endset %}
+    {% set bon_fuss %}
+      <div class="bon-barcode" data-bon-barcode="{{ o.number or o.id }}"></div>
+      <p class="bon-danke">Stand {{ today|datum }}</p>
+    {% endset %}
+    {% set bon_uebersicht %}
+      {{ bon_kopf }}
+      <div class="bon-zeile"><span>Bestellt</span><span>{{ fmt(o.amount, o.unit) }}</span></div>
+      <div class="bon-zeile"><span>Abgerechnet</span><span>− {{ fmt(o.billed, o.unit) }}</span></div>
+      <div class="bon-zeile bon-leise"><span>Eingereicht, ungeprüft</span><span>{{ fmt(o.pending, o.unit) }}</span></div>
+      <div class="bon-trenn doppelt"></div>
+      <div class="bon-summe"><span>Frei</span><span class="bon-betrag">{{ fmt(o.remaining, o.unit) }}</span></div>
+      <div class="bon-zeile bon-leise bon-rechts"><span>{{ o.percent|round|int }} % verbraucht</span></div>
+      {% if o.warnings %}<div class="bon-zeile bon-fett bon-rechts"><span>{{ o.warnings|join(' · ') }}</span></div>{% endif %}
+      {{ bon_fuss }}
+    {% endset %}
+    <section class="card no-print bon" data-bon>
+      <h2>Beleg</h2>
+      <div class="seg bon-ansicht">
+        <label><input type="radio" name="bon-ansicht" value="uebersicht" data-bon-ansicht checked> Übersicht</label>
+        <label><input type="radio" name="bon-ansicht" value="nachweise" data-bon-ansicht> Nachweise</label>
+      </div>
+      <div class="bon-drucker">
+        <div class="bon-geraet"><span class="bon-status" data-bon-status>Bereit</span><span class="bon-knopf" aria-hidden="true"></span></div>
+        <div class="bon-rolle"><div class="bon-papier" data-bon-papier><div class="bon-inhalt">{{ bon_uebersicht }}</div></div><div class="bon-kante"></div></div>
+      </div>
+      <template data-bon-vorlage="uebersicht">{{ bon_uebersicht }}</template>
+      <template data-bon-vorlage="nachweise">
+        {{ bon_kopf }}
+        {% for r in records|reverse %}
+        <div class="bon-zeile{{ ' bon-leise' if r.status != 'geprueft' }}"><span>{{ r.period_start|datum }} {{ '✓' if r.status == 'geprueft' else '✕' if r.status == 'abgelehnt' else '…' }}</span><span>{{ fmt(r.amount, o.unit) }}</span></div>
+        {% else %}
+        <div class="bon-zeile bon-leise"><span>Noch keine Nachweise</span></div>
+        {% endfor %}
+        <div class="bon-trenn doppelt"></div>
+        <div class="bon-summe"><span>Geprüft</span><span class="bon-betrag">{{ fmt(o.billed, o.unit) }}</span></div>
+        <div class="bon-zeile bon-leise bon-rechts"><span>✓ geprüft · … offen · ✕ abgelehnt</span></div>
+        {{ bon_fuss }}
+      </template>
+    </section>
     <section class="card">
       <h2>Bestellung bearbeiten</h2>
       <form method="post">

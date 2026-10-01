@@ -4,9 +4,9 @@ Selbst gehostetes Werkzeug für Projektleitung mit mehreren Projekten, eigenen L
 
 Konzept und Hintergrund: [`docs/konzept.md`](docs/konzept.md). Installation: [`docs/installation-ugreen.md`](docs/installation-ugreen.md).
 
-## Was die Version 0.4 kann
+## Was die Version 0.5 kann
 
-- **Startseite zum Selbst-Zusammenstellen:** 14 Bausteine (Kennzahlen, Routinen, Schnellerfassung, nächstes Meeting, Überfällig, Diese Woche, Meetings, Protokoll fehlt, Projekte, Kalender, Zeitplan, Kontingente, Auslastung, Zeiten). Mit „Startseite anpassen“ per Ziehen oder Pfeiltasten sortieren, ein- und ausblenden, breit oder schmal; gespeichert je Konto
+- **Startseite zum Selbst-Zusammenstellen:** 15 Bausteine (Kennzahlen, Frag das Cockpit, Routinen, Schnellerfassung, nächstes Meeting, Überfällig, Diese Woche, Meetings, Protokoll fehlt, Projekte, Kalender, Zeitplan, Kontingente, Auslastung, Zeiten). Mit „Startseite anpassen“ per Ziehen oder Pfeiltasten sortieren, ein- und ausblenden, breit oder schmal; gespeichert je Konto
 - **Aufgaben:** Schnellerfassung in einer Zeile, Filter und Schnellansichten, Status direkt in der Liste ändern, Sammelbearbeitung (Status, verschieben, zuweisen, löschen), CSV-Export für Excel
 - **Zuständigkeit:** interne Person, Person einer Firma mit Arbeitnehmerüberlassung oder die Firma selbst (Werk-/Dienstvertrag); Externe unter Werk-/Dienstvertrag lassen sich bewusst nicht einzeln planen
 - **Zeitplan:** Vorgänge und Meilensteine (z. B. Kick-off) je Projekt als Gantt-Diagramm; Abhängigkeiten „erst wenn das andere fertig ist“, auch projektübergreifend und mit Puffer; Konflikte werden rot markiert und mit einem Klick gelöst (Nachfolger rücken mit); Kreise werden verhindert; Gesamtansicht über alle Projekte
@@ -22,6 +22,12 @@ Konzept und Hintergrund: [`docs/konzept.md`](docs/konzept.md). Installation: [`d
 - **Darstellung:** unter *Einstellungen → Darstellung* je Konto: fünf Designs (Violett, Glas und Orange, Bronze, Hell, Schlicht), jeweils hell oder dunkel, sieben Akzentfarben, drei Schriftgrößen, Ecken rund, weich oder kantig und zehn Menü-Stile (Liquid, Magnet, Glas-Kapsel, Segmente, Orbit, Welle, Neon, Blob, Karten, Minimal Luxus). Alles mit Live-Vorschau und Leiste „Änderungen · Verwerfen · Übernehmen“. Schriften werden lokal ausgeliefert (keine Verbindung zu Google Fonts), Ausdrucke bleiben schwarz auf weiß
 - **Seitenleiste:** Profil, Suche, Abschnitte, Zähler (überfällig, fehlende Protokolle, Konflikte, Kontingent-Warnungen), zum Einklappen als Symbolleiste; auf dem Handy wird das Menü ein Dock am unteren Rand
 - **Anmeldung** im Stil „Login form V7“ mit Aufklapp-Animation und Passwort-Auge
+- **Frag das Cockpit** (Baustein auf der Startseite): Eingabebox mit animierter Kugel in zwölf Stilen; beantwortet Fragen wie „Was ist überfällig?“, „Fasse meine Woche zusammen“, „Wie stehen die Kontingente?“, „Gibt es Konflikte im Zeitplan?“, „Wer ist überbucht?“ direkt aus den eigenen Daten, mit Links. Ohne KI und ohne Internet; alles andere wird gesucht
+- **Karteikasten mit Strg+K / ⌘K:** von jeder Seite aus suchen und springen (Seiten, Aktionen wie „Neues Meeting“, Aufgaben, Projekte, Meetings, Personen, Firmen, Bestellungen); Karten klappen wie in einer Kartei, „g“ + Buchstabe springt direkt (z. B. g a = Aufgaben)
+- **Fallblatt-Zahlen:** Kennzahlen klappern beim Öffnen wie auf einer Abfahrtstafel (Einstellung „Zahlen“, in jedem Design wählbar)
+- **Kassenbon:** jede Bestellung zeigt einen Beleg, der Zeile für Zeile gedruckt wird (Übersicht oder alle Leistungsnachweise)
+- **Schlüssel und Schloss** bei „Konto erstellen“ und „Passwort ändern“: jede erfüllte Passwort-Regel schneidet einen Zahn, das Schloss geht auf, wenn alles passt
+- **Papierflieger:** „Statusbericht per E-Mail senden“ faltet sich beim Senden zum Flieger; schlägt der Versand fehl, faltet er sich wieder auf und zeigt den Grund
 
 Noch nicht enthalten (siehe Konzept): Abwesenheiten und Feiertage, Zuteilungen je Woche, Szenarien, mehrere Benutzer mit Rechten, Firmenportal, Kalender-Abonnement.
 

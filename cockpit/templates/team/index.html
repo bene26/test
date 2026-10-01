@@ -36,7 +36,7 @@
     {% else %}
     <p class="empty">Noch keine Personen.</p>
     {% endif %}
-    <details{% if not people %} open{% endif %}>
+    <details id="neue-person" data-fokus{% if not people %} open{% endif %}>
       <summary>Person anlegen</summary>
       <form method="post" action="{{ url_for('team.create_person') }}">
         {{ csrf() }}
@@ -67,7 +67,7 @@
     {% else %}
     <p class="empty">Noch keine Firmen.</p>
     {% endif %}
-    <details{% if not firms %} open{% endif %}>
+    <details id="neue-firma" data-fokus{% if not firms %} open{% endif %}>
       <summary>Firma anlegen</summary>
       <form method="post" action="{{ url_for('team.create_firm') }}">
         {{ csrf() }}

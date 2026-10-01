@@ -4,7 +4,8 @@ import logging
 import re
 from datetime import timedelta
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import (Blueprint, flash, get_flashed_messages, jsonify, redirect, render_template,
+                   request, url_for)
 
 from .. import data, forms, notify, quotas, reports, util
 from ..db import get_db
@@ -65,22 +66,33 @@ def status():
 
 @bp.route("/status/senden", methods=["POST"])
 def send_status():
+    # The page sends this with fetch (paper plane) and wants JSON; without JavaScript it is
+    # a normal form post with a flash message and a redirect.
+    ajax = request.headers.get("X-Cockpit-Ajax") == "1"
+
+    def done(ok: bool, message: str, target: str):
+        if ajax:
+            return jsonify(ok=ok, nachricht=message)
+        flash(message, "ok" if ok else "error")
+        return redirect(target)
+
     values = parse_or_flash({
         "monat": forms.Text("Monat", required=True, max_len=7),
         "projekt": forms.Integer("Projekt", min_value=1),
         "recipients": forms.Text("Empfänger", required=True, max_len=2000, multiline=True),
     })
     if values is None:
+        if ajax:
+            return jsonify(ok=False, nachricht=" ".join(get_flashed_messages()) or "Ungültige Eingabe.")
         return redirect(url_for("reports.index"))
     target = url_for("reports.status", monat=values["monat"], projekt=values["projekt"])
     addresses = [a for a in re.split(r"[\s,;]+", values["recipients"]) if a]
     bad = [a for a in addresses if len(a) > 254 or not forms.EMAIL_RE.match(a)]
     if bad or not addresses or len(addresses) > 20:
-        flash("Bitte bis zu 20 gültige E-Mail-Adressen angeben, getrennt durch Komma.", "error")
-        return redirect(target)
+        return done(False, "Bitte bis zu 20 gültige E-Mail-Adressen angeben, getrennt durch Komma.",
+                    target)
     if not notify.smtp_configured():
-        flash("E-Mail-Versand ist nicht eingerichtet (siehe Einstellungen).", "error")
-        return redirect(target)
+        return done(False, "E-Mail-Versand ist nicht eingerichtet (siehe Einstellungen).", target)
     db = get_db()
     today = util.today()
     first, last = month_range(values["monat"], today)
@@ -90,11 +102,9 @@ def send_status():
                           reports.as_text(items, first))
     except Exception as exc:
         log.warning("Statusbericht-Versand fehlgeschlagen: %s", type(exc).__name__)
-        flash("Der Bericht konnte nicht versendet werden. Bitte E-Mail-Einstellungen prüfen.",
-              "error")
-        return redirect(target)
-    flash(f"Statusbericht an {len(addresses)} Empfänger versendet.", "ok")
-    return redirect(target)
+        return done(False, "Der Bericht konnte nicht versendet werden. "
+                           "Bitte E-Mail-Einstellungen prüfen.", target)
+    return done(True, f"Statusbericht an {len(addresses)} Empfänger versendet.", target)
 
 
 @bp.route("/kontingente.csv")

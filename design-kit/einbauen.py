@@ -17,7 +17,9 @@ Was passiert:
   * --grundstil: zusätzlich cockpit-basis.css und <body class="cockpit-auto">, damit
     Seiten ohne Cockpit-Klassen (header, nav, main, section, button …) passend aussehen.
   * --umschalter: bindet theme-umschalter.js ein (Design im Browser umschaltbar).
-  * --modus, --akzent, --schrift, --ecken, --menue: weitere Einstellungen des Designs,
+  * --komponenten: bindet komponenten.js ein (Fallblatt-Zahlen, Schlüssel, Kassenbon,
+    Karteikasten, Papierflieger, Orb; siehe komponenten.html).
+  * --modus, --akzent, --schrift, --ecken, --menue, --zahlen: weitere Einstellungen des Designs,
     wie unter Einstellungen → Darstellung im Projekt-Cockpit.
   * Von jeder geänderten Datei bleibt eine Kopie DATEI.vor-cockpit.bak.
 """
@@ -40,6 +42,7 @@ LOOK = {  # option: (attribute on <html>, allowed values)
     "ecken": ("data-shape", ("rund", "weich", "kantig")),
     "menue": ("data-menu", ("fluessig", "magnet", "kapsel", "segment", "orbit", "welle", "neon",
                             "blob", "karten", "luxus")),
+    "zahlen": ("data-digits", ("fallblatt", "schlicht")),
 }
 MANAGED = ("data-theme", "data-tone") + tuple(attr for attr, _values in LOOK.values())
 START = "<!-- Cockpit-Design -->"
@@ -57,8 +60,11 @@ def sources() -> dict:
     else:
         static = KIT.parent / "cockpit" / "static"
         css, fonts = static / "app.css", static / "fonts"
+    komponenten = KIT / "komponenten.js"
+    if not komponenten.exists():
+        komponenten = KIT.parent / "cockpit" / "static" / "komponenten.js"
     return {"css": css, "fonts": fonts, "basis": KIT / "cockpit-basis.css",
-            "js": KIT / "theme-umschalter.js"}
+            "js": KIT / "theme-umschalter.js", "komponenten": komponenten}
 
 
 def read(path: Path) -> tuple[str, str]:
@@ -71,7 +77,8 @@ def read(path: Path) -> tuple[str, str]:
     raise ValueError("unbekannte Zeichenkodierung")
 
 
-def block(rel: str, has_viewport: bool, basis: bool, switcher: bool) -> str:
+def block(rel: str, has_viewport: bool, basis: bool, switcher: bool,
+          components: bool = False) -> str:
     lines = [START]
     if not has_viewport:
         lines.append('<meta name="viewport" content="width=device-width, initial-scale=1">')
@@ -80,6 +87,8 @@ def block(rel: str, has_viewport: bool, basis: bool, switcher: bool) -> str:
         lines.append(f'<link rel="stylesheet" href="{rel}/cockpit-basis.css">')
     if switcher:
         lines.append(f'<script src="{rel}/theme-umschalter.js" defer></script>')
+    if components:
+        lines.append(f'<script src="{rel}/komponenten.js" defer></script>')
     lines.append(END)
     return "\n".join(lines) + "\n"
 
@@ -107,13 +116,13 @@ def html_attrs(design: str, look: dict | None = None) -> str:
 
 
 def transform(text: str, rel: str, design: str, basis: bool, switcher: bool,
-              look: dict | None = None) -> str | None:
+              look: dict | None = None, components: bool = False) -> str | None:
     """New page text, or None if the page has no <head> to extend."""
     text = BLOCK_RE.sub("", text)
     match = HEAD_END_RE.search(text)
     if not match:
         return None
-    snippet = block(rel, bool(VIEWPORT_RE.search(text)), basis, switcher)
+    snippet = block(rel, bool(VIEWPORT_RE.search(text)), basis, switcher, components)
     text = text[:match.start()] + snippet + text[match.start():]
 
     def set_theme(m):
@@ -143,7 +152,7 @@ def pages(folder: Path):
             yield path
 
 
-def copy_design(folder: Path, basis: bool, switcher: bool) -> None:
+def copy_design(folder: Path, basis: bool, switcher: bool, components: bool = False) -> None:
     src = sources()
     target = folder / TARGET
     (target / "fonts").mkdir(parents=True, exist_ok=True)
@@ -154,6 +163,8 @@ def copy_design(folder: Path, basis: bool, switcher: bool) -> None:
         shutil.copyfile(src["basis"], target / "cockpit-basis.css")
     if switcher:
         shutil.copyfile(src["js"], target / "theme-umschalter.js")
+    if components:
+        shutil.copyfile(src["komponenten"], target / "komponenten.js")
 
 
 def main(argv=None) -> int:
@@ -165,6 +176,8 @@ def main(argv=None) -> int:
     parser.add_argument("--grundstil", action="store_true",
                         help="Seiten ohne Cockpit-Klassen automatisch gestalten")
     parser.add_argument("--umschalter", action="store_true", help="Design-Umschalter einbinden")
+    parser.add_argument("--komponenten", action="store_true",
+                        help="komponenten.js einbinden (Fallblatt, Schlüssel, Kassenbon, …)")
     parser.add_argument("--anwenden", action="store_true", help="wirklich ändern")
     parser.add_argument("--zuruecksetzen", action="store_true",
                         help="Originale aus den Sicherungen wiederherstellen")
@@ -202,7 +215,8 @@ def main(argv=None) -> int:
             continue
         rel = Path(os.path.relpath(folder / TARGET, page.parent)).as_posix()
         look = {key: getattr(args, key) for key in LOOK}
-        new = transform(text, rel, args.design, args.grundstil, args.umschalter, look)
+        new = transform(text, rel, args.design, args.grundstil, args.umschalter, look,
+                        args.komponenten)
         if new is None:
             print(f"übersprungen (kein </head>, vermutlich nur ein Seitenteil): {name}")
             skipped += 1
@@ -221,7 +235,7 @@ def main(argv=None) -> int:
         print(f"eingebaut: {name}")
         changed += 1
     if args.anwenden and (changed or unchanged):
-        copy_design(folder, args.grundstil, args.umschalter)
+        copy_design(folder, args.grundstil, args.umschalter, args.komponenten)
     print(f"{changed} geändert, {unchanged} schon aktuell, {skipped} übersprungen{mode}.")
     if args.anwenden and changed:
         print(f"Design-Dateien liegen in {folder / TARGET}. Sicherungen: *{BACKUP}")

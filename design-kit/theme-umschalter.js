@@ -3,7 +3,7 @@
 // Einbinden mit <script src="theme-umschalter.js" defer></script>.
 //
 // Bedienelemente (alle optional):
-//   <select data-look="theme|modus|akzent|schrift|ecken|menue"> … </select>
+//   <select data-look="theme|modus|akzent|schrift|ecken|menue|zahlen"> … </select>
 //   <button type="button" data-look="akzent" data-value="blau">Blau</button>
 //   <button type="button" data-nav-toggle>…</button>          Seitenleiste ein-/ausklappen
 //   <button type="button" data-toggle-password aria-controls="passwort">…</button>
@@ -18,7 +18,8 @@
     akzent: { attr: "data-accent", values: ["", "violett", "blau", "pink", "gruen", "orange", "gelb", "rot"] },
     schrift: { attr: "data-size", values: ["klein", "", "gross"] },
     ecken: { attr: "data-shape", values: ["", "rund", "weich", "kantig"] },
-    menue: { attr: "data-menu", values: ["", "fluessig", "magnet", "kapsel", "segment", "orbit", "welle", "neon", "blob", "karten", "luxus"] }
+    menue: { attr: "data-menu", values: ["", "fluessig", "magnet", "kapsel", "segment", "orbit", "welle", "neon", "blob", "karten", "luxus"] },
+    zahlen: { attr: "data-digits", values: ["", "fallblatt", "schlicht"] }
   };
   var TONES = { violett: "dunkel", glas: "dunkel", bronze: "dunkel", hell: "hell", schlicht: "" };
   var SIDEBAR = { violett: true, glas: true, hell: true };
