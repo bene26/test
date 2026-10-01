@@ -2,7 +2,7 @@
 
 Selbst gehostetes Werkzeug für Projektleitung mit mehreren Projekten, eigenen Leuten und externen Firmen. Läuft als ein Docker-Container, z. B. auf einem UGREEN NAS oder Raspberry Pi.
 
-Konzept und Hintergrund: [`docs/konzept.md`](docs/konzept.md). Installation: [`docs/installation-ugreen.md`](docs/installation-ugreen.md).
+Konzept und Hintergrund: [`docs/konzept.md`](docs/konzept.md). Installation: [`docs/installation-ugreen.md`](docs/installation-ugreen.md). Übergabe an andere Entwickler oder Agenten (alle Seiten, Design, Animationen, Bilder): [`docs/uebergabe/`](docs/uebergabe/README.md).
 
 ## Was die Version 0.5 kann
 
