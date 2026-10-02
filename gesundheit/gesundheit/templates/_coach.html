@@ -1,0 +1,119 @@
+{# Week coach (coach.py), goal forecast (prognose.py) and the prepared questions (fragen.py).
+   All three work without JavaScript; gesundheit.js adds the slider, the switches and typing. #}
+{% from "_macros.html" import icon %}
+
+{% macro woche(w) -%}
+<section class="card coach" aria-labelledby="coach-titel">
+  <div class="karte-kopf">
+    <div>
+      <h2 id="coach-titel">Diese Woche</h2>
+      <p class="small muted">KW {{ w.week }} · {{ w.range }}</p>
+    </div>
+    <span class="bf-pille">{{ icon('sparkle') }} Wochen-Coach{% if w.repaired %} · {{ w.repaired }} {{ 'Einheit' if w.repaired == 1 else 'Einheiten' }} angepasst{% elif w.planned %} · {{ w.done }} von {{ w.planned }} erledigt{% endif %}</span>
+  </div>
+  <ol class="coach-tage">
+    {% for r in w.rows %}
+    <li class="ct ct-{{ r.status }}{% if r.today %} ct-heute{% endif %}{% if r.repaired %} ct-angepasst{% endif %}">
+      <span class="ct-tag"><strong>{{ r.weekday }}</strong><small>{{ r.date }}</small></span>
+      <span class="ct-text">
+        {% if r.original %}<s><span class="sr-only">statt </span>{{ r.original }}</s>{% endif %}
+        <strong>{{ r.title }}</strong>
+        <small>{{ r.sub }}</small>
+      </span>
+      <span class="ct-wert">{{ r.value or '–' }}</span>
+      <span class="ct-haken">{% if r.status == 'erledigt' %}{{ icon('check') }}<span class="sr-only">erledigt</span>{% elif r.status == 'verpasst' %}<span class="sr-only">ausgelassen</span>{% else %}<span class="sr-only">offen</span>{% endif %}</span>
+    </li>
+    {% endfor %}
+  </ol>
+  {% if w.repaired %}
+  <div class="coach-warum">
+    <p class="cw-titel">{{ icon('sparkle') }} Warum angepasst</p>
+    <dl class="cw-zahlen">{% for value, label in w.reasons %}<div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{% endfor %}</dl>
+    <p class="small">Mehrere Zeichen sprechen für mehr Erholung. Deshalb wird die nächste harte Einheit kürzer und locker, unter {{ w.limit }} Puls (Grenze von Zone 2).</p>
+  </div>
+  {% elif not w.has_habits %}
+  <p class="small muted">Sobald an einem Wochentag in der Hälfte der letzten acht Wochen trainiert wurde, plant der Coach diesen Tag ein.</p>
+  {% endif %}
+</section>
+{%- endmacro %}
+
+{% macro prognose(items, chosen) -%}
+<section class="card prognose" aria-labelledby="prognose-titel" data-prognosen>
+  <div class="karte-kopf">
+    <p class="bf-kopf"><span class="bf-marke" aria-hidden="true">{{ icon('target') }}</span><span class="bf-pille" id="prognose-titel">Zielprognose</span></p>
+    {% if items|length > 1 %}
+    <div class="zeitraum" role="group" aria-label="Ziel">
+      {% for f in items %}<a href="{{ url_for('main.index', prognose=f.kind) }}#prognose-titel" data-prognose-zeige="{{ f.kind }}" aria-pressed="{{ 'true' if f.kind == chosen else 'false' }}"{% if f.kind == chosen %} aria-current="true"{% endif %}>{{ 'Gewicht' if f.kind == 'gewicht' else 'Schritte' }}</a>{% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% for f in items %}
+  <div class="pg-ansicht" data-prognose="{{ f.kind }}" data-mean="{{ f.mean }}" data-sd="{{ f.sd }}" data-direction="{{ f.direction }}" data-lo="{{ f.lo }}" data-hi="{{ f.hi }}" data-decimals="{{ f.decimals }}" data-unit="{{ f.unit }}" data-need-base="{{ f.need.base }}" data-need-span="{{ f.need.span }}" data-need-decimals="{{ f.need.decimals }}"{% if f.kind != chosen %} hidden{% endif %}>
+    <div class="pg-links">
+      <p class="pg-zahl"><span data-pg-prozent>{{ f.probability }}</span><small>%</small></p>
+      <p class="pg-frage">Chance auf <strong data-pg-ziel>{{ f.goal|zahl(f.decimals) }} {{ f.unit }}</strong> <span class="pg-urteil" data-pg-urteil>{{ f.verdict }}</span></p>
+      <div class="pg-regler">
+        <label for="pg-{{ f.kind }}">{{ f.title }}</label>
+        <output for="pg-{{ f.kind }}" data-pg-ausgabe>{{ f.goal|zahl(f.decimals) }} {{ f.unit }}</output>
+        <input id="pg-{{ f.kind }}" type="range" min="{{ f.lo }}" max="{{ f.hi }}" step="{{ f.step }}" value="{{ f.goal }}" data-pg-regler aria-describedby="pg-{{ f.kind }}-hinweis">
+        <div class="pg-boxen">
+          <div><strong>{{ f.mean|zahl(f.decimals) }} {{ f.unit }}</strong><small>erwartet</small></div>
+          <div><strong data-pg-noetig>{{ f.need.value|delta(f.need.decimals) }}</strong><small>{{ f.need.unit }}, {{ f.need.label }}</small></div>
+        </div>
+        <p class="small muted" id="pg-{{ f.kind }}-hinweis">{{ f.question }} Regler verschieben, um andere Ziele zu prüfen.</p>
+      </div>
+    </div>
+    <figure class="pg-grafik">
+      <div class="pg-enden" aria-hidden="true"><span>{{ 'leichter' if f.kind == 'gewicht' else 'weniger' }} ←</span><span>→ {{ 'schwerer' if f.kind == 'gewicht' else 'mehr' }}</span></div>
+      {{ f.chart }}
+      <div class="pg-achse" aria-hidden="true">{% for t in f.labels %}<span>{{ t }}</span>{% endfor %}</div>
+      <figcaption class="small muted">Mitte: erwartet am {{ 'Zieltag' if f.kind == 'gewicht' else 'Monatsende' }}. Fläche: Anteil, der das Ziel erreicht.</figcaption>
+    </figure>
+    {% if f.scenarios %}
+    <div class="pg-szenarien">
+      <p class="pg-sz-titel">Wie es weitergehen könnte <a href="{{ url_for('ausblick.index') }}">Ausblick für alle Werte {{ icon('right') }}</a></p>
+      <ul>
+        {% for sz in f.scenarios %}
+        <li class="sz-{{ sz.key }}" title="{{ sz.why }}">
+          <span class="ab-punkt" aria-hidden="true"></span>
+          <span class="pg-sz-label">{{ sz.label }}</span>
+          <strong>{{ sz.value }}</strong>
+          <small>{{ sz.note }}</small>
+          <span class="sr-only">{{ sz.why }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    <details class="pg-weg">
+      <summary>{{ icon('right') }} So entsteht die Zahl</summary>
+      <dl>{% for label, value, note in f.parts %}<div><dt>{{ label }}</dt><dd><strong>{{ value }}</strong><small>{{ note }}</small></dd></div>{% endfor %}</dl>
+      <p class="small muted">{{ f.note }} Eine Schätzung aus deinen bisherigen Werten, keine Garantie.</p>
+    </details>
+  </div>
+  {% endfor %}
+</section>
+{%- endmacro %}
+
+{% macro fragen(items, chosen) -%}
+<section class="card fragen" aria-labelledby="fragen-titel" id="fragen" data-fragen>
+  <div class="fr-kopf">
+    <span class="fr-marke" aria-hidden="true">{{ icon('sparkle') }}</span>
+    <div>
+      <h2 id="fragen-titel">Frag dein Cockpit</h2>
+      <p class="small muted">vorbereitet aus deinen Daten · funktioniert offline</p>
+    </div>
+  </div>
+  <div class="fr-chips">
+    {% for a in items %}<a class="fr-chip" href="{{ url_for('main.index', frage=a.key) }}#fragen" data-frage="{{ a.key }}" aria-pressed="{{ 'true' if a.key == chosen else 'false' }}">{{ a.q }}</a>{% endfor %}
+  </div>
+  <div class="fr-antwort" aria-live="polite" data-antwort-feld>
+    {% for a in items %}
+    <div data-antwort="{{ a.key }}"{% if a.key != chosen %} hidden{% endif %}>
+      <p class="fr-kopfzeile">{{ a.head }}</p>
+      <p class="fr-text">{{ a.text }}</p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{%- endmacro %}

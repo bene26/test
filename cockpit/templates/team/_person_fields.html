@@ -1,0 +1,35 @@
+<div class="form-grid">
+  <div class="field">
+    <label for="pe-name">Name</label>
+    <input id="pe-name" type="text" name="name" value="{{ person.name if person else '' }}" required maxlength="120">
+  </div>
+  <div class="field">
+    <label for="pe-role">Rolle</label>
+    <input id="pe-role" type="text" name="role" value="{{ person.role if person else '' }}" maxlength="80" placeholder="z. B. Backend, Test">
+  </div>
+  <div class="field">
+    <label for="pe-email">E-Mail</label>
+    <input id="pe-email" type="email" name="email" value="{{ person.email if person else '' }}" maxlength="254">
+  </div>
+  <div class="field">
+    <label for="pe-hours">Wochenstunden</label>
+    <input id="pe-hours" type="number" name="weekly_hours" value="{{ person.weekly_hours if person else 40 }}" min="1" max="80" step="0.5" inputmode="decimal">
+  </div>
+  <div class="field">
+    <label for="pe-avail">Verfügbar für Projekte (%)</label>
+    <input id="pe-avail" type="number" name="availability" value="{{ ((person.availability if person else 0.8) * 100)|round|int }}" min="10" max="100" step="5">
+  </div>
+  <div class="field">
+    <label for="pe-firm">Firma (nur Arbeitnehmerüberlassung)</label>
+    <select id="pe-firm" name="firm_id">
+      <option value="">— intern —</option>
+      {% for f in anue_firms %}<option value="{{ f.id }}"{% if person and person.firm_id == f.id %} selected{% endif %}>{{ f.name }}</option>{% endfor %}
+    </select>
+  </div>
+  {% if person %}
+  <div class="field">
+    <label class="check"><input type="checkbox" name="active"{% if person.active %} checked{% endif %}> aktiv</label>
+  </div>
+  {% endif %}
+</div>
+<p class="small muted">„Verfügbar für Projekte“ zieht Meetings, E-Mails und Support ab. Üblich sind 80 %, für Leitungsrollen eher 40–50 %.</p>

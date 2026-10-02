@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, icon, quelle %}
+{% block title %}Daten{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Daten</h1><p class="sub">Was gespeichert ist, als CSV mitnehmen, aufbewahren oder löschen.</p></div>
+</div>
+
+{% if persons|length > 1 %}
+<section class="card">
+  <h2>Alle Personen</h2>
+  <ul class="plain-list personen-daten">
+    {% for p, count in per_person %}<li><span><span class="avatar klein p-{{ p.color }}" aria-hidden="true">{{ p.name|kuerzel }}</span> {{ p.name }}</span><strong>{{ count|zahl }} Werte</strong></li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>Gespeichert für {{ person.name }}</h2>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Quelle</th><th class="num">Werte</th><th>Von</th><th>Bis</th><th></th></tr></thead>
+    <tbody>
+    {% for key, info in overview.items() if key in SOURCES %}
+    <tr class="{{ 'muted' if not info.count }}">
+      <td>{{ quelle(key) }} <span class="small muted">{{ SOURCES[key][0] }}</span></td>
+      <td class="num">{{ info.count|zahl }}</td><td>{{ info.first|datum }}</td><td>{{ info.last|datum }}</td>
+      <td>{% if info.count %}<form method="post" action="{{ url_for('daten.delete_source') }}" data-confirm="Alle {{ info.count }} Werte von {{ SOURCES[key][0] }} bei {{ person.name }} löschen?">{{ csrf() }}<input type="hidden" name="quelle" value="{{ key }}"><button class="btn btn-small" type="submit">{{ icon('trash') }} Löschen</button></form>{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="small muted">Einzelwerte {{ counts.measurements|zahl }} · Tageswerte {{ counts.daily_values|zahl }} · Nächte {{ counts.sleep|zahl }} · Trainings {{ counts.workouts|zahl }}. Alles liegt nur in der Datenbank im Datenordner auf deinem NAS.</p>
+</section>
+
+<div class="columns-even">
+  <section class="card" id="export">
+    <h2>Export</h2>
+    <p>Alle gespeicherten Werte aller Personen und Quellen, ungefiltert, mit einer Spalte für die Person, als CSV (Semikolon, öffnet in Excel und Numbers).</p>
+    <div class="actions">
+      {% for key, label in exports.items() %}<a class="btn" href="{{ url_for('daten.export', name=key) }}">{{ icon('download') }} {{ label }}</a>{% endfor %}
+    </div>
+  </section>
+
+  <section class="card" id="aufbewahrung">
+    <h2>Aufbewahrung</h2>
+    <form method="post" action="{{ url_for('daten.save_retention') }}" data-confirm="Ältere Werte werden sofort gelöscht. Fortfahren?">
+      {{ csrf() }}
+      <div class="seg">
+        {% for days, label in retention.items() %}<label><input type="radio" name="tage" value="{{ days }}"{% if days == retention_days %} checked{% endif %}>{{ label }}</label>{% endfor %}
+      </div>
+      <p class="small muted">Ältere Werte löscht die App jede Nacht von selbst. Gesundheitsdaten nur so lange aufheben, wie sie dir nützen.</p>
+      <button class="btn" type="submit">Speichern</button>
+    </form>
+  </section>
+</div>
+
+<section class="card gefahr" id="loeschen-person">
+  <h2>Alle Werte von {{ person.name }} löschen</h2>
+  <p>Löscht alle Werte, Verbindungen und Importe dieser Person. Das Profil mit den Zielen bleibt.</p>
+  <form method="post" action="{{ url_for('daten.delete_person_data') }}" class="inline-form">
+    {{ csrf() }}
+    <div class="field"><label for="dp-ok">Zur Bestätigung <strong>{{ person.name }}</strong> eintippen</label><input id="dp-ok" name="bestaetigung" required maxlength="40" autocomplete="off"></div>
+    <button class="btn btn-danger" type="submit">{{ icon('trash') }} Werte löschen</button>
+  </form>
+</section>
+
+<section class="card gefahr" id="loeschen">
+  <h2>Alles löschen (alle Personen)</h2>
+  <p>Löscht sofort und endgültig alle Gesundheitswerte aller Personen, alle Verbindungen (Withings- und Garmin-Zugänge) und den Import-Verlauf. Dein Konto, die Profile und die Darstellung bleiben. Bei Withings und Garmin selbst bleiben die Daten natürlich erhalten.</p>
+  <form method="post" action="{{ url_for('daten.delete_everything') }}" class="inline-form">
+    {{ csrf() }}
+    <div class="field"><label for="d-ok">Zur Bestätigung <strong>LÖSCHEN</strong> eintippen</label><input id="d-ok" name="bestaetigung" required maxlength="20" autocomplete="off"></div>
+    <button class="btn btn-danger" type="submit">{{ icon('trash') }} Alles löschen</button>
+  </form>
+</section>
+{% endblock %}

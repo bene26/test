@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% from "_wahl.html" import wert_auswahl %}
+{% block title %}Vergleich{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Personen vergleichen</h1><p class="sub">Alle nebeneinander: Verlauf, Durchschnitt, Ziele und die Rangliste der Woche.</p></div>
+</div>
+
+<form class="card auswahl-leiste" method="get" data-auto-submit>
+  <div class="auswahl-feld">{{ wert_auswahl('wert', groups, key, 'Wert', 'v-wert') }}</div>
+  <fieldset class="auswahl-feld">
+    <legend class="wahl-label">Zeitraum</legend>
+    <div class="seg">{% for d, label in periods.items() %}<label><input type="radio" name="zeitraum" value="{{ d }}"{% if d == days %} checked{% endif %}>{{ label }}</label>{% endfor %}</div>
+  </fieldset>
+  <fieldset class="auswahl-feld">
+    <legend class="wahl-label">Personen</legend>
+    <div class="personen-chips">{% for p in persons %}<label class="person-chip p-{{ p.color }}"><input type="checkbox" name="p" value="{{ p.id }}"{% if p.id|string in wanted %} checked{% endif %}><span class="avatar klein p-{{ p.color }}" aria-hidden="true">{{ p.name|kuerzel }}</span>{{ p.name }}</label>{% endfor %}</div>
+  </fieldset>
+  <noscript><button class="btn" type="submit">Anzeigen</button></noscript>
+</form>
+
+{% if persons|length < 2 %}
+<p class="note">Zum Vergleichen braucht es mindestens zwei Personen. <a href="{{ url_for('personen.index') }}">Person anlegen</a></p>
+{% endif %}
+
+<section class="card" aria-labelledby="l-titel">
+  <h2 id="l-titel">{{ meta.label }} im Verlauf</h2>
+  {{ lines }}
+</section>
+
+<div class="columns">
+  <section class="card" aria-labelledby="t-titel">
+    <h2 id="t-titel">Im Zeitraum</h2>
+    <div class="table-wrap">
+    <table class="vergleich-tabelle">
+      <thead><tr><th>Person</th><th class="num">Schnitt</th><th class="num">Spanne</th><th class="num">zum Zeitraum davor</th>{% if rows and rows[0].goal is not none %}<th class="num">Ziel</th><th class="num">Tage mit Ziel</th>{% endif %}</tr></thead>
+      <tbody>
+      {% for r in rows %}
+      <tr>
+        <td><span class="avatar klein p-{{ r.person.color }}" aria-hidden="true">{{ r.person.name|kuerzel }}</span> {{ r.person.name }}</td>
+        <td class="num"><strong>{{ fmt(key, r.summary.avg) }}</strong></td>
+        <td class="num small">{{ fmt(key, r.summary.min) }} – {{ fmt(key, r.summary.max) }}</td>
+        <td class="num">{% if r.change is not none %}<span class="aenderung trend-{{ r.trend }}">{{ r.change|prozent }}</span>{% else %}–{% endif %}</td>
+        {% if rows[0].goal is not none %}<td class="num">{{ r.goal_share|zahl ~ ' %' if r.goal_share is not none else '–' }}</td><td class="num">{{ r.goal_days }} / {{ r.summary.count }}</td>{% endif %}
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% if rows and rows[0].goal is not none %}<p class="small muted">„Ziel“: Schnitt im Verhältnis zum eigenen Ziel der Person. So lässt sich fair vergleichen, auch wenn die Ziele verschieden sind.</p>{% endif %}
+  </section>
+  <section class="card" aria-labelledby="r-titel">
+    <h2 id="r-titel">{{ icon('trophy') }} Rangliste</h2>
+    {% if ranked %}
+    <ol class="rangliste">
+      {% for r in ranked %}
+      <li class="p-{{ r.person.color }}">
+        <span class="platz platz-{{ r.rank }}">{{ r.rank }}</span>
+        <span class="rl-name">{{ r.person.name }}</span>
+        <progress class="bar rl-balken" max="100" value="{{ [r.bar, 100]|min|round(1) }}">{{ r.bar|round|int }} %</progress>
+        <span class="rl-wert">{{ fmt(key, r.measure) }}</span>
+      </li>
+      {% endfor %}
+    </ol>
+    <p class="small muted">{{ 'Summe im Zeitraum' if meta.agg == 'sum' else 'Durchschnitt im Zeitraum' }}{{ ', weniger ist besser' if meta.good == 'down' }}.</p>
+    {% else %}<p class="muted">Keine Werte.</p>{% endif %}
+  </section>
+</div>
+
+<div class="columns-even">
+  <section class="card" aria-labelledby="z-titel">
+    <h2 id="z-titel">Ziele erreicht <span class="count">Schnitt im Zeitraum, gemessen am eigenen Ziel</span></h2>
+    {{ radar }}
+  </section>
+  <section class="card" aria-labelledby="c-titel">
+    <h2 id="c-titel">Wochen-Challenge <span class="count">seit {{ week_start|tag }}</span></h2>
+    {% for c in challenges %}
+    <div class="challenge">
+      <h3>{{ c.label }}</h3>
+      <ol class="podest">
+        {% for r in c.board[:3] %}
+        <li class="podest-{{ r.rank }} p-{{ r.person.color }}"><span class="medaille" aria-hidden="true">{{ ['🥇', '🥈', '🥉'][loop.index0] }}</span><strong>{{ r.person.name }}</strong><span>{{ fmt(c.key, r.measure) }}</span></li>
+        {% endfor %}
+      </ol>
+    </div>
+    {% else %}<p class="muted">Diese Woche gibt es noch keine Werte.</p>{% endfor %}
+  </section>
+</div>
+{% endblock %}

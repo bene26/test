@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="de" data-theme="glas" data-tone="dunkel" data-nav="voll">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Projekt-Cockpit Design · Beispielseite</title>
+  <!-- Im Paket heißt die Datei cockpit-design.css, im Repository liegt sie unter cockpit/static/app.css -->
+  <link rel="stylesheet" href="../cockpit/static/app.css">
+  <script src="theme-umschalter.js" defer></script>
+</head>
+<body>
+<div class="shell with-nav">
+  <header class="sidenav">
+    <div class="nav-top">
+      <a class="brand" href="index.html"><span class="logo" aria-hidden="true"></span><span class="nav-label">Meine Webseite</span></a>
+      <button class="nav-toggle" type="button" data-nav-toggle aria-controls="hauptmenue" title="Seitenleiste ein- oder ausklappen"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg><span class="sr-only">Seitenleiste ein- oder ausklappen</span></button>
+    </div>
+    <a class="nav-profile" href="einstellungen.html" title="Profil">
+      <span class="avatar" aria-hidden="true">MM</span>
+      <span class="nav-label"><strong>Max Muster</strong><small>Projektleitung</small></span>
+    </a>
+    <form class="nav-search" role="search" action="suche.html" method="get">
+      <label class="sr-only" for="nav-q">Suchen</label>
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-4.35-4.35"/></svg>
+      <input id="nav-q" type="search" name="q" placeholder="Suchen …">
+    </form>
+    <nav id="hauptmenue" aria-label="Hauptnavigation">
+      <span class="nav-section" aria-hidden="true">Menü</span>
+      <a href="index.html" title="Start" aria-current="page"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z"/></svg><span class="nav-label">Start</span></a>
+      <a href="aufgaben.html" title="Aufgaben"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg><span class="nav-label">Aufgaben</span><span class="nav-badge"><span class="sr-only">: </span>5<span class="sr-only"> neu</span></span></a>
+      <a href="termine.html" title="Termine"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg><span class="nav-label">Termine</span><span class="nav-badge"><span class="sr-only">: </span>2<span class="sr-only"> neu</span></span></a>
+      <span class="nav-section" aria-hidden="true">Planung</span>
+      <a href="projekte.html" title="Projekte"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span class="nav-label">Projekte</span></a>
+      <a href="zeitplan.html" title="Zeitplan"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h9M8 12h10M6 18h8M19 4l2 2-2 2-2-2z"/></svg><span class="nav-label">Zeitplan</span><span class="nav-badge"><span class="sr-only">: </span>1<span class="sr-only"> neu</span></span></a>
+      <span class="nav-section" aria-hidden="true">Allgemein</span>
+      <a href="berichte.html" title="Berichte"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8M8 17h5"/></svg><span class="nav-label">Berichte</span></a>
+      <a href="einstellungen.html" title="Einstellungen"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4"/></svg><span class="nav-label">Einstellungen</span></a>
+    </nav>
+    <div class="logout"><button type="button" title="Abmelden"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="nav-label">Abmelden</span></button></div>
+  </header>
+
+  <main>
+    <div class="page-head">
+      <div>
+        <h1>Beispielseite</h1>
+        <p class="sub">Alle Bausteine des Designs auf einer Seite. Unten lassen sich Design, Farbe, Schrift, Ecken und Menü-Stil ausprobieren.</p>
+      </div>
+      <div class="actions">
+        <a class="btn" href="anmelden.html">Login ansehen</a>
+        <a class="btn btn-primary" href="#aussehen">Aussehen ändern</a>
+      </div>
+    </div>
+
+    <ul class="flash" role="status"><li class="ok">So sieht eine Erfolgsmeldung aus.</li></ul>
+
+    <div class="stats">
+      <a class="stat alert" href="#"><div class="value"><span class="digit">5</span></div><div class="label">überfällig</div></a>
+      <a class="stat warn" href="#"><div class="value"><span class="digit">3</span></div><div class="label">heute fällig</div></a>
+      <a class="stat" href="#"><div class="value"><span class="digit">8</span><span class="digit">7</span></div><div class="label">Prozent Auslastung</div></a>
+      <a class="stat" href="#"><div class="value"><span class="digit">1</span></div><div class="label">Protokoll offen</div></a>
+    </div>
+
+    <div class="columns">
+      <div>
+      <section class="card" aria-labelledby="aussehen">
+        <h2 id="aussehen">Aussehen ausprobieren</h2>
+        <p class="small muted">Jede Auswahl wirkt sofort auf die ganze Seite und wird im Browser gespeichert. Auf der eigenen Webseite legst du sie mit den data-Attributen am &lt;html&gt; fest.</p>
+        <div class="form-grid">
+          <div class="field"><label for="l-theme">Design</label><select id="l-theme" data-look="theme"><option value="violett">Violett</option><option value="glas">Glas und Orange</option><option value="bronze">Bronze</option><option value="hell">Hell</option><option value="schlicht">Schlicht</option></select></div>
+          <div class="field"><label for="l-modus">Hell oder dunkel</label><select id="l-modus" data-look="modus"><option value="">Wie im Design</option><option value="hell">Hell</option><option value="dunkel">Dunkel</option></select></div>
+          <div class="field"><label for="l-akzent">Akzentfarbe</label><select id="l-akzent" data-look="akzent"><option value="">Wie im Design</option><option value="violett">Violett</option><option value="blau">Blau</option><option value="pink">Pink</option><option value="gruen">Grün</option><option value="orange">Orange</option><option value="gelb">Gelb</option><option value="rot">Rot</option></select></div>
+          <div class="field"><label for="l-schrift">Schriftgröße</label><select id="l-schrift" data-look="schrift"><option value="klein">Klein</option><option value="">Normal</option><option value="gross">Groß</option></select></div>
+          <div class="field"><label for="l-ecken">Ecken</label><select id="l-ecken" data-look="ecken"><option value="">Wie im Design</option><option value="rund">Rund</option><option value="weich">Weich</option><option value="kantig">Kantig</option></select></div>
+          <div class="field"><label for="l-menue">Menü-Stil</label><select id="l-menue" data-look="menue"><option value="">Wie im Design</option><option value="fluessig">Liquid</option><option value="magnet">Magnet-Dock</option><option value="kapsel">Glas-Kapsel</option><option value="segment">Segmente</option><option value="orbit">Orbit</option><option value="welle">Welle</option><option value="neon">Neon</option><option value="blob">Blob</option><option value="karten">Karten</option><option value="luxus">Minimal Luxus</option></select></div>
+        </div>
+      </section>
+        <section class="card">
+          <h2>Tabelle <span class="count">3 Einträge</span></h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Nr.</th><th>Aufgabe</th><th>Zuständig</th><th>Fällig</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td class="muted">#1</td><td><a href="#">Schnittstelle beschreiben</a> <span class="badge red">Hoch</span></td><td>Firma Alpha</td><td><span class="overdue">Mo 28.09.2026</span></td><td><span class="badge offen">Offen</span></td></tr>
+                <tr><td class="muted">#2</td><td><a href="#">Testdaten bereitstellen</a></td><td>Anna K.</td><td><span class="today-due">Do 01.10.2026</span></td><td><span class="badge in_arbeit">In Arbeit</span></td></tr>
+                <tr class="done"><td class="muted">#3</td><td><a href="#">Kick-off vorbereiten</a></td><td>Ben M.</td><td>Fr 25.09.2026</td><td><span class="badge erledigt">Erledigt</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+      <div>
+        <section class="card">
+          <h2>Fortschritt und Ampel</h2>
+          <p>Projekt ERP <span class="light light-gelb">beobachten</span></p>
+          <progress class="bar bar-ok" max="100" value="62" aria-label="Fortschritt">62 %</progress>
+          <p class="small muted">62 % laut Zeitplan</p>
+          <p>Kontingent Firma Beta <span class="light light-rot">handeln</span></p>
+          <progress class="bar bar-ueber" max="100" value="100" aria-label="Kontingent">107 %</progress>
+          <p class="report-lights"><span class="light light-gruen">im Plan</span><span class="light light-gelb">beobachten</span><span class="light light-rot">handeln</span><span class="light light-grau">keine Daten</span></p>
+        </section>
+        <section class="card">
+          <h2>Knöpfe und Hinweise</h2>
+          <p class="actions"><button class="btn btn-primary" type="button">Speichern</button><button class="btn" type="button">Abbrechen</button><button class="btn btn-danger btn-small" type="button">Löschen</button></p>
+          <p class="note">Ein Hinweis, z. B. zu einer Frist.</p>
+          <p class="note info">Eine Information.</p>
+          <nav class="presets" aria-label="Filter"><a href="#" aria-current="true">Alle</a><a href="#">Überfällig</a><a href="#">Heute</a></nav>
+        </section>
+      </div>
+    </div>
+
+    <section class="card quick-add">
+      <h2>Formular</h2>
+      <form class="inline-form" action="#" method="get">
+        <div class="field grow"><label for="t">Neue Aufgabe</label><input id="t" type="text" placeholder="Was ist zu tun?"></div>
+        <div class="field"><label for="p">Projekt</label><select id="p"><option>ERP-Einführung</option><option>Neubau Halle 3</option></select></div>
+        <div class="field date"><label for="d">Fällig</label><input id="d" type="date"></div>
+        <button class="btn btn-primary" type="button">Anlegen</button>
+      </form>
+    </section>
+  </main>
+</div>
+</body>
+</html>

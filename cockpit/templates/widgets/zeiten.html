@@ -1,0 +1,7 @@
+<h2>Zeiten diese Woche</h2>
+<p><strong>{{ hours_week_total|stunden or '0 h' }}</strong> Projektstunden erfasst</p>
+{% if hours_week %}
+<ul class="plain-list">{% for r in hours_week %}<li>{{ r.code or r.name }} · {{ r.hours|stunden }}</li>{% endfor %}</ul>
+{% endif %}
+{% if records_pending %}<p class="note">{{ records_pending }} Leistungsnachweis{{ 'e' if records_pending > 1 }} warten auf Prüfung.</p>{% endif %}
+<p class="small"><a href="{{ url_for('times.index') }}">Stunden eintragen</a> · <a href="{{ url_for('times.team') }}">Team-Übersicht</a></p>

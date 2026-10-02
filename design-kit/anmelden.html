@@ -1,0 +1,44 @@
+<!doctype html>
+<!-- Anmeldeseite im Stil "Login form V7": abgeschrägte Glaskarte, die beim Öffnen aus dem Logo aufklappt.
+     Das Formular braucht auf deiner Webseite ein eigenes Ziel (action), z. B. ein Login-Skript. -->
+<html lang="de" data-theme="bronze" data-accent="gelb" data-tone="dunkel">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Anmelden · Meine Webseite</title>
+  <link rel="stylesheet" href="../cockpit/static/app.css">
+  <script src="theme-umschalter.js" defer></script>
+</head>
+<body>
+<main>
+  <div class="auth-v7">
+    <div>
+      <div class="brand auth-brand"><span class="logo" aria-hidden="true"></span>Meine Webseite</div>
+      <div class="v7-card">
+        <div class="v7-intro" aria-hidden="true"><span class="logo"></span></div>
+        <div class="v7-body">
+          <h1>Willkommen <em>zurück</em></h1>
+          <p class="sub">Melde dich mit deinem Konto an.</p>
+          <form method="post" action="#">
+            <div class="v7-field">
+              <label for="email">E-Mail-Adresse</label>
+              <div class="v7-input"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0"/></svg><input id="email" type="email" name="email" required autocomplete="username"></div>
+            </div>
+            <div class="v7-field">
+              <label for="passwort">Passwort</label>
+              <div class="v7-input"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 11h12v10H6zM8 11V8a4 4 0 0 1 8 0v3"/></svg><input id="passwort" type="password" name="passwort" required autocomplete="current-password"><button class="v7-eye" type="button" data-toggle-password aria-controls="passwort" aria-pressed="false" aria-label="Passwort anzeigen"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6"/></svg></button></div>
+            </div>
+            <div class="v7-row">
+              <label class="check"><input type="checkbox" name="merken"> Angemeldet bleiben</label>
+              <a href="passwort.html">Passwort vergessen?</a>
+            </div>
+            <button class="btn btn-primary v7-submit" type="submit">Anmelden <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+          </form>
+          <p class="v7-foot">Noch kein Konto? <a href="registrieren.html">Konto erstellen</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</body>
+</html>

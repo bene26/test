@@ -1,0 +1,14 @@
+{% from "_macros.html" import digits %}
+<h2 class="sr-only">Kennzahlen</h2>
+<div class="stats" data-fallblatt>
+  <a class="stat{{ ' alert' if counts.overdue }}" href="{{ url_for('tasks.index', ansicht='ueberfaellig') }}">
+    <div class="value">{{ digits(counts.overdue) }}</div><div class="label">überfällig</div></a>
+  <a class="stat{{ ' warn' if counts.due_today }}" href="{{ url_for('tasks.index', ansicht='heute') }}">
+    <div class="value">{{ digits(counts.due_today) }}</div><div class="label">heute fällig</div></a>
+  <a class="stat{{ ' warn' if counts.stale }}" href="{{ url_for('tasks.index', ansicht='ohne_update') }}">
+    <div class="value">{{ digits(counts.stale) }}</div><div class="label">seit {{ stale_days }} Tagen ohne Update</div></a>
+  <a class="stat{{ ' alert' if counts.missing_protocols }}" href="{{ url_for('meetings.index') }}#fehlt">
+    <div class="value">{{ digits(counts.missing_protocols) }}</div><div class="label">Protokolle fehlen</div></a>
+  <a class="stat" href="{{ url_for('tasks.index', ansicht='ohne_termin') }}">
+    <div class="value">{{ digits(counts.no_due) }}</div><div class="label">ohne Termin</div></a>
+</div>

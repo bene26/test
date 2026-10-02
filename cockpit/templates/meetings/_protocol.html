@@ -1,0 +1,45 @@
+{% from "_macros.html" import data_table %}
+<h1>{{ snapshot.title }}</h1>
+<p class="meta">
+  {{ snapshot.type_label }} · {{ snapshot.when }} ({{ snapshot.duration_min }} min){% if snapshot.location %} · {{ snapshot.location }}{% endif %}
+  {% if snapshot.project or snapshot.firm %}<br>{% if snapshot.project %}Projekt: {{ snapshot.project }}{% endif %}{% if snapshot.project and snapshot.firm %} · {% endif %}{% if snapshot.firm %}Firma: {{ snapshot.firm }}{% endif %}{% endif %}
+  {% if snapshot.version %}<br>Version {{ snapshot.version }}, abgeschlossen am {{ snapshot.finalized_at }}{% endif %}
+</p>
+
+<h2>Teilnehmende</h2>
+{% if snapshot.participants %}
+<ul>{% for p in snapshot.participants %}<li>{{ p }}</li>{% endfor %}</ul>
+{% else %}<p class="muted">–</p>{% endif %}
+
+<h2>Tagesordnung</h2>
+<ol class="agenda">
+  {% for item in snapshot.agenda %}
+  <li>
+    <strong>{{ item.title }}</strong>
+    {% if item.table %}<div class="auto-table">{{ data_table(item.table) }}</div>{% endif %}
+    {% if item.notes %}<div class="pre">{{ item.notes }}</div>{% endif %}
+  </li>
+  {% endfor %}
+</ol>
+
+<h2>Entscheidungen</h2>
+{% if snapshot.decisions %}
+<table>
+  <tbody>{% for d in snapshot.decisions %}<tr><td class="decision-code">{{ d.code }}</td><td class="pre">{{ d.text }}</td></tr>{% endfor %}</tbody>
+</table>
+{% else %}<p class="muted">–</p>{% endif %}
+
+<h2>Maßnahmen</h2>
+{% if snapshot.actions %}
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Nr.</th><th>Was</th><th>Wer</th><th>Bis wann</th></tr></thead>
+  <tbody>{% for a in snapshot.actions %}<tr><td class="nowrap">{{ a.code }}</td><td>{{ a.title }}</td><td>{{ a.assignee or '–' }}</td><td class="nowrap">{{ a.due or '–' }}</td></tr>{% endfor %}</tbody>
+</table>
+</div>
+{% else %}<p class="muted">–</p>{% endif %}
+
+{% if snapshot.next_meeting %}
+<h2>Nächster Termin</h2>
+<p>{{ snapshot.next_meeting }}</p>
+{% endif %}

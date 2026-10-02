@@ -1,0 +1,42 @@
+# Projekt-Cockpit. Settings come from the file .env in this folder
+# (copy .env.example to .env). Nothing secret belongs in this file.
+services:
+  cockpit:
+    build: .
+    image: projekt-cockpit:latest
+    container_name: projekt-cockpit
+    restart: unless-stopped
+    ports:
+      - "${COCKPIT_PORT:-8080}:8080"
+    volumes:
+      - ./data:/data
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      COCKPIT_BASE_URL: ${COCKPIT_BASE_URL:-}
+      COCKPIT_SECURE_COOKIES: ${COCKPIT_SECURE_COOKIES:-false}
+      COCKPIT_TRUST_PROXY: ${COCKPIT_TRUST_PROXY:-false}
+      NTFY_URL: ${NTFY_URL:-}
+      NTFY_TOPIC: ${NTFY_TOPIC:-}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURITY: ${SMTP_SECURITY:-starttls}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      REMINDER_EMAIL_TO: ${REMINDER_EMAIL_TO:-}
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    cap_add:            # only used by the entrypoint before it drops root
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETUID
+      - SETGID
+    security_opt:
+      - no-new-privileges:true

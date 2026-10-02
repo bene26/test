@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, assignee_select, project_select %}
+{% block title %}#{{ task.id }} {{ task.title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="sub"><a href="{{ next_url }}">← zurück</a></p>
+    <h1>#{{ task.id }} {{ task.title }}</h1>
+    <p class="sub">
+      <span class="badge {{ task.status }}">{{ task.status_label }}</span>
+      {% if task.overdue %}<span class="badge red">überfällig</span>{% endif %}
+      · angelegt {{ task.created_at|datum }} · zuletzt aktualisiert {{ task.updated_at|zeitpunkt }}
+      {% if meeting %} · aus Meeting <a href="{{ url_for('meetings.detail', meeting_id=meeting.id) }}">{{ meeting.title }} ({{ meeting.starts_at|datum }})</a>{% endif %}
+    </p>
+  </div>
+  <div class="actions">
+    <form method="post" action="{{ url_for('tasks.confirm', task_id=task.id) }}">
+      {{ csrf() }}<input type="hidden" name="next" value="{{ request.full_path }}">
+      <button class="btn" type="submit" title="Aktualisiert das Datum, ohne etwas zu ändern">Stand bestätigen</button>
+    </form>
+  </div>
+</div>
+
+<section class="card">
+  <form method="post">
+    {{ csrf() }}
+    <input type="hidden" name="next" value="{{ next_url }}">
+    <div class="form-grid">
+      <div class="field wide">
+        <label for="title">Titel</label>
+        <input id="title" type="text" name="title" value="{{ task.title }}" required maxlength="200">
+      </div>
+      <div class="field">
+        <label for="project_id">Projekt</label>
+        {{ project_select('project_id', projects, task.project_id, id='project_id') }}
+      </div>
+      <div class="field">
+        <label for="assignee">Zuständig</label>
+        {{ assignee_select('assignee', assignees, task.assignee_value, id='assignee') }}
+      </div>
+      <div class="field">
+        <label for="status">Status</label>
+        <select id="status" name="status">
+          {% for value, label in TASK_STATUS.items() %}<option value="{{ value }}"{% if value == task.status %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="waiting_for">Wartet auf</label>
+        <input id="waiting_for" type="text" name="waiting_for" value="{{ task.waiting_for }}" maxlength="120" placeholder="z. B. Testdaten vom Fachbereich">
+      </div>
+      <div class="field">
+        <label for="priority">Priorität</label>
+        <select id="priority" name="priority">
+          {% for value, label in PRIORITY.items() %}<option value="{{ value }}"{% if value == task.priority %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="start_date">Start</label>
+        <input id="start_date" type="date" name="start_date" value="{{ task.start_date or '' }}">
+      </div>
+      <div class="field">
+        <label for="due_date">Fällig</label>
+        <input id="due_date" type="date" name="due_date" value="{{ task.due_date or '' }}">
+      </div>
+      <div class="field">
+        <label for="effort_hours">Aufwand in Stunden</label>
+        <input id="effort_hours" type="number" name="effort_hours" value="{{ task.effort_hours if task.effort_hours is not none else '' }}" min="0" max="10000" step="0.5" inputmode="decimal">
+      </div>
+      <div class="field wide">
+        <label for="description">Beschreibung</label>
+        <textarea id="description" name="description" maxlength="5000" rows="6">{{ task.description }}</textarea>
+      </div>
+    </div>
+    <p class="small muted">Aufwand und Start/Fällig fließen in die Auslastung ein: Der Aufwand wird gleichmäßig auf die Wochen bis zur Fälligkeit verteilt.</p>
+    <div class="actions">
+      <button class="btn btn-primary" type="submit">Speichern</button>
+    </div>
+  </form>
+</section>
+
+<form method="post" action="{{ url_for('tasks.delete', task_id=task.id) }}" data-confirm="Aufgabe #{{ task.id }} endgültig löschen?">
+  {{ csrf() }}<input type="hidden" name="next" value="{{ next_url }}">
+  <button class="btn btn-danger btn-small" type="submit">Aufgabe löschen</button>
+</form>
+{% endblock %}

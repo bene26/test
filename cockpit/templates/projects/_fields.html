@@ -1,0 +1,38 @@
+<div class="form-grid">
+  <div class="field">
+    <label for="p-name">Name</label>
+    <input id="p-name" type="text" name="name" value="{{ project.name if project else '' }}" required maxlength="150">
+  </div>
+  <div class="field">
+    <label for="p-code">Kürzel</label>
+    <input id="p-code" type="text" name="code" value="{{ project.code if project else '' }}" maxlength="20" placeholder="z. B. ERP">
+  </div>
+  <div class="field">
+    <label for="p-client">Auftraggeber</label>
+    <input id="p-client" type="text" name="client" value="{{ project.client if project else '' }}" maxlength="150">
+  </div>
+  <div class="field">
+    <label for="p-status">Status</label>
+    <select id="p-status" name="status">
+      {% for value, label in PROJECT_STATUS.items() %}<option value="{{ value }}"{% if (project.status if project else 'aktiv') == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="p-priority">Priorität</label>
+    <select id="p-priority" name="priority">
+      {% for value, label in PRIORITY.items() %}<option value="{{ value }}"{% if (project.priority if project else 2) == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="p-start">Start</label>
+    <input id="p-start" type="date" name="start_date" value="{{ project.start_date or '' if project else '' }}">
+  </div>
+  <div class="field">
+    <label for="p-end">Ende</label>
+    <input id="p-end" type="date" name="end_date" value="{{ project.end_date or '' if project else '' }}">
+  </div>
+  <div class="field wide">
+    <label for="p-notes">Notizen</label>
+    <textarea id="p-notes" name="notes" rows="3" maxlength="5000">{{ project.notes if project else '' }}</textarea>
+  </div>
+</div>

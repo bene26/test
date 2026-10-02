@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block title %}Zeiten{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Zeiten · KW {{ monday.isocalendar()[1] }}</h1>
+    <p class="sub">{{ days[0]|datum }} bis {{ days[6]|datum }}{% if person %} · {{ person.name }}{% if person.firm_name %} ({{ person.firm_name }}){% endif %}{% endif %}</p>
+  </div>
+  <div class="actions">
+    <nav class="presets" aria-label="Woche">
+      <a href="{{ url_for('times.index', person=person.id if person else None, woche=prev_week) }}">← Vorwoche</a>
+      <a href="{{ url_for('times.index', person=person.id if person else None, woche=this_week) }}"{% if week == this_week %} aria-current="true"{% endif %}>Diese Woche</a>
+      <a href="{{ url_for('times.index', person=person.id if person else None, woche=next_week) }}">Nächste →</a>
+    </nav>
+    <a class="btn" href="{{ url_for('times.team', woche=week) }}">Team-Übersicht</a>
+  </div>
+</div>
+
+{% if not people %}
+<section class="card"><p class="empty">Noch keine Personen angelegt. Lege sie unter <a href="{{ url_for('team.index') }}">Team & Firmen</a> an.</p></section>
+{% else %}
+<form method="get" class="person-pick" action="{{ url_for('times.index') }}">
+  <input type="hidden" name="woche" value="{{ week }}">
+  <span class="small muted">Person:</span>
+  {% for p in people %}
+  <button class="chip{{ ' on' if person and p.id == person.id }}" type="submit" name="person" value="{{ p.id }}"{% if person and p.id == person.id %} aria-current="true"{% endif %}>{{ p.name }}</button>
+  {% endfor %}
+</form>
+
+<section class="card">
+  <form method="post" action="{{ url_for('times.save') }}" class="timesheet-form">
+    {{ csrf() }}
+    <input type="hidden" name="person_id" value="{{ person.id }}">
+    <input type="hidden" name="week" value="{{ week }}">
+    <div class="table-wrap">
+    <table class="timesheet">
+      <thead>
+        <tr>
+          <th>Projekt</th>
+          {% for d in days %}<th class="num{{ ' today' if d == today }}{{ ' weekend' if d.weekday() >= 5 }}">{{ d|tag }}</th>{% endfor %}
+          <th class="num">Summe</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for r in rows %}
+        <tr>
+          <th scope="row">{{ r.project.code or r.project.name }}{% if r.project.code %}<div class="small muted">{{ r.project.name }}</div>{% endif %}</th>
+          {% for c in r.cells %}
+          <td class="{{ 'weekend' if c.date.weekday() >= 5 }}"><input class="hours" type="text" inputmode="decimal" name="{{ c.name }}" value="{{ fmt(c.value) }}" pattern="[0-9]{1,2}([,.][0-9]{1,2})?" aria-label="{{ r.project.code or r.project.name }}, {{ c.date|datum_wt }}" data-day="{{ loop.index0 }}" autocomplete="off"></td>
+          {% endfor %}
+          <td class="num total" data-row-total>{{ fmt(r.total) }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th scope="row">Summe</th>
+          {% for t in day_totals %}<td class="num" data-day-total="{{ loop.index0 }}">{{ fmt(t) }}</td>{% endfor %}
+          <td class="num total" data-week-total>{{ fmt(total) }}</td>
+        </tr>
+      </tfoot>
+    </table>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" type="submit">Woche speichern</button>
+      <span class="small muted">Wochenstunden laut Stammdaten: {{ person.weekly_hours|stunden }}. Stunden mit Komma, z. B. 7,5. Leeres Feld oder 0 löscht den Eintrag.</span>
+    </div>
+  </form>
+  {% if has_previous %}
+  <form method="post" action="{{ url_for('times.copy_previous') }}">
+    {{ csrf() }}<input type="hidden" name="person_id" value="{{ person.id }}"><input type="hidden" name="week" value="{{ week }}">
+    <button class="btn btn-small" type="submit">Vorwoche übernehmen</button>
+  </form>
+  {% endif %}
+  {% if not rows %}<p class="empty">Keine aktiven Projekte. Lege zuerst ein Projekt an.</p>{% endif %}
+</section>
+
+<p class="small muted">Erfasst werden Projektstunden eigener Leute und von Personen in Arbeitnehmerüberlassung, damit Plan und Ist je Projekt verglichen werden können. Arbeit von Firmen mit Werk- oder Dienstvertrag läuft über Leistungsnachweise zur Bestellung. Die Zahlen sind keine Arbeitszeiterfassung und nicht zur Leistungskontrolle gedacht; gibt es einen Betriebsrat, vor dem Einsatz abstimmen (§ 87 Abs. 1 Nr. 6 BetrVG). · <a href="{{ url_for('times.export', monat=monday.strftime('%Y-%m')) }}">Monat als CSV</a></p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,214 @@
+"""Projekt-Cockpit: tasks, meetings, reminders and workload for project leads."""
+
+import logging
+import os
+import secrets
+from pathlib import Path
+
+from flask import Flask, g, render_template, request
+from werkzeug.middleware.proxy_fix import ProxyFix
+
+from . import auth, data, db, themes, util
+from .meeting_types import MEETING_TYPES
+
+__version__ = "0.6.0"
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in ("1", "true", "yes", "ja", "on")
+
+
+def _secret_key(data_dir: Path) -> str:
+    path = data_dir / "secret_key"
+    if path.exists():
+        return path.read_text().strip()
+    key = secrets.token_hex(32)
+    path.write_text(key)
+    path.chmod(0o600)
+    return key
+
+
+def create_app(test_config: dict | None = None) -> Flask:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    app = Flask(__name__)
+
+    data_dir = Path(os.environ.get("COCKPIT_DATA_DIR", "/data"))
+    app.config.from_mapping(
+        DATA_DIR=str(data_dir),
+        BASE_URL=os.environ.get("COCKPIT_BASE_URL", "").rstrip("/"),
+        SECURE_COOKIES=_env_bool("COCKPIT_SECURE_COOKIES", False),
+        TRUST_PROXY=_env_bool("COCKPIT_TRUST_PROXY", False),
+        TIMEZONE=os.environ.get("TZ", "Europe/Berlin"),
+        SCHEDULER=_env_bool("COCKPIT_SCHEDULER", True),
+        MAX_CONTENT_LENGTH=2 * 1024 * 1024,
+    )
+    if test_config:
+        app.config.update(test_config)
+
+    data_dir = Path(app.config["DATA_DIR"])
+    data_dir.mkdir(parents=True, exist_ok=True)
+    app.config["DATABASE"] = str(data_dir / "cockpit.sqlite3")
+    app.secret_key = _secret_key(data_dir)
+    app.config.update(
+        SESSION_COOKIE_NAME="pc_form",
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Lax",
+        SESSION_COOKIE_SECURE=app.config["SECURE_COOKIES"],
+    )
+    if app.config["TRUST_PROXY"]:
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+    try:
+        util.set_timezone(app.config["TIMEZONE"])
+    except (ValueError, LookupError):
+        logging.getLogger("cockpit").warning(
+            "Unbekannte Zeitzone %r, verwende Europe/Berlin.", app.config["TIMEZONE"])
+        util.set_timezone("Europe/Berlin")
+    db.init_db(app.config["DATABASE"])
+    auth.ensure_setup_code(app)
+
+    app.teardown_appcontext(db.close_db)
+    app.before_request(auth.load_user)
+    app.before_request(auth.check_csrf)
+    app.before_request(auth.require_login)
+
+    from .views import (main, meetings, orders, projects, reports, schedule, settings, tasks,
+                        team, times, workload)
+    for module in (auth, main, tasks, meetings, projects, schedule, times, reports, team, orders,
+                   workload, settings):
+        app.register_blueprint(module.bp)
+
+    _register_template_helpers(app)
+    _register_security_headers(app)
+    _register_errors(app)
+
+    if app.config["SCHEDULER"]:
+        from .reminders import start_scheduler
+        start_scheduler(app)
+    return app
+
+
+def _register_template_helpers(app: Flask) -> None:
+    app.jinja_env.filters.update(
+        datum=util.fmt_date,
+        datum_wt=lambda v: util.fmt_date(v, weekday=True),
+        tag=util.fmt_day,
+        zeitpunkt=util.fmt_datetime,
+        stunden=util.fmt_hours,
+    )
+
+    # Globals are visible inside imported macros too; context processors are not.
+    app.jinja_env.globals.update(
+        csrf_token=auth.csrf_token,
+        TASK_STATUS=util.TASK_STATUS,
+        PRIORITY=util.PRIORITY,
+        PROJECT_STATUS=util.PROJECT_STATUS,
+        CONTRACT_TYPES=util.CONTRACT_TYPES,
+        MEETING_TYPES=MEETING_TYPES,
+        THEMES=themes.THEMES,
+        APPEARANCE=themes.APPEARANCE,
+        app_version=__version__,
+    )
+
+    @app.context_processor
+    def inject():
+        theme = themes.current()
+        look = themes.current_look()
+        return {"current_user": g.get("user"), "today": util.today(),
+                "theme": theme, "look": look, "html_attrs": themes.html_attrs(theme, look),
+                "nav_counts": _nav_counts}
+
+    app.after_request(themes.remember)
+
+
+def _nav_counts() -> dict:
+    """Badges in the menu, computed once per request and only for logged-in pages."""
+    if "nav_counts" not in g:
+        from . import quotas, schedule
+        from .db import get_db
+        db = get_db()
+        now = util.now()
+        g.nav_counts = {
+            "tasks": db.execute(
+                "SELECT COUNT(*) FROM tasks WHERE status IN ('offen', 'in_arbeit', 'wartet') "
+                "AND due_date < ?", (now.date().isoformat(),)).fetchone()[0],
+            "meetings": len(data.missing_protocols(db, now)),
+            "schedule": len(schedule.overview(db, now.date())["conflicts"]),
+            "team": quotas.warning_count(db, now.date()),
+        }
+    return g.nav_counts
+
+
+def _register_security_headers(app: Flask) -> None:
+    csp = ("default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
+           "font-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; "
+           "base-uri 'none'; object-src 'none'")
+
+    @app.after_request
+    def headers(response):
+        response.headers["Content-Security-Policy"] = csp
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "same-origin"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        if request.endpoint != "static":
+            response.headers["Cache-Control"] = "no-store"
+        if app.config["SECURE_COOKIES"]:
+            response.headers["Strict-Transport-Security"] = "max-age=31536000"
+        return response
+
+
+# Error pages: title, short label for the graphics (capitals) and explanation per status.
+ERRORS = {
+    400: ("Das hat nicht geklappt", "UNGÜLTIG", "Die Anfrage war ungültig."),
+    401: ("Bitte neu anmelden", "BITTE ANMELDEN", "Bitte neu anmelden."),
+    403: ("Kein Zutritt", "KEIN ZUTRITT", "Dafür fehlt die Berechtigung."),
+    404: ("Seite nicht gefunden", "NICHT GEFUNDEN",
+          "Diese Seite gibt es nicht (mehr). Vielleicht wurde der Eintrag gelöscht, oder der "
+          "Link ist falsch geschrieben."),
+    405: ("So geht das nicht", "NICHT ERLAUBT", "Diese Adresse lässt sich so nicht aufrufen."),
+    413: ("Zu groß", "ZU GROSS", "Die Anfrage ist zu groß."),
+    500: ("Etwas ist schiefgelaufen", "STÖRUNG",
+          "Ein interner Fehler ist aufgetreten. Bitte die Seite neu laden oder später noch "
+          "einmal versuchen."),
+}
+
+
+def _register_errors(app: Flask) -> None:
+    def wants_json() -> bool:
+        if request.headers.get("X-Autosave") or request.headers.get("X-Cockpit-Ajax"):
+            return True
+        best = request.accept_mimetypes.best_match(["application/json", "text/html"])
+        return best == "application/json"
+
+    def page(code: int, text: str | None = None):
+        title, kurz, message = ERRORS.get(code, ERRORS[500])
+        message = text or message
+        if wants_json():
+            return {"ok": False, "error": message, "nachricht": message}, code
+        return render_template("error.html", code=code, title=title, kurz=kurz, message=message,
+                               path=request.path[:200],
+                               now_time=util.now().strftime("%H:%M")), code
+
+    def handler(error):
+        code = getattr(error, "code", 500) or 500
+        # Only show descriptions we wrote ourselves, not werkzeug's English defaults.
+        text = getattr(error, "description", None)
+        if code != 400 or text == getattr(type(error), "description", None):
+            text = None
+        return page(code if code in ERRORS else 500, text)
+
+    for code in ERRORS:
+        if code != 500:
+            app.register_error_handler(code, handler)
+
+    @app.errorhandler(500)
+    def server_error(_error):
+        try:
+            return page(500)
+        except Exception:  # the error page itself failed (e.g. database): plain text, no details
+            return ("Etwas ist schiefgelaufen. Bitte die Seite neu laden oder später noch "
+                    "einmal versuchen."), 500, {"Content-Type": "text/plain; charset=utf-8"}

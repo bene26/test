@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% from "schedule/_gantt.html" import gantt, conflict_list %}
+{% block title %}Zeitplan{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    {% if project %}<p class="sub"><a href="{{ url_for('schedule.index') }}">← Alle Projekte</a> · <a href="{{ url_for('projects.detail', project_id=project.id) }}">Projektseite</a></p>{% endif %}
+    <h1>Zeitplan{% if project %} · {{ project.code or project.name }}{% endif %}</h1>
+    <p class="sub">{% if project %}{{ project.name }}{% if progress is not none %} · Fortschritt {{ progress }} %{% endif %}{% else %}Alle aktiven und geplanten Projekte. Pfeile zeigen, was erst beginnen kann, wenn etwas anderes fertig ist.{% endif %}</p>
+  </div>
+  <div class="actions">
+    <form method="get" class="inline-form" action="{{ url_for('schedule.index') }}">
+      <label class="sr-only" for="z-project">Projekt</label>
+      <select id="z-project" name="projekt" data-autosubmit>
+        <option value="">Alle Projekte</option>
+        {% for value, label in projects %}<option value="{{ value }}"{% if project and project.id == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+      <noscript><button class="btn" type="submit">Anzeigen</button></noscript>
+    </form>
+    <a class="btn" href="{{ url_for('schedule.index', projekt=project.id if project else None, pfeile='1' if not show_links else '0') }}" aria-pressed="{{ 'true' if show_links else 'false' }}">Abhängigkeiten {{ 'ausblenden' if show_links else 'einblenden' }}</a>
+  </div>
+</div>
+
+{{ conflict_list(ov.conflicts, request.full_path) }}
+
+<section class="card">
+  {% if chart %}
+  {{ gantt(chart) }}
+  {% else %}
+  <p class="empty">{% if project %}Für dieses Projekt gibt es noch keinen Zeitplan. Lege unten den ersten Vorgang oder Meilenstein an, zum Beispiel den Kick-off.{% else %}Noch kein Projekt hat einen Zeitplan. Wähle oben ein Projekt aus und lege Vorgänge und Meilensteine an.{% endif %}</p>
+  {% endif %}
+</section>
+
+{% if project %}
+<div class="columns">
+  <section class="card">
+    <h2>Einträge <span class="count">{{ ov['items']|length }}</span></h2>
+    {% if ov['items'] %}
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Art</th><th>Bezeichnung</th><th>Start</th><th>Ende</th><th class="num">Stand</th><th class="hide-mobile">Zuständig</th></tr></thead>
+      <tbody>
+      {% for it in ov['items'] %}
+        <tr>
+          <td><span class="badge{{ ' green' if it.progress == 100 else '' }}">{{ kinds[it.kind] }}</span></td>
+          <td><a href="{{ url_for('schedule.edit', item_id=it.id) }}">{{ it.title }}</a></td>
+          <td class="nowrap">{{ it.start|datum }}</td>
+          <td class="nowrap{{ ' overdue' if it.progress < 100 and it.end < today }}">{{ it.end|datum if it.kind == 'phase' else '–' }}</td>
+          <td class="num nowrap">{% if it.kind == 'phase' %}{{ it.progress }} %{% else %}{{ 'erreicht' if it.progress == 100 else 'offen' }}{% endif %}</td>
+          <td class="hide-mobile">{{ it.assignee or '—' }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <p class="empty">Noch keine Einträge.</p>
+    {% endif %}
+    {% if external %}
+    <h3>Abhängigkeiten zu anderen Projekten</h3>
+    <ul class="small">
+      {% for e in external %}
+      <li>{% if e.conflict %}<span class="badge red">Konflikt</span> {% endif %}<a href="{{ url_for('schedule.edit', item_id=e.succ.id) }}">{{ e.succ.title }}</a> ({{ e.succ.project_label }}) wartet auf <a href="{{ url_for('schedule.edit', item_id=e.pred.id) }}">{{ e.pred.title }}</a> ({{ e.pred.project_label }})</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </section>
+  <section class="card" id="neu" data-fokus>
+    <h2>Neuer Eintrag</h2>
+    <form method="post" action="{{ url_for('schedule.create') }}">
+      {{ csrf() }}
+      {% with it=None, project_id=project.id %}{% include "schedule/_item_fields.html" %}{% endwith %}
+      <button class="btn btn-primary" type="submit">Anlegen</button>
+    </form>
+    <p class="small muted">Abhängigkeiten legst du beim Eintrag selbst fest: Eintrag öffnen und unter „Vorgänger“ wählen, was vorher fertig sein muss. Das geht auch über Projektgrenzen hinweg.</p>
+  </section>
+</div>
+{% else %}
+<div class="columns-even">
+  <section class="card">
+    <h2>Nächste Meilensteine</h2>
+    {% if ov.upcoming %}
+    <ul class="plain-list">
+      {% for m in ov.upcoming[:8] %}
+      <li><span class="nowrap">{{ m.start|datum_wt }}</span> · <a href="{{ url_for('schedule.edit', item_id=m.id) }}">{{ m.title }}</a> <span class="muted">({{ m.project_label }})</span></li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="empty">Keine offenen Meilensteine.</p>{% endif %}
+  </section>
+  <section class="card">
+    <h2>Verpasst oder verspätet</h2>
+    {% if ov.missed or ov.late_phases %}
+    <ul class="plain-list">
+      {% for m in ov.missed %}<li><span class="overdue">{{ m.start|datum }}</span> · Meilenstein <a href="{{ url_for('schedule.edit', item_id=m.id) }}">{{ m.title }}</a> <span class="muted">({{ m.project_label }})</span></li>{% endfor %}
+      {% for p in ov.late_phases %}<li><span class="overdue">{{ p.end|datum }}</span> · <a href="{{ url_for('schedule.edit', item_id=p.id) }}">{{ p.title }}</a> bei {{ p.progress }} % <span class="muted">({{ p.project_label }})</span></li>{% endfor %}
+    </ul>
+    {% else %}<p class="empty">Nichts verpasst.</p>{% endif %}
+  </section>
+</div>
+{% endif %}
+{% endblock %}

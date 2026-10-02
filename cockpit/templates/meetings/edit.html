@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, assignee_select, project_select, task_table, data_table %}
+{% block title %}{{ meeting.title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="sub"><a href="{{ url_for('meetings.index') }}">← Meetings</a></p>
+    <h1>{{ meeting.title }}</h1>
+    <p class="sub">{{ type_label }} · {{ meeting.starts_at|zeitpunkt }} · <span class="badge">Protokoll offen</span>{% if meeting.version %} <span class="badge">Korrektur zu Version {{ meeting.version }}</span>{% endif %}</p>
+  </div>
+  <div class="actions">
+    <span class="autosave-status" data-autosave-status>Änderungen werden automatisch gespeichert.</span>
+    <a class="btn" href="{{ url_for('meetings.print_view', meeting_id=meeting.id) }}">Vorschau / Drucken</a>
+  </div>
+</div>
+
+<form id="protocol" method="post" action="{{ url_for('meetings.save', meeting_id=meeting.id) }}" data-autosave>
+  {{ csrf() }}
+  <section class="card">
+    <details{% if not meeting.participants %} open{% endif %}>
+      <summary>Termin und Teilnehmende</summary>
+      <div class="form-grid">
+        <div class="field wide">
+          <label for="title">Titel</label>
+          <input id="title" type="text" name="title" value="{{ meeting.title }}" maxlength="150">
+        </div>
+        <div class="field">
+          <label for="date">Datum</label>
+          <input id="date" type="date" name="date" value="{{ meeting.starts_at[:10] }}" required>
+        </div>
+        <div class="field">
+          <label for="time">Uhrzeit</label>
+          <input id="time" type="time" name="time" value="{{ meeting.starts_at[11:16] }}" required>
+        </div>
+        <div class="field">
+          <label for="duration_min">Dauer (min)</label>
+          <input id="duration_min" type="number" name="duration_min" value="{{ meeting.duration_min }}" min="5" max="600" step="5">
+        </div>
+        <div class="field">
+          <label for="location">Ort / Link</label>
+          <input id="location" type="text" name="location" value="{{ meeting.location }}" maxlength="300">
+        </div>
+        <div class="field">
+          <label for="project_id">Projekt</label>
+          {{ project_select('project_id', projects, meeting.project_id, id='project_id') }}
+        </div>
+        <div class="field">
+          <label for="firm_id">Firma</label>
+          <select id="firm_id" name="firm_id">
+            <option value="">— keine —</option>
+            {% for f in firms %}<option value="{{ f.id }}"{% if f.id == meeting.firm_id %} selected{% endif %}>{{ f.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field wide">
+          <label for="participants">Teilnehmende, eine Zeile pro Person (E-Mail-Adressen werden für den Versand genutzt)</label>
+          <textarea id="participants" name="participants" rows="4" maxlength="3000">{{ meeting.participants }}</textarea>
+        </div>
+      </div>
+    </details>
+    {% if meeting.participants and not recipients %}<p class="small muted">Keine E-Mail-Adressen bei den Teilnehmenden.</p>{% endif %}
+  </section>
+
+  <section class="card section-anchor" id="agenda">
+    <h2>Tagesordnung und Notizen</h2>
+    {% for a in agenda %}
+    <div class="agenda-item">
+      <div class="item-head">
+        <span class="num">{{ loop.index }}.</span>
+        <input type="text" name="title_{{ a.item.id }}" value="{{ a.item.title }}" maxlength="200" required aria-label="Tagesordnungspunkt {{ loop.index }}">
+        <button class="btn-icon" type="submit" form="del-item-{{ a.item.id }}" data-confirm="Tagesordnungspunkt „{{ a.item.title }}“ löschen?" title="Punkt löschen" aria-label="Punkt löschen">✕</button>
+      </div>
+      {% if a.table %}
+      <div class="auto-table">
+        <div class="small muted">{{ auto_kinds[a.item.auto] }} (live aus dem Cockpit)</div>
+        {{ data_table(a.table) }}
+      </div>
+      {% endif %}
+      <textarea class="notes" name="note_{{ a.item.id }}" maxlength="20000" placeholder="Notizen zu diesem Punkt" aria-label="Notizen zu Punkt {{ loop.index }}">{{ a.item.notes }}</textarea>
+    </div>
+    {% else %}
+    <p class="empty">Noch keine Tagesordnungspunkte.</p>
+    {% endfor %}
+    <div class="inline-form">
+      <div class="field grow">
+        <label for="new-item">Weiterer Punkt</label>
+        <input id="new-item" type="text" name="title" form="add-item" maxlength="200" placeholder="z. B. Budget Q4">
+      </div>
+      <button class="btn" type="submit" form="add-item">Hinzufügen</button>
+    </div>
+  </section>
+</form>
+
+<section class="card section-anchor" id="entscheidungen">
+  <h2>Entscheidungen</h2>
+  {% if decisions %}
+  <div class="table-wrap">
+    <table>
+      <tbody>
+      {% for d in decisions %}
+        <tr>
+          <td class="decision-code">E-{{ '%02d' % d.number }}</td>
+          <td class="pre">{{ d.text }}</td>
+          <td class="num">
+            <form method="post" action="{{ url_for('meetings.delete_decision', meeting_id=meeting.id, decision_id=d.id) }}" data-confirm="Entscheidung E-{{ '%02d' % d.number }} löschen?">
+              {{ csrf() }}<button class="btn-icon" type="submit" aria-label="Entscheidung löschen">✕</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty">Noch keine Entscheidungen.</p>
+  {% endif %}
+  <form method="post" action="{{ url_for('meetings.add_decision', meeting_id=meeting.id) }}" class="inline-form">
+    {{ csrf() }}
+    <div class="field grow">
+      <label for="decision">Neue Entscheidung</label>
+      <input id="decision" type="text" name="text" required maxlength="2000" placeholder="z. B. Das Export-Format wird CSV, nicht XML.">
+    </div>
+    <button class="btn" type="submit">Festhalten</button>
+  </form>
+</section>
+
+<section class="card section-anchor" id="massnahmen">
+  <h2>Maßnahmen <span class="count">werden sofort als Aufgaben angelegt</span></h2>
+  {{ task_table(actions, request.path, show_project=False, empty='Noch keine Maßnahmen.') }}
+  <form method="post" action="{{ url_for('meetings.add_action', meeting_id=meeting.id) }}" class="inline-form">
+    {{ csrf() }}
+    <div class="field grow">
+      <label for="action-title">Was?</label>
+      <input id="action-title" type="text" name="title" required maxlength="200">
+    </div>
+    <div class="field">
+      <label for="action-assignee">Wer?</label>
+      {{ assignee_select('assignee', assignees, 'f:%d' % meeting.firm_id if meeting.firm_id else '', id='action-assignee') }}
+    </div>
+    <div class="field date">
+      <label for="action-due">Bis wann?</label>
+      <input id="action-due" type="date" name="due_date">
+    </div>
+    <button class="btn" type="submit">Hinzufügen</button>
+  </form>
+</section>
+
+<div class="columns-even">
+  <section class="card section-anchor" id="folgetermin">
+    <h2>Nächster Termin</h2>
+    {% if followup %}
+    <p>Folgetermin: <a href="{{ url_for('meetings.detail', meeting_id=followup.id) }}">{{ followup.starts_at|zeitpunkt }}</a></p>
+    {% else %}
+    <form method="post" action="{{ url_for('meetings.followup', meeting_id=meeting.id) }}" class="inline-form">
+      {{ csrf() }}
+      <div class="field date">
+        <label for="next-date">Datum</label>
+        <input id="next-date" type="date" name="date" value="{{ suggested_next.date().isoformat() }}" required>
+      </div>
+      <div class="field narrow">
+        <label for="next-time">Uhrzeit</label>
+        <input id="next-time" type="time" name="time" value="{{ suggested_next.strftime('%H:%M') }}" required>
+      </div>
+      <button class="btn" type="submit">Folgetermin anlegen</button>
+    </form>
+    <p class="small muted">Offene Maßnahmen erscheinen im Folgetermin automatisch als erster Punkt.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Protokoll abschließen</h2>
+    <p class="small muted">Danach ist das Protokoll eingefroren. Änderungen gehen nur noch als Korrektur mit neuer Version.</p>
+    <div class="actions">
+      <button class="btn btn-primary" type="submit" form="protocol" formaction="{{ url_for('meetings.finalize', meeting_id=meeting.id) }}" data-confirm="Protokoll jetzt abschließen?">Abschließen</button>
+      {% if smtp and recipients %}
+      <button class="btn" type="submit" form="protocol" formaction="{{ url_for('meetings.finalize', meeting_id=meeting.id) }}" name="send" value="1" data-confirm="Protokoll abschließen und an {{ recipients|length }} Empfänger senden?">Abschließen und senden</button>
+      {% endif %}
+    </div>
+    {% if smtp and recipients %}
+    <p class="small muted">Empfänger: {{ recipients|join(', ') }}</p>
+    {% elif smtp %}
+    <p class="small muted">Für den Versand E-Mail-Adressen bei den Teilnehmenden eintragen.</p>
+    {% else %}
+    <p class="small muted">E-Mail-Versand ist nicht eingerichtet. Über „Vorschau / Drucken“ lässt sich das Protokoll als PDF speichern.</p>
+    {% endif %}
+  </section>
+</div>
+
+{% if meeting.version == 0 %}
+<form method="post" action="{{ url_for('meetings.delete', meeting_id=meeting.id) }}" data-confirm="Meeting mit allen Notizen und Entscheidungen löschen? Maßnahmen bleiben als Aufgaben erhalten.">
+  {{ csrf() }}<button class="btn btn-danger btn-small" type="submit">Meeting löschen</button>
+</form>
+{% endif %}
+
+<form id="add-item" method="post" action="{{ url_for('meetings.add_item', meeting_id=meeting.id) }}" hidden>{{ csrf() }}</form>
+{% for a in agenda %}
+<form id="del-item-{{ a.item.id }}" method="post" action="{{ url_for('meetings.delete_item', meeting_id=meeting.id, item_id=a.item.id) }}" hidden>{{ csrf() }}</form>
+{% endfor %}
+{% endblock %}

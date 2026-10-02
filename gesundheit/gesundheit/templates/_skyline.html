@@ -1,0 +1,25 @@
+{# 3D skyline of the year (uebersicht.skyline). Works without JavaScript: the toggle and the
+   period are links; with JavaScript the toggle swaps the views in place and replays the build. #}
+{% set keys = sky.views|map(attribute='key')|list %}
+{% set aktiv = request.args.get('ansicht') if request.args.get('ansicht') in keys else (keys[0] if keys else '') %}
+<section class="skyline-karte" aria-labelledby="sky-titel" data-sky>
+  <div class="sk-kopf">
+    <p class="sk-label" id="sky-titel">{{ sky.label }}</p>
+    {% if sky.views|length > 1 %}
+    <div class="sk-schalter" role="group" aria-label="Ansicht">
+      {% for v in sky.views %}
+      <a href="{{ url_for('main.index', zeit=sky.period, ansicht=v.key) }}#sky-titel" data-sky-zeige="{{ v.key }}" aria-pressed="{{ 'true' if v.key == aktiv else 'false' }}">{{ v.label }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% for v in sky.views %}
+  <div class="sk-ansicht" data-sky-ansicht="{{ v.key }}"{% if v.key != aktiv %} hidden{% endif %}>
+    <p class="sk-zahl"><span data-count="{{ v.number }}" data-decimals="{{ v.decimals }}">{{ v.number|zahl(v.decimals) }}</span>{{ v.suffix }}<span class="sk-einheit">{{ v.unit }}</span></p>
+    <p class="sk-sub">{{ v.sub }}</p>
+    {{ v.chart }}
+  </div>
+  {% else %}
+  <p class="sk-sub">Noch keine Schritte oder Trainings in diesem Zeitraum. Sobald eine Uhr oder das iPhone Werte liefert, wächst hier die Skyline.</p>
+  {% endfor %}
+</section>

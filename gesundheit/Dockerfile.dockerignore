@@ -1,0 +1,19 @@
+# Used by docker build for gesundheit/Dockerfile (context: repository root).
+.git
+.github
+.env
+**/.env
+data
+gesundheit/data
+gesundheit/import
+dist
+docs
+design-kit
+tests
+gesundheit/tests
+gesundheit/tools
+tools
+*.md
+**/__pycache__
+**/*.pyc
+.upload

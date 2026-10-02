@@ -1,0 +1,11 @@
+{# Value picker for analyses: select grouped by area, sends itself on change (gesundheit.js). #}
+{% macro wert_auswahl(name, groups, selected, label, id) -%}
+<label class="wahl-label" for="{{ id }}">{{ label }}</label>
+<select id="{{ id }}" name="{{ name }}">
+  {% for group, keys in groups %}
+  <optgroup label="{{ group }}">
+    {% for k in keys %}<option value="{{ k }}"{% if k == selected %} selected{% endif %}>{{ KEYS[k].label }}</option>{% endfor %}
+  </optgroup>
+  {% endfor %}
+</select>
+{%- endmacro %}

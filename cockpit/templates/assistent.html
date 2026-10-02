@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Frag das Cockpit{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="sub"><a href="{{ url_for('main.dashboard') }}">← Start</a></p>
+    <h1>Frag das Cockpit</h1>
+  </div>
+</div>
+<section class="card orb-seite">
+  <form class="orb-eingabe" method="get" action="{{ url_for('main.assistant') }}">
+    <label class="sr-only" for="frage">Frage</label>
+    <input id="frage" type="text" name="frage" maxlength="200" value="{{ question }}" placeholder="Frag etwas …">
+    <button type="submit" aria-label="Fragen">→</button>
+  </form>
+  {% if question %}<p class="orb-ich">{{ question }}</p>{% endif %}
+  <div class="orb-antwort">
+    {% for text in result.absaetze %}<p>{{ text }}</p>{% endfor %}
+    {% if result.links %}
+    <ul class="orb-links">
+      {% for link in result.links %}<li><a href="{{ link.url }}">{{ link.text }}</a>{% if link.info %} <span>{{ link.info }}</span>{% endif %}</li>{% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

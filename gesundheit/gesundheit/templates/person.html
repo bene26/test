@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, icon %}
+{% block title %}{{ p.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="person-titel">
+    <span class="avatar gross p-{{ p.color }}" aria-hidden="true">{{ p.name|kuerzel }}</span>
+    <div><p class="eyebrow"><a href="{{ url_for('personen.index') }}">Personen</a></p><h1>{{ p.name }}</h1>{% if age %}<p class="sub">{{ age }} Jahre</p>{% endif %}</div>
+  </div>
+</div>
+
+<form method="post" class="person-form">
+  {{ csrf() }}
+  <div class="columns-even">
+    <section class="card">
+      <h2>Profil</h2>
+      <div class="form-grid">
+        <div class="field"><label for="p-name">Name</label><input id="p-name" type="text" name="name" required maxlength="40" value="{{ p.name }}"></div>
+        <div class="field"><label for="p-jahr">Geburtsjahr (optional)</label><input id="p-jahr" type="number" name="birth_year" min="{{ today.year - 120 }}" max="{{ today.year }}" value="{{ p.birth_year or '' }}"></div>
+        <div class="field"><label for="p-groesse">Größe in cm (optional)</label><input id="p-groesse" type="number" name="height_cm" min="50" max="250" value="{{ p.height_cm or '' }}"><small class="muted">Für den BMI. Leer lassen, wenn die Waage die Größe kennt.</small></div>
+      </div>
+      <fieldset class="farben">
+        <legend>Farbe für Vergleiche</legend>
+        {% for key, (label, _hex) in colors.items() %}
+        <label class="farbe"><input type="radio" name="color" value="{{ key }}"{% if key == p.color %} checked{% endif %}><span class="farb-punkt p-{{ key }}"></span><span class="sr-only">{{ label }}</span></label>
+        {% endfor %}
+      </fieldset>
+    </section>
+    <section class="card">
+      <h2>Ziele</h2>
+      <div class="form-grid">
+        <div class="field"><label for="z-schritte">Schritte am Tag</label><input id="z-schritte" type="number" name="goal_steps" min="500" max="100000" step="500" value="{{ p.goal_steps }}" required></div>
+        <div class="field"><label for="z-minuten">Aktive Minuten am Tag</label><input id="z-minuten" type="number" name="goal_active_min" min="5" max="600" value="{{ p.goal_active_min }}" required></div>
+        <div class="field"><label for="z-kcal">Aktivkalorien am Tag</label><input id="z-kcal" type="number" name="goal_active_kcal" min="50" max="5000" step="10" value="{{ p.goal_active_kcal }}" required></div>
+        <div class="field"><label for="z-schlaf">Schlaf (Stunden)</label><input id="z-schlaf" type="text" name="goal_sleep_h" inputmode="decimal" maxlength="5" value="{{ (p.goal_sleep_min / 60)|zahl(1) }}" required></div>
+        <div class="field"><label for="z-training">Trainings pro Woche</label><input id="z-training" type="number" name="goal_workouts" min="0" max="21" value="{{ p.goal_workouts }}" required></div>
+        <div class="field"><label for="z-gewicht">Zielgewicht in kg (optional)</label><input id="z-gewicht" type="text" name="goal_weight" inputmode="decimal" maxlength="6" value="{{ (p.goal_weight_dg / 10)|zahl(1) if p.goal_weight_dg else '' }}"></div>
+        <div class="field"><label for="z-datum">Bis wann (optional)</label><input id="z-datum" type="date" name="goal_weight_date" value="{{ p.goal_weight_date or '' }}"></div>
+      </div>
+      <p class="small muted">Die Ziele steuern die Ringe, die Ziellinien und den Vergleich nach Zielerreichung. Mit Zielgewicht und Datum rechnet die Übersicht aus, wie wahrscheinlich das Ziel bis dahin erreicht wird. Damit ist der Vergleich fair: jede Person wird an ihren eigenen Zielen gemessen. Die WHO empfiehlt Erwachsenen 150 bis 300 Minuten Bewegung pro Woche, Kindern und Jugendlichen 60 Minuten am Tag.</p>
+    </section>
+  </div>
+  <p><button class="btn btn-primary" type="submit">Speichern</button> <a class="btn" href="{{ url_for('personen.index') }}">Zurück</a></p>
+</form>
+
+{% if persons|length > 1 %}
+<section class="card gefahr">
+  <h2>{{ p.name }} löschen</h2>
+  <p>Löscht das Profil und alle Werte, Verbindungen und Importe dieser Person sofort und endgültig.</p>
+  <form method="post" action="{{ url_for('personen.delete', person_id=p.id) }}" class="inline-form">
+    {{ csrf() }}
+    <div class="field"><label for="d-name">Zur Bestätigung <strong>{{ p.name }}</strong> eintippen</label><input id="d-name" name="bestaetigung" required maxlength="40" autocomplete="off"></div>
+    <button class="btn btn-danger" type="submit">{{ icon('trash') }} Person löschen</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

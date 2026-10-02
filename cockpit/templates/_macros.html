@@ -1,0 +1,204 @@
+{% macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endmacro %}
+
+{% macro assignee_select(name, groups, selected='', empty='— niemand —', id=None, form=None) %}
+<select name="{{ name }}"{% if id %} id="{{ id }}"{% endif %}{% if form %} form="{{ form }}"{% endif %}>
+  <option value="">{{ empty }}</option>
+  {% for group, options in groups %}
+  <optgroup label="{{ group }}">
+    {% for value, label in options %}
+    <option value="{{ value }}"{% if value == selected %} selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </optgroup>
+  {% endfor %}
+</select>
+{% endmacro %}
+
+{% macro project_select(name, projects, selected=None, empty='— kein Projekt —', id=None, form=None) %}
+<select name="{{ name }}"{% if id %} id="{{ id }}"{% endif %}{% if form %} form="{{ form }}"{% endif %}>
+  <option value="">{{ empty }}</option>
+  {% for value, label in projects %}
+  <option value="{{ value }}"{% if value == selected %} selected{% endif %}>{{ label }}</option>
+  {% endfor %}
+</select>
+{% endmacro %}
+
+{% macro due(task) -%}
+{%- if task.due_date -%}
+<span class="{{ 'overdue' if task.overdue else 'today-due' if task.due_today else '' }}">{{ task.due_date|datum_wt }}</span>
+{%- else -%}<span class="muted">—</span>{%- endif -%}
+{%- endmacro %}
+
+{% macro quick_add(assignees, projects, next_url, project_id=None, assignee='') %}
+<form method="post" action="{{ url_for('tasks.create') }}" class="inline-form">
+  {{ csrf() }}
+  <input type="hidden" name="next" value="{{ next_url }}">
+  <div class="field grow">
+    <label for="qa-title">Neue Aufgabe</label>
+    <input id="qa-title" type="text" name="title" required maxlength="200" placeholder="Was ist zu tun?">
+  </div>
+  <div class="field">
+    <label for="qa-project">Projekt</label>
+    {{ project_select('project_id', projects, project_id, id='qa-project') }}
+  </div>
+  <div class="field">
+    <label for="qa-assignee">Zuständig</label>
+    {{ assignee_select('assignee', assignees, assignee, id='qa-assignee') }}
+  </div>
+  <div class="field date">
+    <label for="qa-due">Fällig</label>
+    <input id="qa-due" type="date" name="due_date">
+  </div>
+  <div class="field narrow">
+    <label for="qa-effort">Aufwand (h)</label>
+    <input id="qa-effort" type="number" name="effort_hours" min="0" max="10000" step="0.5" inputmode="decimal">
+  </div>
+  <button class="btn btn-primary" type="submit">Anlegen</button>
+</form>
+{% endmacro %}
+
+{% macro task_table(tasks, next_url, show_project=True, show_assignee=True, selectable=False, empty='Keine Aufgaben.') %}
+{% if tasks %}
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr>
+      {% if selectable %}<th class="cell-select"><input type="checkbox" data-select-all="bulk" aria-label="Alle auswählen"></th>{% endif %}
+      <th>Nr.</th>
+      <th>Aufgabe</th>
+      {% if show_project %}<th class="hide-mobile">Projekt</th>{% endif %}
+      {% if show_assignee %}<th>Zuständig</th>{% endif %}
+      <th>Fällig</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for t in tasks %}
+    <tr class="{{ '' if t.is_open else 'done' }}">
+      {% if selectable %}<td class="cell-select"><input type="checkbox" name="ids" value="{{ t.id }}" form="bulk" aria-label="Aufgabe {{ t.id }} auswählen"></td>{% endif %}
+      <td class="muted nowrap">#{{ t.id }}</td>
+      <td>
+        <a href="{{ url_for('tasks.edit', task_id=t.id, next=next_url) }}">{{ t.title }}</a>
+        {% if t.priority == 1 %} <span class="badge red">Hoch</span>{% endif %}
+        {% if t.status == 'wartet' and t.waiting_for %}<div class="small muted">wartet auf: {{ t.waiting_for }}</div>{% endif %}
+      </td>
+      {% if show_project %}<td class="hide-mobile">{{ t.project_code or t.project_name or '' }}</td>{% endif %}
+      {% if show_assignee %}<td>{{ t.assignee or '—' }}</td>{% endif %}
+      <td class="nowrap">{{ due(t) }}</td>
+      <td>
+        <select class="status-select" name="status" form="st-{{ t.id }}" data-autosubmit aria-label="Status von #{{ t.id }}">
+          {% for value, label in TASK_STATUS.items() %}
+          <option value="{{ value }}"{% if value == t.status %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% for t in tasks %}
+<form id="st-{{ t.id }}" method="post" action="{{ url_for('tasks.set_status', task_id=t.id) }}" hidden>
+  {{ csrf() }}<input type="hidden" name="next" value="{{ next_url }}">
+  <noscript><button type="submit">Status speichern</button></noscript>
+</form>
+{% endfor %}
+{% else %}
+<p class="empty">{{ empty }}</p>
+{% endif %}
+{% endmacro %}
+
+{% macro meeting_list(meetings, empty='Keine Meetings.', show_protocol=True) %}
+{% if meetings %}
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Wann</th><th>Meeting</th><th class="hide-mobile">Projekt / Firma</th>{% if show_protocol %}<th>Protokoll</th>{% endif %}</tr></thead>
+  <tbody>
+  {% for m in meetings %}
+    <tr>
+      <td class="nowrap">{{ m.starts_at|zeitpunkt }}</td>
+      <td><a href="{{ url_for('meetings.detail', meeting_id=m.id) }}">{{ m.title }}</a></td>
+      <td class="hide-mobile">{{ [m.project_name, m.firm_name]|select|join(' · ') }}</td>
+      {% if show_protocol %}<td>{% if m.protocol_status == 'abgeschlossen' %}<span class="badge green">V{{ m.version }}</span>{% else %}<span class="badge">offen</span>{% endif %}</td>{% endif %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p class="empty">{{ empty }}</p>
+{% endif %}
+{% endmacro %}
+
+{% macro data_table(table) %}
+{% if table.rows %}
+<div class="table-wrap">
+<table>
+  <thead><tr>{% for c in table.columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+  <tbody>
+  {% for row in table.rows %}
+    {% set task_id = table.task_ids[loop.index0] if table.task_ids else None %}
+    <tr>
+    {% for cell in row %}
+      {% if loop.first and task_id %}
+      <td class="nowrap"><a href="{{ url_for('tasks.edit', task_id=task_id) }}">{{ cell }}</a></td>
+      {% else %}
+      <td>{{ cell }}</td>
+      {% endif %}
+    {% endfor %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p class="empty">{{ table.empty }}</p>
+{% endif %}
+{% endmacro %}
+
+{# Horizontal usage bar. level: ok, voll or ueber. #}
+{% macro bar(percent, level='ok', label='') -%}
+<progress class="bar bar-{{ level }}" max="100" value="{{ [percent or 0, 100]|min|round(1) }}"{% if label %} aria-label="{{ label }}"{% endif %}>{{ (percent or 0)|round|int }} %</progress>
+{%- endmacro %}
+
+{# One span per character so the Violett design can draw split-flap tiles. #}
+{# Strength line and rules for the key and lock (komponenten.js, [data-schluessel]).
+   Only 12 characters are required; the other rules make the password stronger. #}
+{% macro password_rules(id) -%}
+<p class="schluessel-staerke" id="{{ id }}" data-staerke aria-live="polite">Stärke: 0 von 5</p>
+<ul class="schluessel-regeln" aria-label="Regeln für ein starkes Passwort">
+  <li data-regel="laenge">12+ Zeichen (Pflicht)</li><li data-regel="mix">Groß und klein</li>
+  <li data-regel="zahl">Eine Zahl</li><li data-regel="zeichen">Ein Sonderzeichen</li>
+  <li data-regel="lang">16+ Zeichen</li>
+</ul>
+{%- endmacro %}
+
+{% macro digits(value) -%}
+{%- for ch in value|string %}<span class="digit">{{ ch }}</span>{% endfor -%}
+{%- endmacro %}
+
+{# Line icons for the navigation (24px grid, drawn with currentColor). #}
+{% set ICON_PATHS = {
+  'start': 'M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z',
+  'tasks': 'M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2',
+  'meetings': 'M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z',
+  'projects': 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
+  'schedule': 'M4 6h9M8 12h10M6 18h8M19 4l2 2-2 2-2-2z',
+  'times': 'M12 8v4l3 2M21 13a9 9 0 1 1-18 0 9 9 0 0 1 18 0M9 2h6',
+  'reports': 'M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8M8 17h5',
+  'team': 'M16 20v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 20v-1a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8',
+  'workload': 'M4 20V10M10 20V4M16 20v-7M22 20H2',
+  'settings': 'M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4',
+  'logout': 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
+  'search': 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-4.35-4.35',
+  'chevron': 'M15 6l-6 6 6 6',
+  'eye': 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6',
+  'mail': 'M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM3 7l9 6 9-6',
+  'lock': 'M6 11h12v10H6zM8 11V8a4 4 0 0 1 8 0v3',
+  'user': 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0',
+  'key': 'M15 7a4 4 0 1 1-3.9 4.9L3 20v-3h3v-3h3l2.1-2.1A4 4 0 0 1 15 7zM16 9h.01',
+  'arrow': 'M5 12h14M13 6l6 6-6 6',
+  'send': 'M22 2L11 13M22 2l-7 20-4-9-9-4z',
+} %}
+{% macro icon(name) -%}
+<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ ICON_PATHS[name] }}"/></svg>
+{%- endmacro %}

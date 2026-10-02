@@ -1,0 +1,103 @@
+{% from "_macros.html" import icon -%}
+<!doctype html>
+<html lang="de"{% for name, value in html_attrs %} {{ name }}="{{ value }}"{% endfor %}>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block title %}Übersicht{% endblock %} · {{ app_name }}</title>
+  <link rel="icon" href="{{ url_for('static', filename='icon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('shared.static', filename='app.css') }}?v={{ app_version }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='gesundheit.css') }}?v={{ app_version }}">
+  <script src="{{ url_for('shared.static', filename='app.js') }}?v={{ app_version }}" defer></script>
+  <script src="{{ url_for('shared.static', filename='komponenten.js') }}?v={{ app_version }}" defer></script>
+  <script src="{{ url_for('static', filename='gesundheit.js') }}?v={{ app_version }}" defer></script>
+</head>
+<body class="gesundheit {% block body_class %}{% endblock %}">
+<div class="shell{% if current_user and person %} with-nav{% endif %}">
+{% if current_user and person %}
+{% set nav_errors = nav_status() %}
+{% set nav_hints = nav_findings() if person else 0 %}
+<header class="sidenav">
+  <div class="nav-top">
+    <a class="brand" href="{{ url_for('main.index') }}"><span class="logo" aria-hidden="true"></span><span class="nav-label">{{ app_name }}</span></a>
+    <button class="nav-toggle" type="button" data-nav-toggle aria-controls="hauptmenue" title="Seitenleiste ein- oder ausklappen">{{ icon('chevron') }}<span class="sr-only">Seitenleiste ein- oder ausklappen</span></button>
+  </div>
+  <details class="person-wahl">
+    <summary class="nav-profile" title="Person wechseln">
+      <span class="avatar p-{{ person.color }}" aria-hidden="true">{{ person.name|kuerzel }}</span>
+      <span class="nav-label"><strong>{{ person.name }}</strong><small>{{ 'Person wechseln' if persons|length > 1 else 'Personen verwalten' }}</small></span>
+      {{ icon('switch') }}
+    </summary>
+    <div class="person-menue" role="menu">
+      {% for p in persons %}
+      <form method="post" action="{{ url_for('personen.show', person_id=p.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ request.full_path if request.method == 'GET' else url_for('main.index') }}">
+        <button type="submit" role="menuitem"{% if p.id == person.id %} aria-current="true"{% endif %}><span class="avatar klein p-{{ p.color }}" aria-hidden="true">{{ p.name|kuerzel }}</span>{{ p.name }}{% if p.id == person.id %}{{ icon('check') }}{% endif %}</button>
+      </form>
+      {% endfor %}
+      <a href="{{ url_for('personen.index') }}" role="menuitem">{{ icon('users') }} Personen verwalten</a>
+    </div>
+  </details>
+  <div class="nav-search" role="search">
+    {{ icon('search') }}
+    <button class="nav-search-open" type="button" data-kartei-oeffnen>Suchen oder springen …</button>
+    <button class="nav-kbd" type="button" data-kartei-oeffnen data-kartei-taste title="Suchen oder springen (Karteikasten)">Strg K</button>
+  </div>
+  <nav id="hauptmenue" aria-label="Hauptnavigation">
+    {% for section, items in [
+        ('Heute', [
+          ('main.index', 'Übersicht', 'start', ('main.index', 'main.history'), 0, ''),
+          ('befunde.index', 'Befunde', 'bulb', ('befunde',), nav_hints, 'Hinweise'),
+          ('ausblick.index', 'Ausblick', 'trend', ('ausblick',), 0, '')]),
+        ('Bereiche', [
+          ('bereiche.koerper', 'Körper', 'body', ('bereiche.koerper',), 0, ''),
+          ('bereiche.herz', 'Herz & Kreislauf', 'heart', ('bereiche.herz',), 0, ''),
+          ('bereiche.schlaf', 'Schlaf', 'moon', ('bereiche.schlaf',), 0, ''),
+          ('bereiche.aktivitaet', 'Aktivität', 'activity', ('bereiche.aktivitaet',), 0, '')]),
+        ('Auswertung', [
+          ('auswertungen.index', 'Auswertungen', 'chart', ('auswertungen.index',), 0, ''),
+          ('auswertungen.zusammenhaenge', 'Zusammenhänge', 'scatter', ('auswertungen.zusammenhaenge',), 0, ''),
+          ('vergleich.index', 'Vergleich', 'users', ('vergleich',), 0, ''),
+          ('berichte.index', 'Berichte', 'report', ('berichte',), 0, '')]),
+        ('Allgemein', [
+          ('personen.index', 'Personen', 'user', ('personen',), 0, ''),
+          ('quellen.index', 'Quellen', 'sources', ('quellen',), nav_errors, 'Verbindungen mit Fehler'),
+          ('messungen.index', 'Messungen eintragen', 'upload', ('messungen',), 0, ''),
+          ('daten.index', 'Daten', 'data', ('daten',), 0, ''),
+          ('einstellungen.index', 'Einstellungen', 'settings', ('einstellungen',), 0, '')])] %}
+    <span class="nav-section" aria-hidden="true">{{ section }}</span>
+    {% for endpoint, label, icon_name, active, badge, badge_label in items %}
+    <a href="{{ url_for(endpoint) }}" title="{{ label }}"{% if request.endpoint in active or (request.blueprint in active and request.blueprint != 'main') %} aria-current="page"{% endif %}>{{ icon(icon_name) }}<span class="nav-label">{{ label }}</span>{% if badge %}<span class="nav-badge"><span class="sr-only">: </span>{{ badge }}<span class="sr-only"> {{ badge_label }}</span></span>{% endif %}</a>
+    {% endfor %}
+    {% endfor %}
+  </nav>
+  {% set ds = data_state() %}
+  {% if ds %}
+  <a class="nav-datenstand{{ ' frisch' if ds.fresh }}" href="{{ url_for('quellen.index') }}">
+    <span class="nd-punkt" aria-hidden="true"></span>
+    <span class="nd-text"><strong>{{ ds.title }}</strong><small>{{ ds.text }}</small></span>
+  </a>
+  {% endif %}
+  <form class="logout" method="post" action="{{ url_for('auth.logout') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" title="Abmelden">{{ icon('logout') }}<span class="nav-label">Abmelden</span></button>
+  </form>
+</header>
+{% endif %}
+<main>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <ul class="flash" role="status">
+    {% for category, message in messages %}<li class="{{ category }}">{{ message }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+</div>
+{% if current_user and person %}{% include "_kartei.html" %}{% endif %}
+</body>
+</html>

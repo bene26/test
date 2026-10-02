@@ -1,0 +1,67 @@
+# Sicherheit: Projekt-Cockpit
+
+Kurzes Bedrohungsmodell. Bei jeder neuen Datenart oder Rolle überarbeiten.
+
+## Nutzer und Rollen
+
+- **Stufe 1:** genau ein Konto (Projektleitung), das alles darf.
+- Später geplant: Teammitglieder, Management, externe Firmen (Firmenportal). Dann dieses Dokument neu durchgehen.
+
+## Gespeicherte Daten
+
+| Daten | personenbezogen? | Hinweis |
+|---|---|---|
+| Namen, Rollen, Wochenstunden interner Personen | ja | nur, was für die Planung nötig ist |
+| Firmen, Ansprechpartner mit E-Mail | ja (Ansprechpartner) | |
+| Aufgaben, Aufwände, Fälligkeiten | teilweise | Zuordnung zu Personen |
+| Meeting-Protokolle, Teilnehmende, Entscheidungen | ja | können Vertragsinhalte und Preise enthalten |
+| Passwort-Hash, Sitzungen | ja | Passwort nur als scrypt-Hash, Sitzungs-Token nur als SHA-256-Hash |
+
+**Bewusst nicht gespeichert:** Gründe für Abwesenheiten (Krankheit), Gehälter, Leistungsbewertungen einzelner Personen.
+
+## Vertrauensgrenzen
+
+- **Browser ↔ App:** Der Browser ist nicht vertrauenswürdig. Jede Prüfung (Login, Rechte, Eingaben) passiert auf dem Server.
+- **App ↔ SQLite:** nur parametrisierte Abfragen.
+- **App → ntfy / Mailserver:** Benachrichtigungen enthalten nur Zahlen und einen Link, keine Aufgabentitel, Namen oder Protokollinhalte. Protokolle per E-Mail gehen nur an die Adressen, die im Meeting eingetragen sind.
+- **NAS ↔ Internet:** Die App ist für LAN oder VPN gedacht, nicht zum direkten Freigeben ins Internet.
+
+## Was ein Angreifer wollen würde
+
+1. Protokolle mit Vertragsinhalten, Preisen und Entscheidungen
+2. Kontaktdaten externer Personen und Auslastung der eigenen Leute
+3. Unbemerkt Entscheidungen oder versendete Protokolle ändern
+
+## Schlimmster realistischer Fall
+
+Die App wird per Portweiterleitung ins Internet gestellt, das Passwort erraten oder ein Backup-File gelangt nach außen, und alle Protokolle und Personendaten sind öffentlich.
+
+## Maßnahmen
+
+- Einrichtung nur mit Einrichtungscode aus dem Container-Log, damit niemand im LAN das Konto vorher anlegt
+- Passwort mindestens 12 Zeichen, gehasht mit scrypt (Werkzeug)
+- Login-Begrenzung: nach 5 Fehlversuchen pro IP 15 Minuten Sperre
+- serverseitige Sitzungen; Abmelden löscht die Sitzung in der Datenbank
+- Sitzungs-Cookie `HttpOnly`, `SameSite=Lax`, `Secure` bei HTTPS
+- Projektstunden (Tabelle `time_entries`) sind personenbezogen: nur Stunden je Person, Projekt und Tag, keine Kommentare, keine Abwesenheitsgründe. Sie dienen Plan/Ist je Projekt, nicht der Leistungs- oder Anwesenheitskontrolle. Mit Betriebsrat abstimmen (§ 87 Abs. 1 Nr. 6 BetrVG)
+- Leistungen externer Firmen mit Werk- oder Dienstvertrag werden nur je Bestellung erfasst, nie je Person (Arbeitnehmerüberlassungsgesetz)
+- Statusberichte per E-Mail gehen nur an Adressen, die beim Versand eingegeben werden (höchstens 20, geprüft)
+- Design-Cookies `pc_theme` und `pc_look` enthalten nur die gewählten Darstellungs-Optionen (für die Anmeldeseite), gleiche Cookie-Flags; `pc_nav` (Seitenleiste offen oder eingeklappt) setzt der Browser selbst. Der Server übernimmt aus allen dreien nur bekannte Werte aus einer festen Liste, alles andere wird ignoriert
+- Fehlerseiten zeigen keine technischen Einzelheiten (keine Fehlermeldungen aus dem Code, keine Pfade auf dem Server); die aufgerufene Adresse erscheint nur maskiert. Scheitert die Fehlerseite selbst, kommt ein schlichter Text
+- Schriften liegen im Container (`cockpit/static/fonts`), die Seite lädt nichts von fremden Servern; die CSP erlaubt nur `'self'`
+- Suche (`/suche.json`, Strg+K) und „Frag das Cockpit“ (`/assistent`) nur nach Anmeldung; feste SQL-Abfragen mit Parametern, Platzhalter `%` und `_` werden maskiert, Fragen auf 200 Zeichen gekürzt. Kein Sprachmodell und kein externer Dienst: Antworten entstehen aus festen Regeln und der eigenen Datenbank. Das Skript fügt Antworten nur als Text ein, nie als HTML
+- CSRF-Token auf jedem Formular und jeder POST-Anfrage
+- Eingaben werden je Formular gegen eine erlaubte Feldliste, Typen und Längen geprüft; unbekannte Felder werden abgelehnt
+- Sicherheits-Header: Content-Security-Policy ohne Inline-Skripte, `frame-ancestors 'none'`, `X-Content-Type-Options`, `Referrer-Policy`, HSTS bei HTTPS
+- keine Zugangsdaten im Code; SMTP- und ntfy-Zugänge nur über Umgebungsvariablen (`.env`, nicht im Git)
+- versendete Protokolle werden eingefroren; Korrekturen erzeugen eine neue Version
+- tägliche lokale Sicherungskopie der Datenbank (14 Tage); verschlüsselte Sicherung außerhalb des NAS über die Backup-Funktion von UGOS
+- Container läuft als Nicht-Root-Benutzer
+- Logs enthalten keine Passwörter, Tokens oder Inhalte
+
+## Vor jedem Update prüfen
+
+- Tests grün (`pytest`)
+- `pip-audit` ohne hohe oder kritische Befunde
+- keine Zugangsdaten im Repository oder im Image
+- Login, Abmelden und abgelaufene Sitzung ausprobiert

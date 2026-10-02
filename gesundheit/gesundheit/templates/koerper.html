@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% from "_macros.html" import digits, icon, kachel, quelle, zeitraum %}
+{% block title %}Körper{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Körper</h1><p class="sub">Gewicht und Zusammensetzung von der Waage, Umfänge vom Maßband und die Analyse in der Praxis.</p></div>
+  {{ zeitraum(days, periods, 'bereiche.koerper') }}
+</div>
+
+<div class="stats kacheln" data-fallblatt>
+  {% if weight_tile %}{{ kachel(weight_tile) }}{% endif %}
+  <div class="stat kachel">
+    <div class="label">BMI</div>
+    {% if bmi %}
+    <div class="kachel-wert"><span class="value">{{ digits(bmi|zahl(1)) }}</span></div>
+    <div class="kachel-fuss"><span class="stufe stufe-{{ bmi_category[0] }}">{{ bmi_category[1] }}</span> bei {{ height|zahl }} cm</div>
+    {% else %}
+    <div class="kachel-wert"><span class="value">–</span></div>
+    <div class="kachel-fuss">Größe unter <a href="{{ url_for('einstellungen.index') }}#ziele">Einstellungen</a> eintragen</div>
+    {% endif %}
+  </div>
+  <div class="stat kachel">
+    <div class="label">Gewicht im Zeitraum</div>
+    <div class="kachel-wert"><span class="value">{{ digits(weight.summary.min|zahl(1)) }}</span><span class="einheit">bis {{ weight.summary.max|zahl(1) }} kg</span></div>
+    <div class="kachel-fuss">{{ weight.summary.count }} Tage gewogen, Schnitt {{ weight.summary.avg|zahl(1) }} kg</div>
+  </div>
+</div>
+
+<section class="card">
+  <h2>Gewicht <a class="count" href="{{ url_for('main.history', metric='weight', zeitraum=days) }}">Verlauf</a></h2>
+  {{ weight.chart }}
+</section>
+
+{% if composition %}
+<h2 class="abschnitt">Zusammensetzung</h2>
+<div class="stats kacheln" data-fallblatt>
+  {% for t in composition %}{{ kachel(t) }}{% endfor %}
+</div>
+{% endif %}
+
+<div class="columns">
+  <section class="card">
+    <h2>Körperfett <a class="count" href="{{ url_for('main.history', metric='fat_ratio', zeitraum=days) }}">Verlauf</a></h2>
+    {{ fat.chart }}
+  </section>
+  <section class="card">
+    <h2>Wiegungen <span class="count">{{ weighings|length }}</span></h2>
+    {% if weighings %}
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Zeitpunkt</th><th class="num">kg</th><th class="num">Fett %</th><th class="num">Muskeln</th><th>Quelle</th></tr></thead>
+      <tbody>
+      {% for w in weighings %}
+      <tr><td>{{ w.measured_at|tag }}, {{ w.measured_at|uhrzeit }}</td><td class="num">{{ w['values'].weight|zahl(1) if w['values'].weight else '–' }}</td>
+        <td class="num">{{ w['values'].fat_ratio|zahl(1) if w['values'].fat_ratio else '–' }}</td>
+        <td class="num">{{ w['values'].muscle_mass|zahl(1) if w['values'].muscle_mass else '–' }}</td><td>{{ quelle(w.source) }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}<p class="muted">Keine Wiegungen in diesem Zeitraum.</p>{% endif %}
+  </section>
+</div>
+<h2 class="abschnitt" id="umfaenge">Umfänge <a class="count" href="{{ url_for('messungen.index') }}#massband">{{ icon('upload') }} eintragen</a></h2>
+{% if circumferences %}
+{% set c = circumferences %}
+<div class="umfang-raster">
+  {% if c.ratios.whtr %}
+  <section class="card umfang-whtr" aria-labelledby="whtr-titel">
+    <p class="fk-label" id="whtr-titel">Taille zu Größe</p>
+    <p class="fk-wert"><span>{{ c.ratios.whtr.value|zahl(2) }}</span> <small class="stufe stufe-whtr-{{ c.ratios.whtr.category[0] }}">{{ c.ratios.whtr.category[1] }}</small></p>
+    <p class="small muted">Taille geteilt durch {{ c.ratios.whtr.height|zahl }} cm Größe. Faustregel: die Taille unter der halben Körpergröße halten (unter 0,5). Gilt für Frauen und Männer, Orientierung, keine Diagnose.</p>
+    {% if c.ratios.whr %}<p class="small">Taille zu Hüfte: <strong>{{ c.ratios.whr.value|zahl(2) }}</strong></p>{% endif %}
+  </section>
+  {% endif %}
+  <div class="umfang-kacheln">
+    {% for t in c.tiles %}
+    <div class="umfang-kachel{% if t.change and t.good %} trend-{{ 'gut' if (t.change < 0) == (t.good == 'down') else 'schlecht' }}{% endif %}">
+      <span class="uk-label">{{ t.label }}</span>
+      <span class="uk-wert">{{ t.value|zahl(t.decimals) }}<small> cm</small></span>
+      <span class="uk-fuss">{% if t.change is not none %}<span class="delta">{{ t.change|delta(1) }}</span> seit {{ t.since|tag }}{% else %}{{ t.day|tag }}{% endif %}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% if c.chart %}
+<section class="card">
+  <h2>Taille, Bauch und Hüfte <span class="count">letzte 12 Monate</span></h2>
+  {{ c.chart }}
+</section>
+{% endif %}
+{% else %}
+<section class="card start-leer">
+  <p>Noch keine Umfänge. Mit dem Maßband messen und <a href="{{ url_for('messungen.index') }}#massband">eintragen</a>; den Taillenumfang bringt die Renpho-App auch über Apple Health mit.</p>
+</section>
+{% endif %}
+
+<h2 class="abschnitt" id="praxis">Analyse in der Praxis <a class="count" href="{{ url_for('messungen.index') }}#praxis">{{ icon('upload') }} eintragen</a></h2>
+{% if practice %}
+{% set pr = practice %}
+<div class="praxis-bereich">
+  <section class="card" aria-labelledby="praxis-tabelle-titel">
+    <h2 id="praxis-tabelle-titel">Messungen <span class="count">{{ pr.count }}</span></h2>
+    <div class="table-wrap">
+    <table class="praxis-tabelle">
+      <thead><tr><th>Wert</th>{% for d in pr.days %}<th class="num">{{ d|tag }}</th>{% endfor %}<th class="num">zuletzt</th></tr></thead>
+      <tbody>
+      {% for r in pr.rows %}
+      <tr><td>{{ r.label }}{% if r.unit %} <span class="muted">({{ r.unit }})</span>{% endif %}</td>
+        {% for v in r['values'] %}<td class="num">{{ v|zahl(r.decimals) if v is not none else '–' }}</td>{% endfor %}
+        <td class="num trend-{{ r.trend }}"><span class="delta">{{ r.change|delta(r.decimals) if r.change is not none else '' }}</span></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% if pr.phase %}<p class="small"><strong>Phasenwinkel {{ pr.phase|zahl(1) }}°:</strong> {{ pr.phase_note }}. Er beschreibt, wie viel gesunde Zellmasse die Messung erkennt, und hängt von Alter, Geschlecht und Gerät ab.</p>{% endif %}
+  </section>
+  <section class="card" aria-labelledby="vergleich-titel" data-vergleiche>
+    <h2 id="vergleich-titel">Zu Hause und in der Praxis</h2>
+    {% if pr.comparisons %}
+    {% set keys = pr.comparisons|map(attribute='key')|list %}
+    {% set chosen = request.args.get('vergleich') if request.args.get('vergleich') in keys else keys[0] %}
+    <div class="zeitraum vg-schalter" role="group" aria-label="Wert">
+      {% for cmp in pr.comparisons %}<a href="{{ url_for('bereiche.koerper', vergleich=cmp.key) }}#vergleich-titel" data-vergleich-zeige="{{ cmp.key }}" aria-pressed="{{ 'true' if cmp.key == chosen else 'false' }}"{% if cmp.key == chosen %} aria-current="true"{% endif %}>{{ cmp.label }}</a>{% endfor %}
+    </div>
+    {% for cmp in pr.comparisons %}
+    <div data-vergleich="{{ cmp.key }}"{% if cmp.key != chosen %} hidden{% endif %}>
+      {{ cmp.chart() }}
+      <p class="small">Zu Hause im Schnitt <strong>{{ cmp.mean|delta(cmp.decimals) }}{% if cmp.unit %} {{ 'Prozentpunkte' if cmp.unit == '%' else cmp.unit }}{% endif %}</strong> gegenüber der Praxis ({{ cmp.pairs|length }} {{ 'Vergleich' if cmp.pairs|length == 1 else 'Vergleiche' }}).{% if cmp.trend %} Seit {{ cmp.trend.since|tag }}: Praxis {{ cmp.trend.practice|delta(cmp.decimals) }}, zu Hause {{ cmp.trend.home|delta(cmp.decimals) }}{% if cmp.unit %} {{ cmp.unit }}{% endif %}, <strong>{{ 'beide in dieselbe Richtung' if cmp.trend.same else 'in verschiedene Richtungen' }}</strong>.{% endif %}{% if cmp.note %} {{ cmp.note }}{% endif %}</p>
+    </div>
+    {% endfor %}
+    <div class="table-wrap">
+    <table class="vg-tabelle">
+      <thead><tr><th>Wert</th><th class="num">Praxis</th><th class="num">zu Hause</th><th class="num">Abstand</th><th>seit dem ersten Termin</th></tr></thead>
+      <tbody>
+      {% for cmp in pr.comparisons %}
+      <tr><td>{{ cmp.label }}{% if cmp.unit %} <span class="muted">({{ cmp.unit }})</span>{% endif %}</td>
+        <td class="num">{{ cmp.last.practice|zahl(cmp.decimals) }}</td>
+        <td class="num" title="{{ cmp.last.home_day|tag }}, {{ cmp.last.source|quelle_kurz }}">{{ cmp.last.home|zahl(cmp.decimals) }}</td>
+        <td class="num">{{ cmp.last.diff|delta(cmp.decimals) }}</td>
+        <td>{% if cmp.trend %}<span class="vg-richtung {{ 'gleich' if cmp.trend.same else 'anders' }}">{{ icon('check') if cmp.trend.same else icon('warn') }} {{ 'gleiche Richtung' if cmp.trend.same else 'verschieden' }}</span>{% else %}<span class="muted">ab zwei Terminen</span>{% endif %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    <p class="small muted">Praxis: letzter Termin; zu Hause: die Messung, die am nächsten daran liegt (höchstens drei Tage). Waage und Praxisgerät messen beide über Strom, aber verschieden (Füße gegen Hand und Fuß, andere Formeln). Ein fester Abstand ist normal; wichtig ist, dass sich beide in dieselbe Richtung bewegen. Die Tagesreihen zeigen deshalb die Werte zu Hause; die Praxiswerte zählen nur an Tagen ohne Messung zu Hause. Phasenwinkel, Zellmasse und Wasserverteilung gibt es nur aus der Praxis.</p>
+    {% else %}
+    <p class="muted small">Für einen Vergleich braucht es eine Messung zu Hause höchstens drei Tage vor oder nach dem Praxistermin.</p>
+    {% endif %}
+  </section>
+</div>
+{% else %}
+<section class="card start-leer">
+  <p>Noch keine Analyse aus der Praxis. Die Werte vom Ausdruck der Ernährungsberatung (Phasenwinkel, Körperzellmasse, Wasser, Fett, Muskeln) lassen sich <a href="{{ url_for('messungen.index') }}#praxis">eintragen</a> oder als Tabelle übernehmen.</p>
+</section>
+{% endif %}
+
+<p class="small muted">Körperfett, Muskeln und Wasser misst die Waage über einen schwachen Strom (Bioimpedanz). Die Werte schwanken mit Tageszeit und Trinkmenge; am besten vergleichbar sind Messungen morgens nüchtern. BMI ist eine grobe Orientierung und unterscheidet nicht zwischen Muskeln und Fett.</p>
+{% endblock %}

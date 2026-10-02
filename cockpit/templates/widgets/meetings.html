@@ -1,0 +1,5 @@
+{% from "_macros.html" import meeting_list %}
+<h2>Meetings heute</h2>
+{{ meeting_list(meetings_today, empty='Heute keine Meetings.', show_protocol=False) }}
+<h3 class="small muted">Nächster Arbeitstag: {{ next_day|datum_wt }}</h3>
+{{ meeting_list(meetings_next, empty='Keine Meetings.', show_protocol=False) }}

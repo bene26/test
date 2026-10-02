@@ -1,0 +1,15 @@
+{% from "_macros.html" import csrf %}
+<h2>Routinen</h2>
+{% for r in routines %}
+<div class="routine">
+  <div class="head">
+    <h3>{{ r.label }} <span class="count">ca. {{ r.minutes }} Minuten</span></h3>
+    <form method="post" action="{{ url_for('main.routine_done', key=r.key, period=r.period) }}">
+      {{ csrf() }}<button class="btn btn-primary btn-small" type="submit">Erledigt</button>
+    </form>
+  </div>
+  <ul>{% for item in r.checklist %}<li>{{ item }}</li>{% endfor %}</ul>
+</div>
+{% else %}
+<p class="empty">Gerade ist keine Routine fällig. Der Baustein erscheint nur, wenn etwas ansteht.</p>
+{% endfor %}

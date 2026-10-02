@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, icon, quelle %}
+{% block title %}Messungen eintragen{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">{{ person.name }}</p>
+    <h1>Messungen eintragen</h1>
+    <p class="sub">Für Werte, die nicht von selbst kommen: das Maßband und die Körperanalyse in der Praxis. Den Taillenumfang bringt die Renpho-App auch über Apple Health mit; die anderen Umfänge kennt Apple Health nicht.</p>
+  </div>
+</div>
+
+{% macro feld(key) -%}
+{% set m = METRICS[key] %}
+<div class="field mf-feld"><label for="f-{{ key }}">{{ m.label }}{% if m.unit %} <span class="muted">({{ m.unit }})</span>{% endif %}</label><input id="f-{{ key }}" type="text" name="{{ key }}" inputmode="decimal" maxlength="9" autocomplete="off"></div>
+{%- endmacro %}
+
+{% macro zeitpunkt(kind) -%}
+<div class="mf-zeit">
+  <div class="field"><label for="{{ kind }}-datum">Datum</label><input id="{{ kind }}-datum" type="date" name="datum" value="{{ today }}" max="{{ today }}" required></div>
+  <div class="field"><label for="{{ kind }}-uhrzeit">Uhrzeit (optional)</label><input id="{{ kind }}-uhrzeit" type="time" name="uhrzeit"></div>
+</div>
+{%- endmacro %}
+
+<div class="mf-raster">
+  <section class="card" id="massband" aria-labelledby="massband-titel">
+    <h2 id="massband-titel">{{ icon('target') }} Maßband</h2>
+    <p class="small muted">{{ kinds.massband.hint }} Am besten morgens, nüchtern, an denselben Stellen, das Band anliegend, nicht einschnürend.</p>
+    <form method="post" action="{{ url_for('messungen.save', kind='massband') }}">{{ csrf() }}
+      {{ zeitpunkt('massband') }}
+      <p class="mf-gruppe">Rumpf</p>
+      <div class="mf-felder">{% for k in ['circ_neck', 'circ_shoulders', 'circ_chest', 'circ_waist', 'circ_belly', 'circ_hip'] %}{{ feld(k) }}{% endfor %}</div>
+      <p class="mf-gruppe">Arme und Beine</p>
+      <div class="mf-felder mf-paare">{% for k in ['circ_arm_l', 'circ_arm_r', 'circ_thigh_l', 'circ_thigh_r', 'circ_calf_l', 'circ_calf_r'] %}{{ feld(k) }}{% endfor %}</div>
+      <p class="small muted">Taille: an der schmalsten Stelle zwischen Rippen und Beckenkamm. Bauch: auf Höhe des Bauchnabels. Hüfte: an der breitesten Stelle des Gesäßes.</p>
+      <button class="btn btn-primary" type="submit">Umfänge speichern</button>
+    </form>
+  </section>
+
+  <section class="card" id="praxis" aria-labelledby="praxis-titel">
+    <h2 id="praxis-titel">{{ icon('activity') }} Körperanalyse in der Praxis</h2>
+    <p class="small muted">{{ kinds.praxis.hint }} Alles optional, nur was auf dem Ausdruck steht.</p>
+    <form method="post" action="{{ url_for('messungen.save', kind='praxis') }}">{{ csrf() }}
+      {{ zeitpunkt('praxis') }}
+      <p class="mf-gruppe">Zusammensetzung</p>
+      <div class="mf-felder">{% for k in ['weight', 'fat_ratio', 'fat_mass', 'fat_free_mass', 'muscle_mass', 'visceral_fat', 'bmr'] %}{{ feld(k) }}{% endfor %}</div>
+      <p class="mf-gruppe">Wasser</p>
+      <div class="mf-felder">{% for k in ['hydration', 'ecw', 'icw'] %}{{ feld(k) }}{% endfor %}</div>
+      <p class="mf-gruppe">Zellen</p>
+      <div class="mf-felder">{% for k in ['phase_angle', 'bcm', 'ecm', 'ecm_bcm', 'cell_share'] %}{{ feld(k) }}{% endfor %}</div>
+      <p class="mf-gruppe">Messwerte des Geräts</p>
+      <div class="mf-felder">{% for k in ['bia_r', 'bia_xc'] %}{{ feld(k) }}{% endfor %}</div>
+      <button class="btn btn-primary" type="submit">Analyse speichern</button>
+    </form>
+  </section>
+</div>
+
+<div class="columns-even">
+  <section class="card" id="import" aria-labelledby="import-titel">
+    <h2 id="import-titel">{{ icon('upload') }} Aus einer Tabelle übernehmen</h2>
+    <p class="small">Für ältere Werte, zum Beispiel alle Termine der Ernährungsberatung oder eine Liste aus der Renpho-App: eine CSV-Datei mit einer Spalte <strong>Datum</strong> und Spalten wie <em>Taille, Hüfte, Hals</em> oder <em>Phasenwinkel, Körperzellmasse</em>. Einheiten in Klammern und Komma oder Punkt sind egal.</p>
+    <p class="small">Vorlagen: <a href="{{ url_for('messungen.template', kind='massband') }}">{{ icon('download') }} Maßband</a> · <a href="{{ url_for('messungen.template', kind='praxis') }}">{{ icon('download') }} Praxis</a></p>
+    <form method="post" action="{{ url_for('messungen.upload') }}" enctype="multipart/form-data">{{ csrf() }}
+      <div class="field"><label for="imp-art">Art</label>
+        <select id="imp-art" name="art">{% for key, k in kinds.items() %}<option value="{{ key }}">{{ k.label }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="imp-datei">CSV-Datei (höchstens 1 MB)</label><input id="imp-datei" type="file" name="datei" accept=".csv,text/csv,text/plain" required></div>
+      <button class="btn" type="submit">{{ icon('upload') }} Übernehmen</button>
+    </form>
+  </section>
+
+  <section class="card" id="eintraege" aria-labelledby="eintraege-titel">
+    <h2 id="eintraege-titel">Eingetragen <a class="count" href="{{ url_for('bereiche.koerper') }}#umfaenge">auf der Körper-Seite ansehen</a></h2>
+    {% if entries %}
+    <ul class="plain-list mf-liste">
+      {% for e in entries %}
+      <li>
+        <div>
+          <p class="mf-kopf">{{ quelle(e.source) }} <strong>{{ e.at|zeitpunkt }}</strong></p>
+          <p class="small muted">{% for metric, value in e['values'][:6] %}{{ METRICS[metric].label }} {{ value|zahl(METRICS[metric].decimals) }}{% if METRICS[metric].unit %} {{ METRICS[metric].unit }}{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}{% if e['values']|length > 6 %} · und {{ e['values']|length - 6 }} weitere{% endif %}</p>
+        </div>
+        <form method="post" action="{{ url_for('messungen.delete') }}" data-confirm="Diesen Eintrag mit {{ e['values']|length }} Werten löschen?">{{ csrf() }}
+          <input type="hidden" name="eintrag" value="{{ e.id }}">
+          <button class="btn btn-small" type="submit" title="Löschen">{{ icon('trash') }}<span class="sr-only">Löschen</span></button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">Noch nichts eingetragen.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

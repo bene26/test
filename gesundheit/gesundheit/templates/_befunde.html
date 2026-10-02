@@ -1,0 +1,85 @@
+{# Findings (befunde.py) and the form of the day (belastung.py) as cards. #}
+{% from "_macros.html" import csrf, icon %}
+
+{% macro kopf(f, label='Befund') -%}
+<p class="bf-kopf"><span class="bf-marke" aria-hidden="true">{{ icon('sparkle') }}</span><span class="bf-pille">{{ label }}</span><span class="bf-basis">{{ f.pill }} · {{ f.basis }}</span></p>
+{%- endmacro %}
+
+{# The big card ("The Reveal"): headline with the point in the accent colour, three numbers,
+   the calculation behind a disclosure and the chart. #}
+{% macro gross(f, label='Wichtigster Befund', id='') -%}
+<article class="card befund-gross bf-{{ f.tone }}"{% if id %} id="{{ id }}"{% endif %} aria-label="{{ f.title }}">
+  <div class="bf-text">
+    {{ kopf(f, label) }}
+    <h2 class="bf-titel">{{ f.title_a }} <em>{{ f.title_b }}</em></h2>
+    <p class="bf-erklaerung">{{ f.text }}</p>
+    {% if f.stats %}
+    <dl class="bf-zahlen">
+      {% for value, label in f.stats %}<div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{% endfor %}
+    </dl>
+    {% endif %}
+    <details class="bf-rechenweg">
+      <summary>{{ icon('right') }} Rechenweg</summary>
+      <ol>{% for step in f.steps %}<li>{{ step }}</li>{% endfor %}</ol>
+      <p class="small muted">Gerechnet auf deinem NAS aus deinen gespeicherten Werten. Orientierung, keine Diagnose.</p>
+    </details>
+    <p class="bf-mehr"><a href="{{ url_for(f.link[0], **f.link[1]) }}">Werte ansehen {{ icon('right') }}</a></p>
+  </div>
+  {% if f.chart %}<div class="bf-grafik">{{ f.chart() }}</div>{% endif %}
+</article>
+{%- endmacro %}
+
+{# Small card for the grid below the big one. #}
+{% macro klein(f) -%}
+<a class="card befund-klein bf-{{ f.tone }}" href="{{ url_for('befunde.index') }}#{{ f.key }}">
+  <span class="bf-zeile"><span class="bf-pille">{{ f.pill }}</span><span class="bf-ton" aria-hidden="true"></span></span>
+  <span class="bf-gross">{{ f.big }}</span>
+  <span class="bf-kurz">{{ f.title_a }} <strong>{{ f.title_b }}</strong></span>
+</a>
+{%- endmacro %}
+
+{# Dark toast for findings the person has not seen yet; both buttons are POST forms and mark
+   all of them as seen. #}
+{% macro toast(items) -%}
+{% set f = items[0] %}
+<aside class="bf-toast" aria-label="Neuer Befund" data-toast>
+  <span class="bf-marke" aria-hidden="true">{{ icon('sparkle') }}</span>
+  <div class="bf-toast-text">
+    <strong>{{ 'Neuer Befund' if items|length == 1 else items|length ~ ' neue Befunde' }}</strong>
+    <span>{{ f.title_a }} {{ f.title_b }}{% if items|length > 1 %} <em>und {{ items|length - 1 }} {{ 'weiterer' if items|length == 2 else 'weitere' }}</em>{% endif %}</span>
+  </div>
+  <form method="post" action="{{ url_for('befunde.mark_seen') }}">{{ csrf() }}
+    {% for item in items %}<input type="hidden" name="key" value="{{ item.key }}">{% endfor %}
+    <input type="hidden" name="next" value="{{ url_for('befunde.index') }}#{{ f.key }}">
+    <button class="bf-toast-los" type="submit">Ansehen</button>
+  </form>
+  <form method="post" action="{{ url_for('befunde.mark_seen') }}">{{ csrf() }}
+    {% for item in items %}<input type="hidden" name="key" value="{{ item.key }}">{% endfor %}
+    <button class="bf-toast-zu" type="submit" title="Ausblenden">{{ icon('close') }}<span class="sr-only">Ausblenden</span></button>
+  </form>
+</aside>
+{%- endmacro %}
+
+{# Form of the day: fitness minus fatigue on a scale from strained to fresh. #}
+{% macro form_karte(form) -%}
+<section class="card form-karte" aria-labelledby="form-titel">
+  <p class="fk-label" id="form-titel">Form heute</p>
+  {% if form %}
+  <p class="fk-wert"><span>{{ form.form|delta(0) }}</span> <small>{{ form.label }}</small></p>
+  <svg class="fk-skala" viewBox="0 0 100 12" preserveAspectRatio="none" role="img" focusable="false" aria-label="Form {{ form.form }} auf einer Skala von belastet bis frisch">
+    <defs><linearGradient id="fk-verlauf" gradientUnits="userSpaceOnUse" x1="2" y1="0" x2="98" y2="0"><stop offset="0" class="fk-g1"/><stop offset="1" class="fk-g2"/></linearGradient></defs>
+    <path class="fk-spur" d="M2 6H98" stroke="url(#fk-verlauf)" vector-effect="non-scaling-stroke"/>
+    <path class="fk-punkt" d="M{{ '%.1f'|format(2 + form.position * 0.96) }} 6h0" vector-effect="non-scaling-stroke"/>
+  </svg>
+  <p class="fk-enden" aria-hidden="true"><span>belastet</span><span>frisch</span></p>
+  <dl class="fk-zahlen">
+    <div><dt>Fitness</dt><dd>{{ form.fitness }}</dd></div>
+    <div><dt>Ermüdung</dt><dd>{{ form.fatigue }}</dd></div>
+    <div><dt>7 Tage</dt><dd>{{ form.week_change|delta(0) }}</dd></div>
+  </dl>
+  <p class="fk-satz">{{ form.sentence }}</p>
+  {% else %}
+  <p class="fk-satz">Für die Form braucht das Cockpit Aktivität oder Trainings an mindestens drei Wochen der letzten sechs.</p>
+  {% endif %}
+</section>
+{%- endmacro %}

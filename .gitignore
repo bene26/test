@@ -1,0 +1,11 @@
+.env
+data/
+ntfy/
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+dist/
+gesundheit/data/
+gesundheit/import/
+gesundheit/.env

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block title %}Start{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ now|datum_wt }} · KW {{ week }}</h1>
+    <p class="sub">{% if now.hour < 11 %}Guten Morgen.{% elif now.hour < 17 %}Guten Tag.{% else %}Guten Abend.{% endif %} Das steht heute an.</p>
+  </div>
+  <div class="actions no-print">
+    {% if editing %}
+    <button class="btn btn-primary" type="submit" form="layout" name="done" value="1">Fertig</button>
+    <button class="btn" type="submit" form="layout" name="reset" value="1" data-confirm="Startseite auf den Standard zurücksetzen?">Standard</button>
+    <a class="btn" href="{{ url_for('main.dashboard') }}">Abbrechen</a>
+    {% else %}
+    <a class="btn" href="{{ url_for('main.dashboard', anpassen=1) }}">Startseite anpassen</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if editing %}
+<form id="layout" method="post" action="{{ url_for('main.save_layout') }}">{{ csrf() }}</form>
+<p class="note info">Bausteine mit der Maus an die gewünschte Stelle ziehen oder mit den Pfeilen verschieben. „Anzeigen“ blendet einen Baustein ein oder aus, „Breit“ nutzt die volle Breite. Gespeichert wird mit „Fertig“.</p>
+{% endif %}
+
+<div class="widgets{{ ' editing' if editing }}" data-widgets>
+{% for w in layout %}
+  {% set meta = widgets[w.k] %}
+  {% set empty_routines = w.k == 'routinen' and not routines %}
+  {% if editing or (w.v and not empty_routines) %}
+  <section class="card widget widget-{{ w.k }}{{ ' wide' if w.w }}{{ ' off' if not w.v }}{{ ' quick-add' if w.k == 'schnellerfassung' }}" id="w-{{ w.k }}" data-widget="{{ w.k }}" aria-label="{{ meta[0] }}">
+    {% if editing %}
+    <div class="widget-tools">
+      <span class="grip" aria-hidden="true">⠿</span>
+      <strong class="widget-name">{{ meta[0] }}</strong>
+      <input type="hidden" name="order" value="{{ w.k }}" form="layout">
+      <label class="check"><input type="checkbox" name="show" value="{{ w.k }}" form="layout" data-widget-show{% if w.v %} checked{% endif %}> anzeigen</label>
+      <label class="check"><input type="checkbox" name="wide" value="{{ w.k }}" form="layout" data-widget-wide{% if w.w %} checked{% endif %}> breit</label>
+      <span class="widget-move">
+        <button class="btn btn-small" type="submit" form="layout" name="move" value="{{ w.k }}:up" aria-label="{{ meta[0] }} nach vorne"{% if loop.first %} disabled{% endif %}>↑</button>
+        <button class="btn btn-small" type="submit" form="layout" name="move" value="{{ w.k }}:down" aria-label="{{ meta[0] }} nach hinten"{% if loop.last %} disabled{% endif %}>↓</button>
+      </span>
+    </div>
+    {% if w.v %}<div class="widget-body" inert>{% include "widgets/" ~ w.k ~ ".html" %}</div>
+    {% else %}<p class="small muted widget-desc">{{ meta[1] }}</p>{% endif %}
+    {% else %}
+    {% include "widgets/" ~ w.k ~ ".html" %}
+    {% endif %}
+  </section>
+  {% endif %}
+{% endfor %}
+</div>
+{% endblock %}

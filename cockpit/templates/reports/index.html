@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Berichte{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Berichte</h1>
+    <p class="sub">Statusberichte fürs Management, abgeschlossene Protokolle und Exporte für Excel.</p>
+  </div>
+</div>
+
+<div class="columns-even">
+  <section class="card">
+    <h2>Projektstatus</h2>
+    <p class="small muted">Ampel je Projekt (Termine, Kontingent, Aufgaben), Meilensteine, Entscheidungen, Stunden und Kontingente eines Monats. Zum Ansehen, Drucken, als PDF speichern oder per E-Mail senden.</p>
+    <form method="get" action="{{ url_for('reports.status') }}" class="inline-form">
+      <div class="field">
+        <label for="r-month">Monat</label>
+        <select id="r-month" name="monat">{% for value, label in months %}<option value="{{ value }}"{% if value == this_month %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+      </div>
+      <div class="field">
+        <label for="r-project">Projekt</label>
+        <select id="r-project" name="projekt"><option value="">Alle aktiven Projekte</option>{% for value, label in projects %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
+      </div>
+      <button class="btn btn-primary" type="submit">Bericht öffnen</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Exporte</h2>
+    <ul class="plain-list">
+      <li><a href="{{ url_for('tasks.export', status='all') }}">Alle Aufgaben</a> <span class="small muted">CSV für Excel</span></li>
+      <li><a href="{{ url_for('times.export', monat=this_month) }}">Projektstunden dieses Monats</a> <span class="small muted">CSV, ältere Monate über die Zeiten-Seite</span></li>
+      <li><a href="{{ url_for('reports.quotas_csv') }}">Bestellungen und Kontingente</a> <span class="small muted">CSV</span></li>
+      <li><a href="{{ url_for('settings.download_backup') }}">Komplette Datenbank</a> <span class="small muted">SQLite-Sicherung</span></li>
+    </ul>
+  </section>
+</div>
+
+<section class="card">
+  <h2>Protokolle <span class="count">{{ protocols|length }}</span></h2>
+  <form method="get" class="filters" action="{{ url_for('reports.index') }}">
+    <div class="field">
+      <label for="p-project">Projekt</label>
+      <select id="p-project" name="projekt" data-autosubmit><option value="">Alle</option>{% for value, label in projects %}<option value="{{ value }}"{% if value == project_id %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    </div>
+    <div class="field">
+      <label for="p-month">Monat</label>
+      <select id="p-month" name="monat" data-autosubmit><option value="">Alle</option>{% for value, label in months %}<option value="{{ value }}"{% if value == month %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    </div>
+    <noscript><button class="btn" type="submit">Filtern</button></noscript>
+  </form>
+  {% if protocols %}
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Datum</th><th>Meeting</th><th class="hide-mobile">Projekt / Firma</th><th>Version</th><th class="hide-mobile">Versendet an</th><th></th></tr></thead>
+    <tbody>
+    {% for m in protocols %}
+      <tr>
+        <td class="nowrap">{{ m.starts_at|datum }}</td>
+        <td><a href="{{ url_for('meetings.detail', meeting_id=m.id) }}">{{ m.title }}</a></td>
+        <td class="hide-mobile">{{ [m.project_name, m.firm_name]|select|join(' · ') }}</td>
+        <td><span class="badge green">V{{ m.version }}</span></td>
+        <td class="hide-mobile small">{{ m.sent_to or '–' }}</td>
+        <td class="nowrap"><a class="btn btn-small" href="{{ url_for('meetings.print_view', meeting_id=m.id) }}">Drucken / PDF</a></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="empty">Keine abgeschlossenen Protokolle{% if project_id or month %} für diese Auswahl{% endif %}.</p>
+  {% endif %}
+</section>
+{% endblock %}

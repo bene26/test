@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, icon, quelle %}
+{% block title %}Quellen{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Quellen</h1><p class="sub">Woher die Werte von <strong>{{ person.name }}</strong> kommen und welche Quelle zuerst zählt.</p></div>
+</div>
+
+<div class="quellen-raster">
+<section class="card quelle-karte" id="withings" aria-labelledby="w-titel">
+  <h2 id="w-titel"><span class="quelle-logo q-withings" aria-hidden="true">W</span> Withings
+    {% if withings.connected and not (withings.row and withings.row.last_error) %}<span class="badge green">verbunden</span>
+    {% elif withings.connected %}<span class="badge red">Fehler</span>
+    {% else %}<span class="badge">nicht verbunden</span>{% endif %}</h2>
+  <p class="small muted">Waage, Blutdruckmessgerät, Thermometer, Schlafmatte und ScanWatch über die offizielle Schnittstelle. Nur lesender Zugriff. Jede Person verbindet ihr eigenes Withings-Konto; die Withings-Anwendung trägst du nur einmal ein.</p>
+
+  {% if not withings.configured %}
+  <h3>1. Withings-Anwendung eintragen (einmal für alle)</h3>
+  <ol class="einrichtung">
+    <li>Bei <strong>developer.withings.com</strong> anmelden und eine Anwendung anlegen (<em>Public API integration</em>, kostenlos, Zweck „persönliche Nutzung“).</li>
+    <li>Als <em>Callback URL</em> genau diese Adresse eintragen:
+      <code class="kopierbar">{{ callback }}</code>
+      {% if not config.BASE_URL %}<span class="small muted">Tipp: Mit <code>GESUNDHEIT_BASE_URL</code> in der <code>.env</code> legst du die Adresse fest, unter der du die App öffnest.</span>{% endif %}</li>
+    <li>Client-ID und Secret hier eintragen.</li>
+  </ol>
+  {% else %}
+  <p class="eingerichtet">{{ icon('check') }} Withings-Anwendung eingerichtet <span class="small muted">(Client-ID {{ withings.client_id_hint }}{{ ', aus der .env' if withings.from_env }})</span></p>
+  {% endif %}
+  {% if not withings.from_env %}
+  <details class="trennen"{% if not withings.configured %} open{% endif %}>
+    <summary>{{ 'Zugang eintragen' if not withings.configured else 'Withings-Anwendung ändern' }}</summary>
+    <form method="post" action="{{ url_for('quellen.withings_credentials') }}" class="form-grid">
+      {{ csrf() }}
+      <div class="field"><label for="w-id">Client-ID</label><input id="w-id" type="text" name="client_id" required maxlength="200" autocomplete="off" spellcheck="false"></div>
+      <div class="field"><label for="w-secret">Client-Secret</label><input id="w-secret" name="client_secret" type="password" required maxlength="200" autocomplete="off"></div>
+      <div class="field wide-2"><button class="btn" type="submit">Speichern</button> <span class="small muted">Wird verschlüsselt gespeichert und nie wieder angezeigt.</span></div>
+    </form>
+    {% if withings.configured %}
+    <form method="post" action="{{ url_for('quellen.withings_credentials_delete') }}" data-confirm="Withings-Anwendung löschen? Dann gleicht keine Person mehr ab.">{{ csrf() }}<button class="btn btn-danger btn-small" type="submit">Anwendung löschen</button></form>
+    {% endif %}
+  </details>
+  {% endif %}
+
+  <h3>{{ '2. ' if not withings.configured }}Verbindung für {{ person.name }}</h3>
+  {% if withings.connected %}
+  <dl class="werte-liste">
+    {% if withings.row.account_label %}<dt>Konto</dt><dd>{{ withings.row.account_label }}</dd>{% endif %}
+    <dt>Verbunden seit</dt><dd>{{ withings.row.connected_at|zeitpunkt if withings.row.connected_at else '–' }}</dd>
+    <dt>Letzter Abgleich</dt><dd>{{ withings.row.last_sync|vor }}{% if withings.busy %} <span class="badge">läuft gerade</span>{% endif %}</dd>
+    {% if withings.row.last_error %}<dt>Problem</dt><dd class="fehlertext">{{ withings.row.last_error }}</dd>{% endif %}
+  </dl>
+  <div class="actions">
+    <form method="post" action="{{ url_for('quellen.withings_sync') }}">{{ csrf() }}<button class="btn btn-primary" type="submit"{% if withings.busy %} disabled{% endif %}>{{ icon('refresh') }} Jetzt abgleichen</button></form>
+    {% if withings.row.last_error %}<form method="post" action="{{ url_for('quellen.withings_connect') }}">{{ csrf() }}<button class="btn" type="submit">Neu verbinden</button></form>{% endif %}
+    <form method="post" action="{{ url_for('quellen.withings_disconnect') }}" data-confirm="Withings für {{ person.name }} trennen?">{{ csrf() }}<button class="btn" type="submit">Trennen</button></form>
+  </div>
+  {% else %}
+  <p class="small muted">Beim Verbinden meldet sich {{ person.name }} bei Withings mit dem eigenen Konto an. Nutzt ihr eine Waage gemeinsam, hat in der Withings-App jede Person ihr eigenes Profil.</p>
+  <form method="post" action="{{ url_for('quellen.withings_connect') }}">{{ csrf() }}
+    <button class="btn btn-primary" type="submit"{% if not withings.configured %} disabled{% endif %}>{{ icon('plug') }} {{ person.name }} mit Withings verbinden</button>
+  </form>
+  {% endif %}
+</section>
+
+<section class="card quelle-karte" id="garmin" aria-labelledby="g-titel">
+  <h2 id="g-titel"><span class="quelle-logo q-garmin" aria-hidden="true">G</span> Garmin direkt <span class="small muted">für {{ person.name }}</span>
+    {% if not garmin_state.enabled %}<span class="badge">aus</span>
+    {% elif garmin_state.connected and not (garmin_state.row and garmin_state.row.last_error) %}<span class="badge green">verbunden</span>
+    {% elif garmin_state.connected %}<span class="badge red">Fehler</span>
+    {% else %}<span class="badge">nicht verbunden</span>{% endif %}</h2>
+  <p class="small muted">Body Battery, Stress, nächtliche HRV, Trainingsbereitschaft, Schlaf und Aktivitäten direkt aus Garmin Connect. Schritte, Puls und Schlaf kommen auch ohne das über Apple Health, wenn die Connect-App dort schreibt.</p>
+  <div class="note warn">
+    <strong>Inoffiziell.</strong> Garmin bietet für Privatpersonen keine Schnittstelle an. Diese Verbindung meldet sich wie die Connect-App an. Sie kann jederzeit ausfallen, wenn Garmin etwas ändert, und verträgt sich womöglich nicht mit Garmins Nutzungsbedingungen. Das Passwort wird nicht gespeichert, nur die Anmelde-Token (verschlüsselt).
+  </div>
+  {% if not garmin_state.available %}
+  <p class="fehlertext">Die Bibliothek <code>garminconnect</code> ist in diesem Container nicht installiert.</p>
+  {% endif %}
+  <form method="post" action="{{ url_for('quellen.garmin_toggle') }}" class="garmin-schalter">
+    {{ csrf() }}
+    <label class="check"><input type="checkbox" name="aktiv"{% if garmin_state.enabled %} checked{% endif %}{% if not garmin_state.available %} disabled{% endif %}> Garmin direkt für {{ person.name }} verwenden</label>
+    <label class="inline-feld">Beim ersten Abgleich <input type="number" name="tage" min="1" max="365" value="{{ garmin_state.backfill }}"> Tage zurück</label>
+    <button class="btn" type="submit"{% if not garmin_state.available %} disabled{% endif %}>Speichern</button>
+  </form>
+  {% if garmin_state.enabled and garmin_state.available %}
+    {% if garmin_state.connected %}
+    <dl class="werte-liste">
+      <dt>Verbunden seit</dt><dd>{{ garmin_state.row.connected_at|zeitpunkt if garmin_state.row.connected_at else '–' }}</dd>
+      <dt>Letzter Abgleich</dt><dd>{{ garmin_state.row.last_sync|vor }}{% if garmin_state.busy %} <span class="badge">läuft gerade</span>{% endif %}</dd>
+      {% if garmin_state.row.last_error %}<dt>Problem</dt><dd class="fehlertext">{{ garmin_state.row.last_error }}</dd>{% endif %}
+    </dl>
+    <div class="actions">
+      <form method="post" action="{{ url_for('quellen.garmin_sync') }}">{{ csrf() }}<button class="btn btn-primary" type="submit"{% if garmin_state.busy %} disabled{% endif %}>{{ icon('refresh') }} Jetzt abgleichen</button></form>
+      <form method="post" action="{{ url_for('quellen.garmin_disconnect') }}" data-confirm="Garmin trennen?">{{ csrf() }}<button class="btn" type="submit">Trennen</button></form>
+    </div>
+    {% elif garmin_state.mfa %}
+    <form method="post" action="{{ url_for('quellen.garmin_code') }}" class="form-grid">
+      {{ csrf() }}
+      <div class="field"><label for="g-code">Code von Garmin</label><input id="g-code" name="code" inputmode="numeric" autocomplete="one-time-code" required maxlength="12" autofocus></div>
+      <div class="field check-field"><button class="btn btn-primary" type="submit">Bestätigen</button></div>
+    </form>
+    {% else %}
+    <form method="post" action="{{ url_for('quellen.garmin_login') }}" class="form-grid">
+      {{ csrf() }}
+      <div class="field"><label for="g-mail">E-Mail bei Garmin</label><input id="g-mail" name="email" type="email" required maxlength="254" autocomplete="username"></div>
+      <div class="field"><label for="g-pw">Passwort</label><input id="g-pw" name="password" type="password" required maxlength="200" autocomplete="current-password"></div>
+      <div class="field wide-2"><button class="btn btn-primary" type="submit">{{ icon('plug') }} Bei Garmin anmelden</button> <span class="small muted">Mit Zwei-Faktor-Anmeldung fragt die App danach nach dem Code.</span></div>
+    </form>
+    {% endif %}
+  {% endif %}
+</section>
+
+<section class="card quelle-karte breit" id="apple" aria-labelledby="a-titel">
+  <h2 id="a-titel"><span class="quelle-logo q-apple" aria-hidden="true">♥</span> Apple Health <span class="small muted">Export von {{ person.name }}</span></h2>
+  <div class="apple-raster">
+    <div>
+      <ol class="einrichtung">
+        <li>Auf dem iPhone die <strong>Health</strong>-App öffnen, oben rechts auf das Profilbild tippen.</li>
+        <li>Ganz unten <strong>Alle Gesundheitsdaten exportieren</strong> wählen und bestätigen. Das dauert je nach Datenmenge ein paar Minuten.</li>
+        <li>Die Datei <code>Export.zip</code> in „Dateien“ sichern (oder per AirDrop an den Mac) und hier hochladen.</li>
+      </ol>
+      <p class="small muted">Jeder Export enthält die ganze Geschichte. Ein neuer Import ersetzt die alten Apple-Werte derselben Tage; doppelt wird nichts. Gelesen werden Gewicht, Körperfett, Blutdruck, Temperatur, Ruhepuls, HRV, Sauerstoff, Atemfrequenz, VO2max, Schritte, Strecke, Kalorien, Etagen, Trainingsminuten, Schlaf und Trainings. GPS-Routen, EKG-Kurven, Medikamente, Zyklus und Notizen werden übersprungen.</p>
+    </div>
+    <div>
+      <form method="post" action="{{ url_for('quellen.apple_upload') }}" enctype="multipart/form-data" class="upload" data-upload>
+        {{ csrf() }}
+        <label class="upload-feld" for="a-datei">{{ icon('upload') }}<span data-upload-name>Export.zip auswählen</span><small>höchstens {{ upload_max }} MB</small></label>
+        <input id="a-datei" class="vh" type="file" name="datei" accept=".zip,application/zip" required>
+        <progress class="bar" max="100" value="0" data-upload-progress hidden></progress>
+        <p class="small" data-upload-status aria-live="polite"></p>
+        <button class="btn btn-primary" type="submit"{% if apple_busy %} disabled{% endif %}>Für {{ person.name }} hochladen</button>
+      </form>
+      <details class="ordner">
+        <summary>Sehr große Datei? Über den Import-Ordner</summary>
+        <p class="small">Die ZIP-Datei auf dem NAS in den Ordner legen, der als <code>{{ folder }}</code> eingebunden ist (siehe <code>docker-compose.yml</code>), dann hier starten. Die Datei bleibt dort liegen; danach selbst löschen.</p>
+        {% if folder_files %}<p class="small">Gefunden: {% for f in folder_files %}<code>{{ f.name }}</code>{{ ', ' if not loop.last }}{% endfor %}</p>{% endif %}
+        <form method="post" action="{{ url_for('quellen.apple_folder') }}">{{ csrf() }}<button class="btn" type="submit"{% if not folder_files or apple_busy %} disabled{% endif %}>Neueste Datei aus dem Ordner einlesen</button></form>
+      </details>
+    </div>
+  </div>
+  {% if imports %}
+  <h3>Importe</h3>
+  <div class="table-wrap">
+  <table class="importe">
+    <thead><tr><th>Gestartet</th><th>Datei</th><th>Stand</th><th>Ergebnis</th></tr></thead>
+    <tbody>
+    {% for i in imports %}
+    <tr{% if i.status in ('wartet', 'laeuft') %} data-import-status="{{ url_for('quellen.import_status', import_id=i.id) }}"{% endif %}>
+      <td>{{ i.started_at|zeitpunkt }}</td><td><code>{{ i.filename }}</code></td>
+      <td data-import-stand>{% if i.status == 'fertig' %}<span class="badge green">fertig</span>{% elif i.status == 'fehler' %}<span class="badge red">Fehler</span>{% else %}<progress class="bar" max="100" value="{{ i.progress }}">{{ i.progress }} %</progress>{% endif %}</td>
+      <td class="small" data-import-text>{{ i.message or ('liest … ' ~ i.progress ~ ' %' if i.status == 'laeuft' else 'wartet') }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+  <p class="small muted">Später soll eine eigene kleine iPhone-App die Werte automatisch schicken, dann entfällt der Export.</p>
+</section>
+
+<section class="card quelle-karte breit" id="manuell" aria-labelledby="m-titel">
+  <h2 id="m-titel">Maßband und Praxis</h2>
+  <p>Das <strong>Renpho-Maßband</strong> schreibt über die Renpho-App nur den Taillenumfang nach Apple Health (andere Umfänge kennt Apple Health nicht); er kommt mit dem nächsten Export von selbst. Hals, Schultern, Brust, Bauch, Hüfte, Arme und Beine trägst du ein. Die <strong>Körperanalyse der Ernährungsberatung</strong> (Phasenwinkel, Körperzellmasse, Wasser, Fett, Muskeln) ebenso, oder ältere Termine als Tabelle.</p>
+  <p><a class="btn" href="{{ url_for('messungen.index') }}">{{ icon('upload') }} Messungen eintragen</a></p>
+</section>
+</div>
+
+{% if persons|length > 1 %}
+<section class="card" id="alle" aria-labelledby="alle-titel">
+  <h2 id="alle-titel">Alle Personen</h2>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Person</th><th>Withings</th><th>Garmin direkt</th><th></th></tr></thead>
+    <tbody>
+    {% for p in persons %}
+    {% set c = everyone.get(p.id, {}) %}
+    <tr>
+      <td><span class="avatar klein p-{{ p.color }}" aria-hidden="true">{{ p.name|kuerzel }}</span> {{ p.name }}</td>
+      {% for provider in ['withings', 'garmin'] %}
+      <td>{% if provider not in c %}<span class="badge">nicht verbunden</span>{% elif c[provider].last_error %}<span class="badge red" title="{{ c[provider].last_error }}">Fehler</span>{% else %}<span class="badge green">{{ c[provider].last_ok|vor }}</span>{% endif %}</td>
+      {% endfor %}
+      <td>{% if p.id != person.id %}<form method="post" action="{{ url_for('personen.show', person_id=p.id) }}">{{ csrf() }}<input type="hidden" name="next" value="{{ url_for('quellen.index') }}"><button class="btn btn-small" type="submit">Quellen von {{ p.name }}</button></form>{% else %}<span class="small muted">wird gezeigt</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endif %}
+
+<section class="card" id="reihenfolge" aria-labelledby="r-titel">
+  <h2 id="r-titel">Reihenfolge der Quellen</h2>
+  <p>Gilt für alle Personen. Wenn mehrere Quellen für denselben Tag einen Wert haben, zählt die oberste. So wird nichts doppelt gezählt, etwa Schritte von Uhr und Telefon oder ein Gewicht, das direkt von Withings und noch einmal über Apple Health kommt. Quellen ohne Werte stehen grau da.</p>
+  <div class="reihenfolge-raster">
+    {% for family, (label, desc, _default) in families.items() %}
+    <div class="reihenfolge" id="reihenfolge-{{ family }}">
+      <h3>{{ label }} {% if family in customized %}<span class="badge">angepasst</span>{% endif %}</h3>
+      <p class="small muted">{{ desc }}</p>
+      <ol>
+        {% for s in orders[family] %}
+        <li class="{{ 'leer' if not overview[s].count }}">
+          <span class="rang">{{ loop.index }}</span>{{ quelle(s) }}
+          <span class="pfeile">
+            <form method="post" action="{{ url_for('quellen.order') }}">{{ csrf() }}<input type="hidden" name="familie" value="{{ family }}"><input type="hidden" name="quelle" value="{{ s }}"><button class="btn btn-small" type="submit" name="richtung" value="hoch" aria-label="{{ sources[s][0] }} nach oben"{% if loop.first %} disabled{% endif %}>{{ icon('up') }}</button><button class="btn btn-small" type="submit" name="richtung" value="runter" aria-label="{{ sources[s][0] }} nach unten"{% if loop.last %} disabled{% endif %}>{{ icon('down') }}</button></form>
+          </span>
+        </li>
+        {% endfor %}
+      </ol>
+      {% if family in customized %}
+      <form method="post" action="{{ url_for('quellen.order') }}">{{ csrf() }}<input type="hidden" name="familie" value="{{ family }}"><button class="btn btn-small" type="submit" name="richtung" value="standard">Standard</button></form>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

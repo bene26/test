@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}Ausblick{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">{{ person.name }} · in {{ horizon_in }}</p>
+    <h1>Ausblick</h1>
+    <p class="sub">Wie es weitergehen könnte: positiv wie in deinen besten vier Wochen des letzten Jahres, negativ wie in deinen schwächsten, dazwischen der Weg, wenn alles bleibt wie bisher.</p>
+  </div>
+  <div class="actions">
+    <nav class="zeitraum" aria-label="Zeitraum">
+      {% for w, label in horizons.items() %}<a href="{{ url_for('ausblick.index', wochen=w) }}"{% if w == weeks %} aria-current="true"{% endif %}>{{ label }}</a>{% endfor %}
+    </nav>
+  </div>
+</div>
+
+{% if outlooks %}
+<section class="card ab-ueberblick" aria-labelledby="ab-ueberblick-titel">
+  <h2 id="ab-ueberblick-titel">Auf einen Blick</h2>
+  <div class="ab-tabelle" role="table" aria-label="Werte in {{ horizon_in }}">
+    <div class="ab-zeile ab-kopfzeile" role="row">
+      <span role="columnheader">Wert</span><span role="columnheader">heute</span>
+      <span role="columnheader" class="sz-text-gut">positiv</span><span role="columnheader">wie bisher</span><span role="columnheader" class="sz-text-schlecht">negativ</span>
+    </div>
+    {% for o in outlooks %}
+    <a class="ab-zeile" role="row" href="#ab-{{ o.key }}">
+      <span role="cell" class="ab-name">{{ o.label }}</span>
+      <span role="cell">{{ o.fmt(o.current) }}</span>
+      <span role="cell" class="sz-text-gut">{{ o.fmt(o.paths.gut.end) }}</span>
+      <span role="cell"><strong>{{ o.fmt(o.paths.erwartet.end) }}</strong></span>
+      <span role="cell" class="sz-text-schlecht">{{ o.fmt(o.paths.schlecht.end) }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  <p class="small muted">Bei Werten ohne gut oder schlecht (Gewicht ohne Ziel bei normalem BMI) heißen die Wege „niedriger“ und „höher“.</p>
+</section>
+
+{% for o in outlooks %}
+<article class="card ab-karte" id="ab-{{ o.key }}" aria-labelledby="ab-{{ o.key }}-titel">
+  <div class="karte-kopf">
+    <div>
+      <h2 id="ab-{{ o.key }}-titel">{{ o.label }}</h2>
+      <p class="small muted">heute {{ o.fmt(o.current) }} · {{ o.basis }}</p>
+    </div>
+    <p class="ab-satz">{{ o.summary }}</p>
+  </div>
+  <div class="ab-inhalt">
+    <div class="ab-grafik">{{ o.chart() }}</div>
+    <ul class="ab-wege">
+      {% for k in ['gut', 'erwartet', 'schlecht'] %}
+      {% set p = o.paths[k] %}
+      <li class="ab-weg sz-{{ k }}{{ ' neutral' if not o.direction }}">
+        <span class="ab-punkt" aria-hidden="true"></span>
+        <div>
+          <p class="ab-weg-kopf"><span>{{ p.label }}</span><strong>{{ o.fmt(p.end) }}</strong><small>{{ o.change(k) }}</small></p>
+          <p class="ab-warum">{{ p.why[0]|upper }}{{ p.why[1:] }}.</p>
+          {% if o.goal is not none and o.key == 'weight' %}<p class="ab-ziel">{{ icon('target') }} Ziel {{ o.fmt(o.goal) }}: {% if p.goal_day %}erreicht am {{ p.goal_day|datum }}{% else %}nicht in {{ horizon_in }}{% endif %}</p>{% endif %}
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% if o.levers %}
+  <div class="ab-hebel">
+    <p class="cw-titel">{{ icon('sparkle') }} Was in deinen guten Wochen anders war</p>
+    <ul>{% for l in o.levers %}<li>{{ l }}</li>{% endfor %}</ul>
+    <p class="small muted">Gleichzeitig beobachtet, nicht unbedingt die Ursache. Ein guter Anfang für den positiven Weg.</p>
+  </div>
+  {% endif %}
+  <details class="bf-rechenweg">
+    <summary>{{ icon('right') }} Rechenweg</summary>
+    <ol>{% for step in o.steps %}<li>{{ step }}</li>{% endfor %}</ol>
+  </details>
+</article>
+{% endfor %}
+{% else %}
+<section class="card start-leer">
+  <h2>Noch zu wenige Werte für einen Ausblick</h2>
+  <p>Für Szenarien braucht das Cockpit mindestens acht Wochen Werte, damit es deine besten und schwächsten Wochen vergleichen kann. Je länger die Daten zurückreichen, desto besser trifft die Spanne.</p>
+</section>
+{% endif %}
+<p class="small muted ab-hinweis">Szenarien aus deiner eigenen Vergangenheit, keine Vorhersage und keine medizinische Beratung. Gerechnet auf deinem NAS.</p>
+{% endblock %}

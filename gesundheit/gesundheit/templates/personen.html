@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, icon, quelle %}
+{% block title %}Personen{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Personen</h1><p class="sub">Alle Profile unter deinem Login. Jede Person hat eigene Geräte, Ziele und Werte; vergleichen kannst du alle miteinander.</p></div>
+  <div class="actions"><a class="btn" href="{{ url_for('vergleich.index') }}">{{ icon('users') }} Vergleichen</a></div>
+</div>
+
+<div class="personen-raster">
+  {% for row in rows %}
+  {% set p = row.person %}
+  <article class="card person-karte p-{{ p.color }}{{ ' gezeigt' if p.id == person.id }}">
+    <div class="person-kopf">
+      <span class="avatar gross p-{{ p.color }}" aria-hidden="true">{{ p.name|kuerzel }}</span>
+      <div>
+        <h2>{{ p.name }}</h2>
+        <p class="small muted">{% if p.birth_year %}{{ today.year - p.birth_year }} Jahre · {% endif %}{% if p.height_cm %}{{ p.height_cm }} cm · {% endif %}{{ row.count|zahl }} Werte{% if row.last %} · zuletzt {{ row.last|datum }}{% endif %}</p>
+      </div>
+    </div>
+    <ul class="person-ziele">
+      <li><span>Schritte</span><strong>{{ p.goal_steps|zahl }}</strong></li>
+      <li><span>Aktive Minuten</span><strong>{{ p.goal_active_min }}</strong></li>
+      <li><span>Schlaf</span><strong>{{ p.goal_sleep_min|dauer }}</strong></li>
+      <li><span>Trainings/Woche</span><strong>{{ p.goal_workouts }}</strong></li>
+    </ul>
+    <p class="person-quellen">{% for s in row.sources %}{{ quelle(s) }} {% else %}<span class="small muted">Noch keine Daten</span>{% endfor %}</p>
+    <div class="actions">
+      {% if p.id != person.id %}
+      <form method="post" action="{{ url_for('personen.show', person_id=p.id) }}">{{ csrf() }}<input type="hidden" name="next" value="{{ url_for('main.index') }}"><button class="btn btn-primary" type="submit">Anzeigen</button></form>
+      {% else %}<span class="badge green">wird gezeigt</span>{% endif %}
+      <a class="btn" href="{{ url_for('personen.edit', person_id=p.id) }}">Bearbeiten</a>
+      <form method="post" action="{{ url_for('personen.move') }}" class="person-pfeile">{{ csrf() }}<input type="hidden" name="person" value="{{ p.id }}">
+        <button class="btn btn-small" type="submit" name="richtung" value="hoch" aria-label="{{ p.name }} nach vorne"{% if loop.first %} disabled{% endif %}>{{ icon('left') }}</button><button class="btn btn-small" type="submit" name="richtung" value="runter" aria-label="{{ p.name }} nach hinten"{% if loop.last %} disabled{% endif %}>{{ icon('right') }}</button>
+      </form>
+    </div>
+  </article>
+  {% endfor %}
+
+  <section class="card person-neu" aria-labelledby="neu-titel">
+    <h2 id="neu-titel">Neue Person</h2>
+    <form method="post" action="{{ url_for('personen.create') }}">
+      {{ csrf() }}
+      <div class="field"><label for="n-name">Name</label><input id="n-name" type="text" name="name" required maxlength="40" placeholder="z. B. Lena"></div>
+      <fieldset class="farben">
+        <legend>Farbe für Vergleiche</legend>
+        {% for key, (label, _hex) in colors.items() %}
+        <label class="farbe"><input type="radio" name="color" value="{{ key }}"{% if key == new_color %} checked{% endif %}><span class="farb-punkt p-{{ key }}"></span><span class="sr-only">{{ label }}</span></label>
+        {% endfor %}
+      </fieldset>
+      <button class="btn btn-primary" type="submit">Anlegen</button>
+    </form>
+  </section>
+</div>
+<p class="small muted">Alle Personen teilen sich deinen Login: wer das Passwort kennt, sieht alle Werte. Für Kinder gilt: Waagen und Uhren schätzen Körperfett, Kalorien und Schlafphasen mit Formeln für Erwachsene.</p>
+{% endblock %}

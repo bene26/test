@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% from "_macros.html" import digits, phasen, quelle, zeitraum %}
+{% block title %}Schlaf{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Schlaf</h1><p class="sub">Eine Nacht je Tag, gezählt am Morgen des Aufwachens.</p></div>
+  {{ zeitraum(days, periods, 'bereiche.schlaf') }}
+</div>
+
+<div class="columns">
+  <section class="card letzte-nacht" aria-labelledby="ln-titel">
+    <h2 id="ln-titel">Letzte Nacht</h2>
+    {% if last %}
+    <div class="nacht-gross">
+      <span class="nacht-dauer">{{ last.asleep_min|dauer }}</span>
+      {% if last.score %}<span class="nacht-score">Bewertung <strong>{{ last.score }}</strong> von 100</span>{% endif %}
+    </div>
+    {% if stages %}
+    {{ phasen(last) }}
+    <ul class="phasen-legende">
+      {% for key, label, minutes, pct in stages %}<li class="leg leg-{{ key }}">{{ label }} {{ minutes|dauer }} <small>({{ pct|round|int }} %)</small></li>{% endfor %}
+    </ul>
+    {% endif %}
+    <dl class="werte-liste">
+      {% if last.bed_start %}<dt>Im Bett</dt><dd>{{ last.bed_start|uhrzeit }} bis {{ last.bed_end|uhrzeit }}</dd>{% endif %}
+      {% if last.hr_avg %}<dt>Puls im Schlaf</dt><dd>{{ last.hr_avg|zahl }} bpm</dd>{% endif %}
+      {% if last.rr_avg %}<dt>Atemfrequenz</dt><dd>{{ last.rr_avg|zahl(1) }} /min</dd>{% endif %}
+      <dt>Quelle</dt><dd>{{ quelle(last.source) }}</dd>
+    </dl>
+    {% else %}
+    <p class="muted">Für die letzten zwei Nächte gibt es keine Schlafdaten.</p>
+    {% endif %}
+  </section>
+
+  <section class="card" aria-labelledby="sz-titel">
+    <h2 id="sz-titel">Im Zeitraum</h2>
+    <div class="stats kacheln klein" data-fallblatt>
+      <div class="stat"><div class="label">Schlaf im Schnitt</div><div class="kachel-wert"><span class="value">{{ stats.avg|dauer }}</span></div></div>
+      <div class="stat"><div class="label">Ziel erreicht</div><div class="kachel-wert"><span class="value">{{ digits(stats.goal_nights) }}</span><span class="einheit">von {{ stats.nights }} Nächten</span></div></div>
+    </div>
+    <dl class="werte-liste">
+      <dt>Ins Bett im Schnitt</dt><dd>{{ stats.bed or '–' }}</dd>
+      <dt>Aufgestanden im Schnitt</dt><dd>{{ stats.wake or '–' }}</dd>
+      <dt>Anteil Tiefschlaf</dt><dd>{{ stats.deep_pct|zahl if stats.deep_pct is not none else '–' }} %</dd>
+      <dt>Anteil REM</dt><dd>{{ stats.rem_pct|zahl if stats.rem_pct is not none else '–' }} %</dd>
+      <dt>Bewertung im Schnitt</dt><dd>{{ stats.score|zahl if stats.score else '–' }}</dd>
+      <dt>Ziel</dt><dd>{{ goal|dauer }} <a class="small" href="{{ url_for('einstellungen.index') }}#ziele">ändern</a></dd>
+    </dl>
+  </section>
+</div>
+
+<section class="card">
+  <h2>Schlafdauer je Nacht</h2>
+  {{ chart }}
+</section>
+
+<section class="card">
+  <h2>Nächte <span class="count">neueste zuerst</span></h2>
+  {% if nights %}
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Nacht auf</th><th>Im Bett</th><th class="num">Schlaf</th><th class="num">Tief</th><th class="num">REM</th><th class="num">Wach</th><th class="num">Bewertung</th><th>Quelle</th></tr></thead>
+    <tbody>
+    {% for n in nights %}
+    <tr><td>{{ n.night|datum_wt }}</td><td>{% if n.bed_start %}{{ n.bed_start|uhrzeit }}–{{ n.bed_end|uhrzeit }}{% endif %}</td>
+      <td class="num">{{ n.asleep_min|dauer }}</td><td class="num">{{ n.deep_min|dauer if n.deep_min is not none else '–' }}</td>
+      <td class="num">{{ n.rem_min|dauer if n.rem_min is not none else '–' }}</td><td class="num">{{ n.awake_min|dauer if n.awake_min is not none else '–' }}</td>
+      <td class="num">{{ n.score or '–' }}</td><td>{{ quelle(n.source) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}<p class="muted">Keine Nächte in diesem Zeitraum.</p>{% endif %}
+  <p class="small muted">Uhren schätzen die Schlafphasen aus Bewegung und Puls. Sie sind gut für Trends, aber kein Schlaflabor.</p>
+</section>
+{% endblock %}

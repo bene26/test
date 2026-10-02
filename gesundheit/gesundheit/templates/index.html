@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, icon, kachel, quelle %}
+{% from "_befunde.html" import gross, klein, toast, form_karte %}
+{% from "_coach.html" import woche, prognose, fragen %}
+{% block title %}Übersicht{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">{{ now|datum_wt }}</p>
+    <h1>{% if now.hour < 11 %}Guten Morgen{% elif now.hour < 17 %}Hallo{% else %}Guten Abend{% endif %}, {{ person.name }}</h1>
+    <p class="sub">So sieht dein Tag bisher aus.</p>
+  </div>
+  <div class="actions">
+    <nav class="zeitraum" aria-label="Zeitraum der Skyline">
+      {% for p in sky.periods %}<a href="{{ url_for('main.index', zeit=p) }}"{% if p == sky.period %} aria-current="true"{% endif %}>{{ p }}</a>{% endfor %}
+    </nav>
+    {% if connections %}
+    <form method="post" action="{{ url_for('main.sync_now') }}">{{ csrf() }}
+      <button class="btn" type="submit"{% if syncing %} disabled{% endif %}>{{ icon('refresh') }} {{ 'Abgleich läuft …' if syncing else 'Jetzt abgleichen' }}</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+{% if empty %}
+<section class="card start-leer" aria-labelledby="leer-titel">
+  <h2 id="leer-titel">Noch keine Daten für {{ person.name }}</h2>
+  <p>Verbinde die Geräte dieser Person, dann füllt sich diese Seite von selbst.</p>
+  <ol class="start-schritte">
+    <li><strong>Withings</strong> (Waage, Blutdruck, Thermometer, Schlafmatte): einmal die Withings-Anwendung eintragen, dann je Person verbinden. <a href="{{ url_for('quellen.index') }}#withings">Zu Withings</a></li>
+    <li><strong>Apple Watch und iPhone</strong>: in der Health-App „Alle Gesundheitsdaten exportieren“ und die ZIP-Datei hochladen. <a href="{{ url_for('quellen.index') }}#apple">Zu Apple Health</a></li>
+    <li><strong>Garmin</strong>: kommt über Apple Health mit, wenn die Connect-App dort schreibt. Für Body Battery, Stress und HRV direkt verbinden. <a href="{{ url_for('quellen.index') }}#garmin">Zu Garmin</a></li>
+  </ol>
+  {% if persons|length == 1 %}<p class="small muted">Weitere Familienmitglieder legst du unter <a href="{{ url_for('personen.index') }}">Personen</a> an.</p>{% endif %}
+</section>
+{% endif %}
+
+{% if not empty %}
+<div class="ueb-oben">
+  {% include "_skyline.html" %}
+  <div class="ueb-rand">
+    {{ form_karte(form) }}
+    <section class="card heute-kompakt" aria-labelledby="heute-titel">
+      <p class="fk-label" id="heute-titel">Heute</p>
+      <div class="hk-inhalt">
+        <div class="hk-ringe">{{ rings_svg }}</div>
+        <ul class="hk-liste">
+          {% for r in activity %}
+          <li class="kreis-{{ r.key }}"><a href="{{ r.url }}"><span class="ring-punkt" aria-hidden="true"></span><span class="hk-label">{{ r.label }}</span><span class="hk-wert">{% if r.value is none %}–{% else %}{{ r.value|zahl }}{% endif %}<small> / {{ r.goal|zahl }}{% if r.unit %} {{ r.unit }}{% endif %}</small></span></a></li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
+  </div>
+</div>
+
+{% if findings %}
+{{ gross(findings[0]) }}
+{% if findings|length > 1 %}
+<h2 class="sr-only">Weitere Befunde</h2>
+<div class="befunde-klein">{% for f in findings[1:7] %}{{ klein(f) }}{% endfor %}</div>
+{% endif %}
+{% endif %}
+
+<div class="ueb-paar">
+  {{ woche(week_plan) }}
+  <div class="ueb-spalte">
+    {% if questions %}{{ fragen(questions, question) }}{% endif %}
+    {% if gauges %}
+    <section class="card erholung-karte" aria-labelledby="erholung-titel">
+      <h2 id="erholung-titel">Erholung</h2>
+      <div class="held-gauges">{% for gauge in gauges %}<div class="gauge-kachel">{{ gauge }}</div>{% endfor %}</div>
+    </section>
+    {% endif %}
+  </div>
+</div>
+
+{% if forecasts %}{{ prognose(forecasts, forecast) }}{% endif %}
+{% endif %}
+
+{% if tiles %}
+<h2 class="sr-only">Kennzahlen</h2>
+<div class="stats kacheln" data-fallblatt>
+  {% for t in tiles %}{{ kachel(t) }}{% endfor %}
+</div>
+{% endif %}
+
+<div class="columns-even">
+  <section class="card" aria-labelledby="nacht-titel">
+    <h2 id="nacht-titel">Letzte Nacht <a class="count" href="{{ url_for('bereiche.schlaf') }}">Schlaf</a></h2>
+    {% if night %}
+    <div class="nacht-held">
+      {% if sleep_donut %}<div class="nacht-donut">{{ sleep_donut }}</div>{% endif %}
+      <div class="nacht-text">
+        <div class="nacht-gross"><span class="nacht-dauer">{{ night.asleep_min|dauer }}</span></div>
+        {% if night.score %}<p class="nacht-score">Bewertung <strong>{{ night.score }}</strong> von 100</p>{% endif %}
+        {% if night.deep_min is not none %}
+        <ul class="phasen-legende">
+          <li class="leg leg-tief">Tief {{ night.deep_min|dauer }}</li><li class="leg leg-leicht">Leicht {{ night.light_min|dauer }}</li>
+          <li class="leg leg-rem">REM {{ night.rem_min|dauer }}</li><li class="leg leg-wach">Wach {{ night.awake_min|dauer }}</li>
+        </ul>
+        {% endif %}
+        <p class="small muted">{% if night.bed_start %}{{ night.bed_start|uhrzeit }} bis {{ night.bed_end|uhrzeit }} · {% endif %}{{ quelle(night.source) }}</p>
+      </div>
+    </div>
+    {% else %}
+    <p class="muted">Für letzte Nacht gibt es noch keine Schlafdaten.</p>
+    {% endif %}
+  </section>
+
+  <section class="card" aria-labelledby="bd-titel">
+    <h2 id="bd-titel">Blutdruck <a class="count" href="{{ url_for('bereiche.herz') }}#blutdruck">alle Messungen</a></h2>
+    {% if bp_info %}
+    {% set v = bp_info.reading['values'] %}
+    <div class="bd-gross">
+      <span class="bd-wert">{{ v.bp_sys|zahl }}<span class="bd-strich">/</span>{{ v.bp_dia|zahl }}</span>
+      <span class="bd-einheit">mmHg{% if v.pulse %} · Puls {{ v.pulse|zahl }}{% endif %}</span>
+    </div>
+    <div class="bd-skala" aria-hidden="true">
+      {% for key in ['optimal', 'normal', 'hochnormal', 'grad1', 'grad2', 'grad3'] %}<span class="bd-stufe stufe-{{ key }}{{ ' aktiv' if key == bp_info.category[0] }}"></span>{% endfor %}
+    </div>
+    <p><span class="stufe stufe-{{ bp_info.category[0] }}">{{ bp_info.category[1] }}</span> <span class="small muted">{{ bp_info.reading.measured_at|zeitpunkt }} · {{ quelle(bp_info.reading.source) }}</span></p>
+    <p class="small muted">Einstufung als Orientierung (ESH 2023), keine Diagnose.</p>
+    {% else %}
+    <p class="muted">Noch keine Blutdruckmessung in den letzten 90 Tagen.</p>
+    {% endif %}
+  </section>
+</div>
+
+<div class="columns">
+  <section class="card" aria-labelledby="woche-titel">
+    <h2 id="woche-titel">Die letzten 7 Tage <a class="count" href="{{ url_for('auswertungen.index', zeitraum=7) }}">Auswertung</a></h2>
+    {{ week.steps }}
+    <div class="woche-zahlen">
+      <div><span class="small muted">Schritte im Schnitt</span><strong>{{ week.steps_avg|zahl }}</strong></div>
+      <div><span class="small muted">Schlaf im Schnitt</span><strong>{{ week.sleep_avg|dauer }}</strong></div>
+      <div><span class="small muted">Trainings</span><strong>{{ week.workouts|length }}</strong></div>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="quellen-titel">
+    <h2 id="quellen-titel">Datenquellen <a class="count" href="{{ url_for('quellen.index') }}">verwalten</a></h2>
+    <ul class="quellen-kacheln">
+      {% for t in sources %}
+      <li class="qk qk-{{ t.state }}">
+        <a href="{{ url_for('messungen.index') if t.key == 'manuell' else url_for('quellen.index') ~ '#' ~ t.key }}">
+          <span class="qk-kopf"><span class="qk-name">{{ t.name }}</span><span class="qk-zustand"><span class="qk-punkt" aria-hidden="true"></span>{{ {'an': 'aktiv', 'aus': 'aus', 'fehler': 'Fehler', 'laeuft': 'läuft'}[t.state] }}</span></span>
+          <span class="qk-geraete">{{ t.devices }}</span>
+          <span class="qk-fuss"><span>{{ t.status }}</span><span>{{ t.count|zahl }} Werte in 7 Tagen</span></span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% if persons|length > 1 %}
+    <p class="small"><a href="{{ url_for('vergleich.index') }}">{{ icon('users') }} Mit {{ persons|length - 1 }} {{ 'anderer Person' if persons|length == 2 else 'anderen Personen' }} vergleichen</a></p>
+    {% endif %}
+  </section>
+</div>
+{% if news %}{{ toast(news) }}{% endif %}
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, icon, password_rules %}
+{% block title %}Einrichtung{% endblock %}
+{% block content %}
+<div class="auth-v7 breit">
+  <div>
+    <div class="brand auth-brand"><span class="logo" aria-hidden="true"></span>{{ app_name }}</div>
+    <div class="v7-card v7-split schluessel" data-schluessel data-passwort="password" data-wiederholung="password2">
+      <div class="v7-intro" aria-hidden="true"><span class="logo"></span></div>
+      <div class="v7-body">
+        <div class="schluessel-bild" data-schluessel-bild aria-hidden="true"></div>
+        <div>
+          <h1>Konto <em>erstellen</em></h1>
+          <p class="sub">Den Einrichtungscode findest du im Log des Containers oder in der Datei <code>EINRICHTUNGSCODE.txt</code> im Datenordner.</p>
+          <form method="post">
+            {{ csrf() }}
+            <div class="v7-field">
+              <label for="code">Einrichtungscode</label>
+              <div class="v7-input">{{ icon('key') }}<input id="code" type="text" name="code" required maxlength="40" autocomplete="off" autocapitalize="characters" placeholder="XXXXXX-XXXXXX-XXXXXX"></div>
+            </div>
+            <div class="v7-field">
+              <label for="username">Benutzername</label>
+              <div class="v7-input">{{ icon('user') }}<input id="username" type="text" name="username" required maxlength="60" autocomplete="username"></div>
+            </div>
+            <div class="v7-field">
+              <label for="password">Passwort (mindestens 12 Zeichen)</label>
+              <div class="v7-input">{{ icon('lock') }}<input id="password" type="password" name="password" required minlength="12" maxlength="200" autocomplete="new-password" aria-describedby="pw-staerke"><button class="v7-eye" type="button" data-toggle-password aria-controls="password" aria-pressed="false" aria-label="Passwort anzeigen">{{ icon('eye') }}</button></div>
+              {{ password_rules('pw-staerke') }}
+            </div>
+            <div class="v7-field">
+              <label for="password2">Passwort wiederholen</label>
+              <div class="v7-input">{{ icon('lock') }}<input id="password2" type="password" name="password2" required minlength="12" maxlength="200" autocomplete="new-password"></div>
+            </div>
+            <button class="btn btn-primary v7-submit" type="submit">Konto anlegen {{ icon('arrow') }}</button>
+            <p class="schluessel-status" data-schluessel-status aria-live="polite"></p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

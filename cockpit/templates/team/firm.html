@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, bar, task_table, meeting_list %}
+{% block title %}{{ firm.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="sub"><a href="{{ url_for('team.index') }}">← Team & Firmen</a></p>
+    <h1>{{ firm.name }}</h1>
+    <p class="sub">{{ CONTRACT_TYPES[firm.contract_type] }}{% if firm.contact_name %} · {{ firm.contact_name }}{% endif %}{% if firm.contact_email %} · <a href="mailto:{{ firm.contact_email }}">{{ firm.contact_email }}</a>{% endif %}{% if firm.contact_phone %} · {{ firm.contact_phone }}{% endif %}</p>
+  </div>
+  <div class="actions">
+    <a class="btn btn-primary" href="{{ url_for('meetings.index', typ='jourfixe', firma=firm.id) }}">Jour fixe anlegen</a>
+  </div>
+</div>
+
+<section class="card" id="bestellungen">
+  <h2>Bestellungen und Kontingent <span class="count">{{ orders|length }}</span></h2>
+  {% if summary %}
+  <div class="quota-summary">
+    <div><span class="muted small">bestellt</span><strong>{{ summary.ordered|stunden }}</strong></div>
+    <div><span class="muted small">verplant (Aufwand der Aufgaben)</span><strong class="{{ 'overdue' if summary.level == 'ueber' }}">{{ summary.planned|stunden }} · {{ summary.percent_planned|round|int }} %</strong></div>
+    <div><span class="muted small">abgerechnet</span><strong>{{ summary.billed|stunden }}</strong></div>
+    <div><span class="muted small">frei</span><strong>{{ summary.free|stunden }}</strong></div>
+  </div>
+  {{ bar(summary.percent_planned, summary.level, 'verplant') }}
+  {% if summary.warnings %}<p class="note">{{ summary.warnings|join(' · ') }}</p>{% endif %}
+  {% endif %}
+  {% if orders %}
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Bestellung</th><th class="hide-mobile">Projekt</th><th class="num">Menge</th><th class="num">abgerechnet</th><th class="quota-col">Verbrauch</th><th class="hide-mobile">läuft bis</th></tr></thead>
+    <tbody>
+    {% for o in orders %}
+      <tr class="{{ '' if o.active else 'done' }}">
+        <td><a href="{{ url_for('orders.detail', order_id=o.id) }}">{{ o.label }}</a>{% for w in o.warnings %} <span class="badge red">{{ w }}</span>{% endfor %}</td>
+        <td class="hide-mobile">{{ o.project_code or o.project_name or 'alle' }}</td>
+        <td class="num nowrap">{{ fmt(o.amount, o.unit) }}</td>
+        <td class="num nowrap">{{ fmt(o.billed, o.unit) }}</td>
+        <td class="quota-col">{{ bar(o.percent, o.level, 'Verbrauch ' ~ o.label) }}</td>
+        <td class="hide-mobile nowrap">{{ o.valid_to|datum if o.valid_to else '–' }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="empty">Noch keine Bestellung. Mit einer Bestellung siehst du, wie viel vom Kontingent verplant und abgerechnet ist.</p>
+  {% endif %}
+  <details>
+    <summary>Neue Bestellung</summary>
+    <form method="post" action="{{ url_for('orders.create', firm_id=firm.id) }}">
+      {{ csrf() }}
+      {% with o=None %}{% include "orders/_fields.html" %}{% endwith %}
+      <button class="btn btn-primary" type="submit">Bestellung anlegen</button>
+    </form>
+  </details>
+</section>
+
+<div class="columns">
+  <div>
+    <section class="card">
+      <h2>Offene Aufgaben <span class="count">{{ tasks|length }}</span></h2>
+      {{ task_table(tasks, request.path, empty='Keine offenen Aufgaben.') }}
+    </section>
+    <section class="card">
+      <h2>Meetings</h2>
+      {{ meeting_list(meetings, empty='Noch keine Meetings mit dieser Firma.') }}
+    </section>
+  </div>
+  <div>
+    {% if firm.contract_type == 'anue' %}
+    <section class="card">
+      <h2>Personen (Arbeitnehmerüberlassung)</h2>
+      {% if staff %}
+      <ul>{% for p in staff %}<li><a href="{{ url_for('team.person', person_id=p.id) }}">{{ p.name }}</a></li>{% endfor %}</ul>
+      {% else %}
+      <p class="empty">Noch keine Personen. Anlegen unter Team & Firmen, dabei diese Firma wählen.</p>
+      {% endif %}
+    </section>
+    {% endif %}
+    <section class="card">
+      <h2>Bearbeiten</h2>
+      <form method="post">
+        {{ csrf() }}
+        {% include "team/_firm_fields.html" %}
+        <button class="btn btn-primary" type="submit">Speichern</button>
+      </form>
+    </section>
+    <form method="post" action="{{ url_for('team.delete_firm', firm_id=firm.id) }}" data-confirm="{{ firm.name }} löschen?">
+      {{ csrf() }}<button class="btn btn-danger btn-small" type="submit">Firma löschen</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

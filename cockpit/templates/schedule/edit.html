@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block title %}{{ it.title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="sub"><a href="{{ url_for('schedule.index', projekt=it.project_id) }}">← Zeitplan {{ it.project_label }}</a></p>
+    <h1>{{ it.title }}</h1>
+    <p class="sub">{{ kinds[it.kind] }} · {{ it.start|datum_wt }}{% if it.kind == 'phase' %} bis {{ it.end|datum_wt }} ({{ it.days }} Tage) · {{ it.progress }} %{% elif it.progress == 100 %} · erreicht{% endif %}</p>
+  </div>
+</div>
+
+<div class="columns">
+  <section class="card">
+    <h2>Bearbeiten</h2>
+    <form method="post">
+      {{ csrf() }}
+      {% include "schedule/_item_fields.html" %}
+      <div class="field">
+        <label class="check"><input type="checkbox" name="push" checked> Nachfolger automatisch mitverschieben, wenn sich der Termin nach hinten verschiebt</label>
+      </div>
+      <button class="btn btn-primary" type="submit">Speichern</button>
+    </form>
+  </section>
+
+  <div>
+    <section class="card">
+      <h2>Vorgänger <span class="count">muss vorher fertig sein</span></h2>
+      {% if preds %}
+      <ul class="dep-list">
+        {% for p in preds %}
+        <li>
+          <span>{% if p.conflict %}<span class="badge red">Konflikt</span> {% endif %}<a href="{{ url_for('schedule.edit', item_id=p.item.id) }}">{{ p.item.title }}</a>
+            <span class="small muted">{{ p.item.project_label }} · {{ 'endet' if p.item.kind == 'phase' else 'am' }} {{ p.item.end|datum }}{% if p.link.lag_days %} · Puffer {{ p.link.lag_days }} Tage{% endif %}</span></span>
+          <span class="actions">
+            {% if p.conflict %}
+            <form method="post" action="{{ url_for('schedule.resolve', link_id=p.link.id) }}">{{ csrf() }}<input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-small btn-primary" type="submit">Diesen Eintrag verschieben</button></form>
+            {% endif %}
+            <form method="post" action="{{ url_for('schedule.delete_link', link_id=p.link.id) }}">{{ csrf() }}<input type="hidden" name="next" value="{{ request.path }}"><button class="btn-icon" type="submit" aria-label="Abhängigkeit zu {{ p.item.title }} entfernen" title="Entfernen">✕</button></form>
+          </span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="empty">Keine Vorgänger. Der Eintrag kann jederzeit beginnen.</p>
+      {% endif %}
+      {% if options %}
+      <form method="post" action="{{ url_for('schedule.add_link', item_id=it.id) }}" class="inline-form">
+        {{ csrf() }}
+        <div class="field grow">
+          <label for="l-pred">Vorgänger hinzufügen</label>
+          <select id="l-pred" name="pred_id" required>
+            <option value="">— wählen —</option>
+            {% for group, opts in options %}<optgroup label="{{ group }}">{% for value, label in opts %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</optgroup>{% endfor %}
+          </select>
+        </div>
+        <div class="field narrow">
+          <label for="l-lag">Puffer (Tage)</label>
+          <input id="l-lag" type="number" name="lag_days" value="0" min="-365" max="365">
+        </div>
+        <button class="btn" type="submit">Hinzufügen</button>
+      </form>
+      {% endif %}
+    </section>
+
+    <section class="card">
+      <h2>Nachfolger <span class="count">warten auf diesen Eintrag</span></h2>
+      {% if succs %}
+      <ul class="dep-list">
+        {% for s in succs %}
+        <li><span>{% if s.conflict %}<span class="badge red">Konflikt</span> {% endif %}<a href="{{ url_for('schedule.edit', item_id=s.item.id) }}">{{ s.item.title }}</a>
+          <span class="small muted">{{ s.item.project_label }} · ab {{ s.item.start|datum }}</span></span></li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="empty">Nichts wartet auf diesen Eintrag.</p>
+      {% endif %}
+    </section>
+
+    <form method="post" action="{{ url_for('schedule.delete', item_id=it.id) }}" data-confirm="„{{ it.title }}“ mit allen Abhängigkeiten löschen?">
+      {{ csrf() }}<button class="btn btn-danger btn-small" type="submit">Eintrag löschen</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

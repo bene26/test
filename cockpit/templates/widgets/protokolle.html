@@ -1,0 +1,3 @@
+{% from "_macros.html" import meeting_list %}
+<h2>Protokoll fehlt <span class="count">{{ missing|length }}</span></h2>
+{{ meeting_list(missing, empty='Alle Protokolle sind abgeschlossen.', show_protocol=False) }}

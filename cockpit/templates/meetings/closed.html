@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block title %}{{ meeting.title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="sub"><a href="{{ url_for('meetings.index') }}">← Meetings</a></p>
+    <p class="sub">{{ type_label }} · <span class="badge green">Abgeschlossen · Version {{ meeting.version }}</span></p>
+  </div>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('meetings.print_view', meeting_id=meeting.id) }}">Drucken / PDF</a>
+    {% if smtp and recipients %}
+    <form method="post" action="{{ url_for('meetings.resend', meeting_id=meeting.id) }}" data-confirm="Protokoll erneut an {{ recipients|length }} Empfänger senden?">
+      {{ csrf() }}<button class="btn" type="submit">Erneut senden</button>
+    </form>
+    {% endif %}
+    <form method="post" action="{{ url_for('meetings.correction', meeting_id=meeting.id) }}" data-confirm="Korrektur beginnen? Beim nächsten Abschluss entsteht Version {{ meeting.version + 1 }}.">
+      {{ csrf() }}<button class="btn" type="submit">Korrektur beginnen</button>
+    </form>
+  </div>
+</div>
+
+<div class="columns">
+  <section class="card protocol">
+    {% include "meetings/_protocol.html" %}
+  </section>
+  <div>
+    <section class="card">
+      <h2>Versionen</h2>
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Version</th><th>Abgeschlossen</th><th>Versendet an</th></tr></thead>
+        <tbody>
+        {% for v in versions %}
+          <tr>
+            <td><a href="{{ url_for('meetings.print_view', meeting_id=meeting.id, version=v.version) }}">V{{ v.version }}</a></td>
+            <td class="nowrap">{{ v.finalized_at|zeitpunkt }}</td>
+            <td class="small">{{ v.sent_to or '–' }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </section>
+    <section class="card">
+      <h2>Nächster Termin</h2>
+      {% if followup %}
+      <p><a href="{{ url_for('meetings.detail', meeting_id=followup.id) }}">{{ followup.starts_at|zeitpunkt }}</a></p>
+      {% else %}
+      <form method="post" action="{{ url_for('meetings.followup', meeting_id=meeting.id) }}" class="inline-form">
+        {{ csrf() }}
+        <div class="field date"><label for="next-date">Datum</label><input id="next-date" type="date" name="date" required></div>
+        <div class="field narrow"><label for="next-time">Uhrzeit</label><input id="next-time" type="time" name="time" value="{{ meeting.starts_at[11:16] }}" required></div>
+        <button class="btn" type="submit">Anlegen</button>
+      </form>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

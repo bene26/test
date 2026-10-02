@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, task_table %}
+{% block title %}{{ person.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="sub"><a href="{{ url_for('team.index') }}">← Team & Firmen</a></p>
+    <h1>{{ person.name }}</h1>
+    <p class="sub">{{ person.role or 'ohne Rolle' }} · {{ person.weekly_hours|stunden }} pro Woche, davon {{ (person.availability * 100)|round|int }} % für Projekte</p>
+  </div>
+</div>
+<div class="columns">
+  <section class="card">
+    <h2>Offene Aufgaben <span class="count">{{ tasks|length }}</span></h2>
+    {{ task_table(tasks, request.path, show_assignee=False, empty='Keine offenen Aufgaben.') }}
+  </section>
+  <div>
+    <section class="card">
+      <h2>Bearbeiten</h2>
+      <form method="post">
+        {{ csrf() }}
+        {% include "team/_person_fields.html" %}
+        <button class="btn btn-primary" type="submit">Speichern</button>
+      </form>
+    </section>
+    <form method="post" action="{{ url_for('team.delete_person', person_id=person.id) }}" data-confirm="{{ person.name }} löschen?">
+      {{ csrf() }}<button class="btn btn-danger btn-small" type="submit">Person löschen</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

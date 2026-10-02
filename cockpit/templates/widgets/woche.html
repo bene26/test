@@ -1,0 +1,3 @@
+{% from "_macros.html" import task_table %}
+<h2>Fällig bis Sonntag, {{ week_end|datum }}</h2>
+{{ task_table(due_week, url_for('main.dashboard'), show_project=w.w, empty='Diese Woche ist nichts mehr fällig.') }}

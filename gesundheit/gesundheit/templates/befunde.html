@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "_befunde.html" import gross, form_karte %}
+{% block title %}Befunde{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">{{ person.name }} · Stand {{ now|zeitpunkt }}</p>
+    <h1>Befunde</h1>
+    <p class="sub">Was in deinen Werten auffällt, jeweils verglichen mit deinem eigenen Normalbereich. Jede Zahl lässt sich im Rechenweg nachvollziehen.</p>
+  </div>
+</div>
+
+<div class="befunde-seite">
+  <div class="befunde-liste">
+    {% for f in findings %}
+    {{ gross(f, ('Neu' if f.key not in seen else ('Hinweis' if f.tone == 'warn' else ('Gut' if f.tone == 'gut' else 'Muster'))), id=f.key) }}
+    {% else %}
+    <section class="card start-leer">
+      <h2>Gerade fällt nichts auf</h2>
+      <p>Das Cockpit vergleicht laufend Ruhepuls, HRV, Schlaf, Belastung, Gewicht, Blutdruck und Gewohnheiten mit deinem Normalbereich der letzten Wochen. Sobald etwas deutlich abweicht, steht es hier. Je mehr Wochen an Werten da sind, desto mehr Regeln greifen.</p>
+    </section>
+    {% endfor %}
+  </div>
+  <aside class="befunde-rand">
+    {{ form_karte(form) }}
+    <section class="card bf-regeln">
+      <h2>So entstehen Befunde</h2>
+      <ul class="small">
+        <li><strong>Erholung:</strong> Ruhepuls und HRV der letzten 7 Tage gegen die 4 Wochen davor.</li>
+        <li><strong>Training:</strong> Puls je Training gegen deine Zonen (Karvonen), Belastung dieser Woche gegen die 3 Wochen davor.</li>
+        <li><strong>Schlaf:</strong> Dauer gegen dein Ziel, Schwankung der Schlafenszeit.</li>
+        <li><strong>Körper und Herz:</strong> Gewichtstrend, Blutdruck gegen 135/85 (ESH 2023).</li>
+        <li><strong>Gewohnheiten:</strong> Serien, Wochentage, starke Zusammenhänge.</li>
+      </ul>
+      <p class="small muted">Feste Regeln statt KI: Nichts verlässt dein NAS. Zusammenhang heißt nicht Ursache, und kein Befund ersetzt ärztlichen Rat.</p>
+    </section>
+  </aside>
+</div>
+{% endblock %}

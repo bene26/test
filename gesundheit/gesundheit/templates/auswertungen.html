@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% from "_wahl.html" import wert_auswahl %}
+{% block title %}Auswertungen{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Auswertungen</h1><p class="sub">{{ person.name }}: Zeiträume im Vergleich, Bestwerte, Muster nach Wochentag und das ganze Jahr auf einen Blick.</p></div>
+</div>
+
+<form class="card auswahl-leiste" method="get" data-auto-submit>
+  <div class="auswahl-feld">{{ wert_auswahl('wert', groups, key, 'Wert', 'a-wert') }}</div>
+  <fieldset class="auswahl-feld">
+    <legend class="wahl-label">Zeitraum</legend>
+    <div class="seg">{% for d, label in periods.items() %}<label><input type="radio" name="zeitraum" value="{{ d }}"{% if d == days %} checked{% endif %}>{{ label }}</label>{% endfor %}</div>
+  </fieldset>
+  <noscript><button class="btn" type="submit">Anzeigen</button></noscript>
+</form>
+
+<section class="card" aria-labelledby="z-titel">
+  <h2 id="z-titel">{{ meta.label }}: dieser Zeitraum im Vergleich</h2>
+  <div class="vergleich-zahlen">
+    <div class="vz vz-jetzt">
+      <span class="vz-label">{{ cmp.start|tag }} – {{ cmp.end|tag }}</span>
+      <strong class="vz-wert">{{ fmt(key, cmp.current.avg) }}</strong>
+      <span class="vz-sub">{% if meta.agg == 'sum' and cmp.current.total %}Schnitt je Tag · zusammen {{ fmt(key, cmp.current.total) }}{% else %}Durchschnitt aus {{ cmp.current.count }} Tagen{% endif %}</span>
+    </div>
+    <div class="vz">
+      <span class="vz-label">Zeitraum davor</span>
+      <strong class="vz-wert">{{ fmt(key, cmp.previous.avg) }}</strong>
+      {% if cmp.change_prev is not none %}<span class="aenderung trend-{{ cmp.trend_prev }}">{{ cmp.change_prev|prozent }}</span>{% else %}<span class="vz-sub">keine Werte</span>{% endif %}
+    </div>
+    <div class="vz">
+      <span class="vz-label">Vor einem Jahr</span>
+      <strong class="vz-wert">{{ fmt(key, cmp.year.avg) }}</strong>
+      {% if cmp.change_year is not none %}<span class="aenderung trend-{{ cmp.trend_year }}">{{ cmp.change_year|prozent }}</span>{% else %}<span class="vz-sub">keine Werte</span>{% endif %}
+    </div>
+    <div class="vz">
+      <span class="vz-label">Spanne im Zeitraum</span>
+      <strong class="vz-wert vz-klein">{{ fmt(key, cmp.current.min) }} – {{ fmt(key, cmp.current.max) }}</strong>
+      <span class="vz-sub">niedrigster bis höchster Tag</span>
+    </div>
+  </div>
+  {{ overlay }}
+  <p class="small muted">Gestrichelt: der Zeitraum davor und derselbe Zeitraum vor 52 Wochen, auf diese Tage verschoben. So liegen gleiche Wochentage übereinander.</p>
+</section>
+
+<div class="columns-even">
+  <section class="card" aria-labelledby="b-titel">
+    <h2 id="b-titel">{{ icon('trophy') }} Bestwerte und Serien</h2>
+    {% if rec.count %}
+    <ul class="rekorde">
+      <li><span>Bester Tag</span><strong>{{ fmt(key, rec.best.value) }}</strong><small>{{ rec.best.day|datum_wt }}</small></li>
+      {% if meta.good %}<li><span>Schwächster Tag</span><strong>{{ fmt(key, rec.worst.value) }}</strong><small>{{ rec.worst.day|datum_wt }}</small></li>{% endif %}
+      <li><span>Schnitt seit {{ rec.first|datum }}</span><strong>{{ fmt(key, rec.avg) }}</strong><small>{{ rec.count|zahl }} Tage</small></li>
+      {% if rec.goal %}
+      <li><span>Ziel ({{ fmt(key, rec.goal) }}) erreicht</span><strong>{{ rec.reached_days|zahl }} Tage</strong><small>{{ rec.reached_share|zahl }} % aller Tage</small></li>
+      <li class="serie-hervor"><span>Längste Serie</span><strong>{{ rec.longest }} Tage</strong><small>{% if rec.longest_end %}bis {{ rec.longest_end|datum }}{% endif %}</small></li>
+      <li class="serie-hervor"><span>Aktuelle Serie</span><strong>{{ rec.current }} Tage</strong><small>{{ 'weiter so!' if rec.current >= 3 else 'Tage in Folge mit Ziel' }}</small></li>
+      {% endif %}
+    </ul>
+    {% else %}<p class="muted">Noch keine Werte.</p>{% endif %}
+  </section>
+
+  <section class="card" aria-labelledby="w-titel">
+    <h2 id="w-titel">Nach Wochentag <span class="count">letzte 12 Monate</span></h2>
+    {{ weekday_chart }}
+    {% if best_day %}<p class="small">Im Schnitt {{ 'am niedrigsten' if meta.good == 'down' else 'am höchsten' }}: <strong>{{ best_day }}</strong>.</p>{% endif %}
+  </section>
+</div>
+
+<section class="card" aria-labelledby="k-titel">
+  <h2 id="k-titel">Das Jahr auf einen Blick <span class="count">{{ meta.label }} je Tag</span></h2>
+  {{ heat }}
+</section>
+
+<p class="actions"><a class="btn" href="{{ url_for('auswertungen.zusammenhaenge') }}">{{ icon('scatter') }} Zusammenhänge entdecken</a> <a class="btn" href="{{ url_for('vergleich.index', wert=key, zeitraum=days) }}">{{ icon('users') }} Mit anderen vergleichen</a> <a class="btn" href="{{ url_for('berichte.index') }}">{{ icon('report') }} Bericht</a></p>
+{% endblock %}

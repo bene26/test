@@ -1,0 +1,12 @@
+<h2>Nächstes Meeting</h2>
+{% if next_meeting %}
+<a class="next-meeting" href="{{ url_for('meetings.detail', meeting_id=next_meeting.id) }}">
+  <span class="nm-when">{{ next_meeting_in }}</span>
+  <span class="nm-time">{{ next_meeting.starts_at[11:16] }}</span>
+  <span class="nm-title">{{ next_meeting.title }}</span>
+  <span class="nm-meta">{{ next_meeting.starts_at|datum_wt }}{% if next_meeting.location %} · {{ next_meeting.location }}{% endif %}{% if next_meeting.project_name or next_meeting.firm_name %} · {{ [next_meeting.project_name, next_meeting.firm_name]|select|join(' · ') }}{% endif %}</span>
+  <span class="nm-foot"><span>{{ next_meeting_actions }} offene Maßnahme{{ 'n' if next_meeting_actions != 1 }} aus früheren Terminen</span><span class="btn btn-primary btn-small">Agenda öffnen</span></span>
+</a>
+{% else %}
+<p class="empty">Kein Meeting geplant.</p>
+{% endif %}
