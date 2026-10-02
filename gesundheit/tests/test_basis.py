@@ -170,3 +170,24 @@ def test_appearance_is_saved_and_validated(logged_in):
 def test_key_file_is_private(app):
     key = Path(app.config["DATA_DIR"]) / "schluessel"
     assert key.exists() and oct(key.stat().st_mode & 0o777) == "0o600"
+
+
+def test_backup_command_keeps_the_newest_copies(app, db, monkeypatch, tmp_path):
+    from gesundheit import manage
+    import time as _time
+    monkeypatch.setenv("GESUNDHEIT_DATA_DIR", app.config["DATA_DIR"])
+    db.execute("INSERT INTO persons (name, color, position, created_at) VALUES ('X', 'blau', 9, '2026-01-01')")
+    db.commit()
+    for _ in range(3):
+        assert manage.main(["sicherung", "2"]) == 0
+        _time.sleep(1.05)   # one copy per second (file name has seconds)
+    copies = sorted((Path(app.config["DATA_DIR"]) / "sicherungen").glob("gesundheit-*.sqlite3"))
+    assert len(copies) == 2
+    import sqlite3
+    restored = sqlite3.connect(copies[-1])
+    assert restored.execute("SELECT COUNT(*) FROM persons WHERE name = 'X'").fetchone()[0] == 1
+    restored.close()
+    assert oct(copies[-1].stat().st_mode & 0o777) == "0o600"
+    assert manage.main(["sicherung", "viele"]) == 2
+    monkeypatch.setenv("GESUNDHEIT_DATA_DIR", str(tmp_path / "leer"))
+    assert manage.main(["sicherung"]) == 0

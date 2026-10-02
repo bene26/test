@@ -4,7 +4,7 @@ Selbst gehostetes Werkzeug für Projektleitung mit mehreren Projekten, eigenen L
 
 Konzept und Hintergrund: [`docs/konzept.md`](docs/konzept.md). Installation: [`docs/installation-ugreen.md`](docs/installation-ugreen.md). Übergabe an andere Entwickler oder Agenten (alle Seiten, Design, Animationen, Bilder): [`docs/uebergabe/`](docs/uebergabe/README.md).
 
-**Zweite App im Repository:** [`gesundheit/`](gesundheit/README.md) ist das **Gesundheits-Cockpit** für Withings, Garmin und Apple Health, als eigener Container auf demselben NAS (Port 8090), mit eigenem Login und eigener Datenbank, im selben Design.
+**Zweite App im Repository:** [`gesundheit/`](gesundheit/README.md) ist das **Gesundheits-Cockpit** für Withings, Garmin und Apple Health, als eigener Container auf demselben NAS (Port 6767), mit eigenem Login und eigener Datenbank, im selben Design.
 
 ## Was die Version 0.6 kann
 

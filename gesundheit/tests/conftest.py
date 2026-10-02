@@ -17,7 +17,7 @@ def app(tmp_path, monkeypatch):
         "SCHEDULER": False,
         "BACKGROUND_JOBS": False,
         "IMPORT_DIR": str(tmp_path / "import"),
-        "BASE_URL": "http://nas.local:8090",
+        "BASE_URL": "http://nas.local:6767",
         "WITHINGS_CLIENT_ID": "",
         "WITHINGS_CLIENT_SECRET": "",
     })

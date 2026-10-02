@@ -71,21 +71,38 @@ Beispiel: An Tagen mit Garmin-Uhr zählen deren Schritte, an Tagen mit Apple Wat
 
 ## Installation auf dem UGREEN NAS
 
+### Am einfachsten: vom Mac per Doppelklick
+
+`gesundheit/deploy_to_nas.command` im Finder doppelklicken (beim ersten Mal: Rechtsklick → Öffnen). Das Skript
+
+1. meldet sich einmal per SSH am NAS an (Standard: `Benedikt@192.168.1.43`, Ordner `/volume2/docker/gesundheits-cockpit`, Port 6767; anders mit z. B. `NAS_IP=… ./deploy_to_nas.command` oder oben im Skript),
+2. stellt alle Fragen gleich am Anfang (Rebuild ohne Cache? steht in der `.env` noch ein alter Port?),
+3. **sichert die Datenbank**, solange die alte Version noch läuft (`data/sicherungen`, die letzten zehn bleiben); klappt das nicht, bricht es ab, ohne etwas zu ändern,
+4. kopiert nur, was der Container braucht (`gesundheit/` ohne Daten, Tests und `.env`, dazu das Aussehen aus `cockpit/`), erst in einen Zwischenordner, dann wird der Code ausgetauscht,
+5. legt beim ersten Mal die `.env` aus der Vorlage an (Adresse, Port, die Benutzer-IDs des NAS) und überschreibt eine vorhandene nie,
+6. baut und startet den Container, wartet, bis `/health` antwortet, und zeigt beim ersten Start den **Einrichtungscode**.
+
+Meldet es nicht „Deploy abgeschlossen“, läuft auf dem NAS noch der alte Stand; die Meldung sagt, was zu tun ist.
+
+### Von Hand
+
 Voraussetzungen und Grundlagen wie beim Projekt-Cockpit: [`docs/installation-ugreen.md`](../docs/installation-ugreen.md). Kurz:
 
 1. **Das ganze Repository** auf das NAS kopieren (z. B. nach `docker/projekt-cockpit`). Die Gesundheits-App liegt im Unterordner `gesundheit/` und benutzt das Design aus `cockpit/static`.
 2. In `docker/projekt-cockpit/gesundheit` die Datei `.env.example` nach `.env` kopieren und mindestens eintragen:
    ```
-   GESUNDHEIT_BASE_URL=http://<IP-des-NAS>:8090
+   GESUNDHEIT_BASE_URL=http://<IP-des-NAS>:6767
    ```
 3. In der **Docker**-App ein neues **Projekt** anlegen, Name `gesundheits-cockpit`, Speicherpfad `docker/projekt-cockpit/gesundheit`, bereitstellen. Oder per SSH:
    ```
    cd /volume1/docker/projekt-cockpit/gesundheit
    sudo docker compose up -d --build
    ```
-4. Den **Einrichtungscode** aus dem Container-Log oder aus `gesundheit/data/EINRICHTUNGSCODE.txt` holen, `http://<IP-des-NAS>:8090` öffnen, Konto anlegen.
+4. Den **Einrichtungscode** aus dem Container-Log oder aus `gesundheit/data/EINRICHTUNGSCODE.txt` holen, `http://<IP-des-NAS>:6767` öffnen, Konto anlegen.
 
-Beide Apps laufen nebeneinander: Projekt-Cockpit auf Port 8080, Gesundheits-Cockpit auf 8090. Sie teilen sich nur das Aussehen, keine Daten und kein Login.
+Beide Apps laufen nebeneinander: Projekt-Cockpit auf Port 8080, Gesundheits-Cockpit auf 6767. Sie teilen sich nur das Aussehen, keine Daten und kein Login.
+
+**Anderer Port:** in `.env` `GESUNDHEIT_PORT` und den Port in `GESUNDHEIT_BASE_URL` ändern, `docker compose up -d` ausführen und bei Withings die **Callback URL** auf die neue Adresse anpassen (sie muss genau stimmen, sonst schlägt das Verbinden fehl).
 
 ### Withings einrichten (einmalig, etwa 5 Minuten)
 
@@ -134,7 +151,7 @@ Die Einstufungen (Blutdruck nach ESH 2023, BMI nach WHO) sind Orientierung, **ke
 
 | Variable | Standard | Bedeutung |
 |---|---|---|
-| `GESUNDHEIT_PORT` | `8090` | Port auf dem NAS |
+| `GESUNDHEIT_PORT` | `6767` | Port auf dem NAS |
 | `GESUNDHEIT_BASE_URL` | – | Adresse der App, für den Withings-Rückruf |
 | `TZ` | `Europe/Berlin` | Zeitzone für Tage und Nächte |
 | `PUID`, `PGID` | `1000` | Benutzer, unter dem die App läuft |
@@ -155,9 +172,9 @@ sudo docker exec -it -u 1000:1000 gesundheits-cockpit python -m gesundheit.manag
 ```
 cd gesundheit
 pip install -r requirements.txt pytest
-python -m pytest                      # 268 Tests
+python -m pytest                      # 269 Tests
 python tools/demo_daten.py /tmp/demo  # ein Jahr Beispieldaten für drei Personen (nie in den echten Datenordner!)
-GESUNDHEIT_DATA_DIR=/tmp/demo flask --app gesundheit run --port 8090
+GESUNDHEIT_DATA_DIR=/tmp/demo flask --app gesundheit run --port 6767
 ```
 
 Aufbau: `gesundheit/katalog.py` (Quellen, Bereiche, alle Werte), `persons.py` (Profile, gezeigte Person), `store.py` (Speichern und Quellen-Reihenfolge, immer je Person), `auswertung.py` (Zeiträume, Bestwerte, Zusammenhänge, Vergleich, Berichte), `belastung.py` (Belastung, Fitness, Ermüdung, Form), `befunde.py` (Regeln für die Befunde), `coach.py` (Wochenplan), `prognose.py` (Zielprognosen), `ausblick.py` (Szenarien positiv, wie bisher, negativ), `messungen.py` (Maßband und Praxis: Eingabe, CSV, Vergleich zu Hause gegen Praxis), `fragen.py` (vorbereitete Antworten), `uebersicht.py` (Skyline, Datenquellen), `withings.py`, `apple.py`, `garmin.py` (Anbindungen), `jobs.py` (Hintergrund-Abgleich und Importe), `charts.py` (Diagramme als SVG, auch die isometrische Skyline), `views/` (Seiten). Das Design kommt aus `../cockpit/static` (im Container nach `/app/shared` kopiert); `themes.py` übernimmt die Designs des Cockpits (ein Test prüft das) und ergänzt „Indigo“, dessen Farben in `static/gesundheit.css` stehen.

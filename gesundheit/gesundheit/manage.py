@@ -1,16 +1,23 @@
 """Maintenance from the command line.
 
     python -m gesundheit.manage passwort <benutzername>
+    python -m gesundheit.manage sicherung [anzahl]
 
-Sets a new password and signs out all devices. In Docker, run it as the app
+"passwort" sets a new password and signs out all devices. In Docker, run it as the app
 user so new database files keep the right owner:
 
     docker exec -it -u 1000:1000 gesundheits-cockpit python -m gesundheit.manage passwort <name>
+
+"sicherung" writes a consistent copy of the database to <Datenordner>/sicherungen (SQLite
+backup, safe while the app runs) and keeps the newest copies (default 10). The deploy script
+runs it before every update.
 """
 
 import getpass
 import os
+import sqlite3
 import sys
+from datetime import datetime
 from pathlib import Path
 
 from werkzeug.security import generate_password_hash
@@ -49,9 +56,43 @@ def reset_password(username: str) -> int:
     return 0
 
 
+def backup(keep: int = 10) -> int:
+    data_dir = Path(os.environ.get("GESUNDHEIT_DATA_DIR", "/data"))
+    path = data_dir / "gesundheit.sqlite3"
+    if not path.exists():
+        print(f"Keine Datenbank unter {path} gefunden, nichts zu sichern.")
+        return 0
+    target_dir = data_dir / "sicherungen"
+    target_dir.mkdir(mode=0o700, exist_ok=True)
+    target = target_dir / f"gesundheit-{datetime.now():%Y%m%d-%H%M%S}.sqlite3"
+    source = sqlite3.connect(path)
+    copy = sqlite3.connect(target)
+    try:
+        source.backup(copy)
+    finally:
+        copy.close()
+        source.close()
+    os.chmod(target, 0o600)
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        # run as root (docker exec): hand the files to the owner of the data folder
+        owner = data_dir.stat()
+        for item in (target_dir, target):
+            os.chown(item, owner.st_uid, owner.st_gid)
+    copies = sorted(target_dir.glob("gesundheit-*.sqlite3"))
+    for old in copies[:-keep] if keep > 0 else []:
+        old.unlink()
+    print(f"Sicherung: {target} ({min(len(copies), keep)} Sicherungen vorhanden)")
+    return 0
+
+
 def main(argv: list[str]) -> int:
     if len(argv) == 2 and argv[0] == "passwort":
         return reset_password(argv[1])
+    if argv and argv[0] == "sicherung" and len(argv) <= 2:
+        if len(argv) == 2 and not argv[1].isdigit():
+            print("Anzahl muss eine Zahl sein.", file=sys.stderr)
+            return 2
+        return backup(int(argv[1]) if len(argv) == 2 else 10)
     print(__doc__.strip())
     return 2
 

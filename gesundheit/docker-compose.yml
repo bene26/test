@@ -9,7 +9,7 @@ services:
     container_name: gesundheits-cockpit
     restart: unless-stopped
     ports:
-      - "${GESUNDHEIT_PORT:-8090}:8090"
+      - "${GESUNDHEIT_PORT:-6767}:6767"
     volumes:
       - ./data:/data
       - ./import:/import:ro          # optional: very large Apple Health exports go here

@@ -16,3 +16,4 @@ tools
 *.md
 **/__pycache__
 **/*.pyc
+.upload

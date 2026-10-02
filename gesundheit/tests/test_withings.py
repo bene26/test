@@ -70,7 +70,7 @@ def connect(app, logged_in, fake):
     query = parse_qs(location.query)
     assert location.netloc == "account.withings.com"
     assert query["scope"] == [withings.SCOPE] and query["client_id"] == ["abc123client"]
-    assert query["redirect_uri"] == ["http://nas.local:8090/quellen/withings/zurueck"]
+    assert query["redirect_uri"] == ["http://nas.local:6767/quellen/withings/zurueck"]
     return query["state"][0]
 
 
