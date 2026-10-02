@@ -76,7 +76,7 @@ Beispiel: An Tagen mit Garmin-Uhr zählen deren Schritte, an Tagen mit Apple Wat
 `gesundheit/deploy_to_nas.command` im Finder doppelklicken (beim ersten Mal: Rechtsklick → Öffnen). Das Skript
 
 1. meldet sich einmal per SSH am NAS an (Standard: `Benedikt@192.168.1.43`, Ordner `/volume2/docker/gesundheits-cockpit`, Port 6767; anders mit z. B. `NAS_IP=… ./deploy_to_nas.command` oder oben im Skript),
-2. stellt alle Fragen gleich am Anfang (Rebuild ohne Cache? steht in der `.env` noch ein alter Port?),
+2. prüft, ob der Port auf dem NAS frei ist (sonst Abbruch, bevor irgendetwas geändert wird, mit Hinweis auf `PORT=… ./deploy_to_nas.command`), und stellt alle Fragen gleich am Anfang (Rebuild ohne Cache? steht in der `.env` noch ein anderer Port?),
 3. **sichert die Datenbank**, solange die alte Version noch läuft (`data/sicherungen`, die letzten zehn bleiben); klappt das nicht, bricht es ab, ohne etwas zu ändern,
 4. kopiert nur, was der Container braucht (`gesundheit/` ohne Daten, Tests und `.env`, dazu das Aussehen aus `cockpit/`), erst in einen Zwischenordner, dann wird der Code ausgetauscht,
 5. legt beim ersten Mal die `.env` aus der Vorlage an (Adresse, Port, die Benutzer-IDs des NAS) und überschreibt eine vorhandene nie,

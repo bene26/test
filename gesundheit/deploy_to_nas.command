@@ -93,6 +93,29 @@ echo "✅ SSH verbunden (alle weiteren Schritte ohne Passwort)"
 
 DOCKER=$($SSH "$REMOTE" 'command -v docker || echo /usr/bin/docker' 2>/dev/null)
 
+# ─── Ist der Port auf dem NAS frei? (vor dem langen Build prüfen) ────────────
+# Belegt ein anderer Container oder ein anderes Programm den Port, würde
+# „docker compose up“ erst nach dem Build scheitern. Der eigene Container
+# darf ihn haben, er wird ohnehin neu gestartet.
+PORT_USER=$($SSH "$REMOTE" "$DOCKER ps --format '{{.Names}} {{.Ports}}' 2>/dev/null \
+  | grep -E ':$PORT->' | awk '{print \$1}' | grep -vx gesundheits-cockpit | head -1")
+if [ -z "$PORT_USER" ]; then
+  OURS=$($SSH "$REMOTE" "$DOCKER ps --format '{{.Names}} {{.Ports}}' 2>/dev/null \
+    | grep -E '^gesundheits-cockpit .*:$PORT->' | head -1")
+  if [ -z "$OURS" ]; then
+    BUSY=$($SSH "$REMOTE" "bash -c 'exec 3<>/dev/tcp/127.0.0.1/$PORT' 2>/dev/null && echo belegt")
+    if [ "$BUSY" = "belegt" ]; then PORT_USER="ein anderes Programm"; fi
+  fi
+fi
+if [ -n "$PORT_USER" ]; then
+  echo ""
+  echo "❌ Port $PORT ist auf dem NAS schon belegt (von: $PORT_USER)."
+  echo "   Es wurde nichts geändert. Mit einem anderen Port starten, z. B. im Terminal:"
+  echo "   PORT=6768 \"$0\""
+  echo "   (oder oben im Skript PORT ändern)"
+  ende 1
+fi
+
 # ─── Alle Rückfragen JETZT, vor den langen Schritten ─────────────────────────
 NOCACHE=""
 read -p "🔄 Kompletten Rebuild ohne Cache erzwingen? (nur bei Problemen nötig) [j/N]: " FORCE_FULL
