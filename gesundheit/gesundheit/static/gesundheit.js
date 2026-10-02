@@ -280,6 +280,10 @@
     return p < 20 ? "unwahrscheinlich" : p < 45 ? "eher nicht" : p < 70 ? "gut möglich" : "sehr wahrscheinlich";
   }
 
+  document.querySelectorAll("[data-vergleiche]").forEach(function (card) {
+    views(card, "data-vergleich-zeige", "data-vergleich");
+  });
+
   document.querySelectorAll("[data-prognosen]").forEach(function (card) {
     views(card, "data-prognose-zeige", "data-prognose");
     card.querySelectorAll("[data-prognose]").forEach(function (panel) {

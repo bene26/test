@@ -143,7 +143,7 @@
     <ul class="quellen-kacheln">
       {% for t in sources %}
       <li class="qk qk-{{ t.state }}">
-        <a href="{{ url_for('quellen.index') }}#{{ t.key }}">
+        <a href="{{ url_for('messungen.index') if t.key == 'manuell' else url_for('quellen.index') ~ '#' ~ t.key }}">
           <span class="qk-kopf"><span class="qk-name">{{ t.name }}</span><span class="qk-zustand"><span class="qk-punkt" aria-hidden="true"></span>{{ {'an': 'aktiv', 'aus': 'aus', 'fehler': 'Fehler', 'laeuft': 'läuft'}[t.state] }}</span></span>
           <span class="qk-geraete">{{ t.devices }}</span>
           <span class="qk-fuss"><span>{{ t.status }}</span><span>{{ t.count|zahl }} Werte in 7 Tagen</span></span>

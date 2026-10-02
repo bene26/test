@@ -7,7 +7,7 @@ from datetime import timedelta
 
 from . import belastung, charts, store, util
 from .auswertung import WEEKDAYS_LONG
-from .katalog import APPLE_SOURCES
+from .katalog import APPLE_SOURCES, MANUAL_SOURCES
 
 PERIODS = {"3M": (91, "Deine letzten 3 Monate"), "6M": (182, "Deine letzten 6 Monate"),
            "12M": (364, "Dein Jahr · 12 Monate")}
@@ -88,6 +88,7 @@ SOURCE_TILES = [
     ("withings", "Withings", "Waage, Blutdruck, Schlafmatte, Thermometer", ("withings",)),
     ("garmin", "Garmin direkt", "Body Battery, Stress, HRV, Schlaf, Trainings", ("garmin",)),
     ("apple", "Apple Health", "Apple Watch, iPhone und Apps, die dort schreiben", APPLE_SOURCES),
+    ("manuell", "Maßband und Praxis", "Umfänge und Körperanalyse, selbst eingetragen", MANUAL_SOURCES),
 ]
 
 
@@ -113,7 +114,17 @@ def sources(db, pid: int, person: dict, today) -> list[dict]:
     for key, name, devices, keys in SOURCE_TILES:
         tile = {"key": key, "name": name, "devices": devices,
                 "count": _recent_count(db, pid, keys, since)}
-        if key == "apple":
+        if key == "manuell":
+            marks = ", ".join("?" for _ in keys)
+            last = db.execute(f"SELECT MAX(measured_at) FROM measurements WHERE person_id = ? "
+                              f"AND source IN ({marks})", (pid, *keys)).fetchone()[0]
+            if not last:
+                tile.update(state="aus", status="noch nichts eingetragen")
+            else:
+                recent = (today - util.to_date(last)).days <= 31
+                tile.update(state="an" if recent else "aus",
+                            status=f"zuletzt {util.fmt_ago(last)}")
+        elif key == "apple":
             if not last_import:
                 tile.update(state="aus", status="noch kein Import")
             elif last_import["status"] == "fehler":

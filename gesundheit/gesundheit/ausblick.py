@@ -34,8 +34,9 @@ BUILD_CAP = 1.3          # the positive fitness path builds up to 30 % more load
 LEVEL_WEEKS = 3
 EXPECTED_LEVEL_WEEKS = 4
 # Fastest change per week that a scenario may assume (trend values).
-CAPS = {"weight": lambda now: now * 0.01, "fat_ratio": lambda now: 0.4, "vo2max": lambda now: 0.4}
-TREND_KEYS = ("weight", "fat_ratio", "vo2max")
+CAPS = {"weight": lambda now: now * 0.01, "fat_ratio": lambda now: 0.4, "vo2max": lambda now: 0.4,
+        "circ_waist": lambda now: 1.0}
+TREND_KEYS = ("weight", "circ_waist", "fat_ratio", "vo2max")
 LEVEL_KEYS = ("resting_hr", "hrv", "steps", "schlaf_dauer")
 LEVER_KEYS = ("schlaf_dauer", "steps", "training_min", "zubettgehen", "stress_avg")
 LABELS = {"gut": "Positiv", "erwartet": "Wie bisher", "schlecht": "Negativ"}

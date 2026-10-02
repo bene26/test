@@ -4,7 +4,7 @@ from datetime import timedelta
 
 from flask import Blueprint, g, render_template
 
-from .. import bewertung, charts, store, util
+from .. import bewertung, charts, messungen, store, util
 from ..db import get_db
 from ..katalog import EKG_LABELS, METRICS, WORKOUT_KINDS
 from . import PERIODS, period
@@ -56,6 +56,8 @@ def koerper():
                                     "bone_mass"), start, end)[:40]
     return render_template(
         "koerper.html", days=days, periods=PERIODS, weight=weight, latest_weight=latest_weight,
+        circumferences=messungen.circumferences(db, pid, today, max(days, 365)),
+        practice=messungen.practice(db, pid, today),
         weight_tile=tile(db, pid, "weight", today), bmi=bmi,
         bmi_category=bewertung.bmi_category(bmi) if bmi else None, height=height,
         composition=composition, fat=fat, weighings=weighings)

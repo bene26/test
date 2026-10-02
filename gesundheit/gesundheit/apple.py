@@ -29,6 +29,7 @@ QUANTITY = {
     "HKQuantityTypeIdentifierBodyFatPercentage": ("fat_ratio", "point"),
     "HKQuantityTypeIdentifierLeanBodyMass": ("fat_free_mass", "point"),
     "HKQuantityTypeIdentifierHeight": ("height", "point"),
+    "HKQuantityTypeIdentifierWaistCircumference": ("circ_waist", "point"),
     "HKQuantityTypeIdentifierBloodPressureSystolic": ("bp_sys", "point"),
     "HKQuantityTypeIdentifierBloodPressureDiastolic": ("bp_dia", "point"),
     "HKQuantityTypeIdentifierBodyTemperature": ("temperature", "point"),
@@ -68,7 +69,7 @@ def convert(metric: str, value: float, unit: str) -> float | None:
     if metric in ("weight", "fat_free_mass"):
         return {"kg": value, "lb": value * 0.45359237, "g": value / 1000,
                 "st": value * 6.35029318}.get(unit)
-    if metric == "height":
+    if metric == "height" or metric.startswith("circ_"):
         return {"cm": value, "m": value * 100, "in": value * 2.54, "ft": value * 30.48,
                 "mm": value / 10}.get(unit)
     if metric in ("fat_ratio", "spo2"):
@@ -97,6 +98,8 @@ def source_key(source_name: str, device: str) -> str:
         return "apple_garmin"
     if "withings" in name or "health mate" in name or "manufacturer:withings" in dev:
         return "apple_withings"
+    if "renpho" in name or "manufacturer:renpho" in dev:
+        return "apple_renpho"
     if "model:watch" in dev or "watch" in name:
         return "apple_watch"
     if "model:iphone" in dev or "iphone" in name:

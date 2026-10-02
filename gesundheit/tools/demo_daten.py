@@ -26,12 +26,12 @@ PROFILES = {
              "watch_share": 0.85, "steps": 9800, "sleep": 412, "weight": (82.4, -3.6),
              "fat": (22.5, -2.2), "resting": (58, -3), "bp": (131, 84), "goal_steps": 10000,
              "goal_weight_dg": 785, "goal_weight_days": 120, "workout_hr": 152,
-             "hard_last_week": True,
+             "hard_last_week": True, "tape": (88.0, -3.5), "praxis": (160, 112, 63, 14),
              "sports": {1: "laufen", 3: "kraft", 5: "radfahren", 6: "wandern"}},
     "Ben": {"color": "blau", "birth_year": 1984, "height_cm": 188, "watch": "apple_watch",
             "watch_share": 0.95, "steps": 7600, "sleep": 395, "weight": (91.0, 1.2),
             "fat": (24.0, 0.6), "resting": (63, 1), "bp": (140, 90), "goal_steps": 8000,
-            "bed_spread": 75, "sunday": 0.45,
+            "bed_spread": 75, "sunday": 0.45, "tape": (101.0, 1.0),
             "sports": {2: "radfahren", 6: "laufen"}},
     "Lena": {"color": "gruen", "birth_year": 2010, "height_cm": 164, "watch": "garmin",
              "watch_share": 0.9, "steps": 11800, "sleep": 470, "weight": (52.0, 1.5),
@@ -165,9 +165,46 @@ def fill(db, pid: int, today: date, days: int = 365, seed: int = 7, profile: dic
             if kind == "laufen":
                 store.upsert_workout(db, pid, "iphone", f"demo-iphone{workout_no}",
                                      dict(data, started_at=begin + timedelta(minutes=1)))
+    measurements += _tape_and_practice(rng, profile, today, days)
     store.add_measurements(db, pid, measurements)
     store.set_daily_many(db, pid, daily)
     db.commit()
+
+
+def _tape_and_practice(rng, profile: dict, today: date, days: int) -> list:
+    """Sunday mornings with the tape measure, and a few analyses at the practice."""
+    rows = []
+    if profile.get("tape"):
+        waist0, drift = profile["tape"]
+        for back in range(min(days, 210), -1, -1):
+            day = today - timedelta(days=back)
+            if day.weekday() != 6:
+                continue
+            progress = 1 - back / 210
+            waist = waist0 + drift * progress + rng.gauss(0, 0.4)
+            at = _at(day, 7, 40)
+            group = f"massband-demo{back:04d}"
+            sites = {"circ_waist": waist, "circ_belly": waist + 6 + rng.gauss(0, 0.4),
+                     "circ_hip": waist + 14 + drift * 0.3 * progress, "circ_chest": waist + 12,
+                     "circ_neck": 36.5 + rng.gauss(0, 0.2), "circ_shoulders": 112 + rng.gauss(0, 0.5),
+                     "circ_arm_l": 31 + rng.gauss(0, 0.3), "circ_arm_r": 31.4 + rng.gauss(0, 0.3),
+                     "circ_thigh_l": 56 + drift * 0.2 * progress, "circ_thigh_r": 56.4 + drift * 0.2 * progress,
+                     "circ_calf_l": 37.5, "circ_calf_r": 37.8}
+            rows += [(k, v, at, "massband", group) for k, v in sites.items()]
+    for n, back in enumerate(profile.get("praxis", ())):
+        day = today - timedelta(days=back)
+        at = _at(day, 16, 30)
+        base, drift = profile["weight"]
+        weight = base + drift * (1 - back / days) + rng.gauss(0, 0.3)
+        fat = profile["fat"][0] + profile["fat"][1] * (1 - back / days) - 2.0 + rng.gauss(0, 0.3)
+        values = {"weight": weight, "fat_ratio": fat, "fat_mass": weight * fat / 100,
+                  "fat_free_mass": weight * (1 - fat / 100), "muscle_mass": weight * 0.42,
+                  "hydration": weight * (1 - fat / 100) * 0.73, "bmr": 1720 + n * 12,
+                  "phase_angle": 5.6 + n * 0.15, "bia_r": 520 - n * 6, "bia_xc": 52 + n * 0.8,
+                  "ecw": 19.5 - n * 0.1, "icw": 24.8 + n * 0.2, "bcm": 31.0 + n * 0.4,
+                  "ecm": 27.5 - n * 0.2, "ecm_bcm": 0.89 - n * 0.02, "cell_share": 52.5 + n * 0.5}
+        rows += [(k, v, at, "praxis", f"praxis-demo{n:04d}") for k, v in values.items()]
+    return rows
 
 
 def fill_household(db, today: date, days: int = 365) -> list[int]:

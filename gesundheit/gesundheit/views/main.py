@@ -177,7 +177,9 @@ def history(metric):
 # Pages and values for the card file (Strg+K), see komponenten.js.
 PAGES = [
     ("main.index", "Übersicht", "Heute, Ringe, Kennzahlen"),
-    ("bereiche.koerper", "Körper", "Gewicht, Fett, Muskeln, BMI"),
+    ("bereiche.koerper", "Körper", "Gewicht, Fett, Muskeln, BMI, Umfänge, Praxis"),
+    ("befunde.index", "Befunde", "Was auffällt, mit Rechenweg"),
+    ("ausblick.index", "Ausblick", "Positiv, wie bisher, negativ"),
     ("bereiche.herz", "Herz und Kreislauf", "Blutdruck, Ruhepuls, HRV, EKG"),
     ("bereiche.schlaf", "Schlaf", "Dauer, Phasen, Bewertung"),
     ("bereiche.aktivitaet", "Aktivität", "Schritte, Trainings, Body Battery"),
@@ -187,6 +189,7 @@ PAGES = [
     ("berichte.index", "Berichte", "Woche und Monat, Blutdruck-Protokoll"),
     ("personen.index", "Personen", "Profile anlegen und bearbeiten"),
     ("quellen.index", "Quellen", "Withings, Garmin, Apple Health"),
+    ("messungen.index", "Messungen eintragen", "Maßband, Körperanalyse in der Praxis, CSV"),
     ("einstellungen.index", "Einstellungen", "Darstellung, Ziele, Passwort"),
     ("daten.index", "Daten", "Export und Löschen"),
 ]

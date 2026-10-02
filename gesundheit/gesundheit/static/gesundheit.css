@@ -1079,3 +1079,59 @@ a.ab-zeile:hover { text-decoration: none; background: var(--surface-2); }
 .pg-szenarien strong { font-family: var(--font-display); font-size: 1.3rem; font-weight: 750; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .pg-szenarien small { color: var(--muted); font-size: 0.78rem; }
 @media (max-width: 640px) { .pg-szenarien ul { grid-template-columns: 1fr; } }
+
+/* Circumferences and the analysis at the practice (body page) */
+.u-taille { --person: var(--accent); }
+.u-bauch { --person: #f08a3c; }
+.u-huefte { --person: #1fa8a0; }
+.u-praxis { --person: #e0457b; }
+.umfang-raster { display: grid; grid-template-columns: minmax(240px, 0.8fr) minmax(0, 2fr); gap: 18px; align-items: start; margin-bottom: 18px; }
+.umfang-raster > .umfang-kacheln:only-child { grid-column: 1 / -1; }
+.umfang-whtr { margin: 0; }
+.umfang-kacheln { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+.umfang-kachel { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border: 1px solid var(--card-border); border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--shadow); }
+.uk-label { color: var(--muted); font-size: 0.8rem; }
+.uk-wert { font-family: var(--font-display); font-size: 1.35rem; font-weight: 750; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.uk-wert small { color: var(--muted); font-size: 0.8rem; font-weight: 600; }
+.uk-fuss { color: var(--muted); font-size: 0.75rem; }
+.umfang-kachel.trend-gut .delta { color: var(--ok); }
+.umfang-kachel.trend-schlecht .delta { color: var(--danger); }
+.stufe-whtr-niedrig { background: var(--info-bg); color: var(--accent-text); }
+.stufe-whtr-gesund { background: var(--ok-bg); color: var(--ok); }
+.stufe-whtr-erhoeht { background: var(--warn-bg); color: var(--warn); }
+.stufe-whtr-hoch { background: var(--danger-bg); color: var(--danger); }
+.praxis-tabelle td.trend-gut .delta { color: var(--ok); }
+.praxis-tabelle td.trend-schlecht .delta { color: var(--danger); }
+.praxis-tabelle td:first-child { white-space: nowrap; }
+
+/* Entering measurements */
+.mf-raster { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; margin-bottom: 18px; }
+.mf-raster > .card { margin: 0; }
+.mf-raster h2 { display: flex; align-items: center; gap: 8px; }
+.mf-raster h2 .icon { width: 20px; height: 20px; color: var(--accent); }
+.mf-zeit { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mf-gruppe { margin: 14px 0 6px; color: var(--muted); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.mf-felder { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 10px; }
+.mf-paare { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.mf-feld { margin-bottom: 6px; }
+.mf-feld label { font-size: 0.85rem; }
+.mf-liste li { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.mf-liste p { margin: 0; }
+.mf-kopf { display: flex; align-items: center; gap: 8px; }
+.q-massband::before { background: #1fa8a0; }
+.q-praxis::before { background: #e0457b; }
+.q-apple_renpho::before { background: #2f7cf6; box-shadow: 0 0 0 2px var(--q-apple); }
+@media (max-width: 1000px) {
+  .mf-raster, .umfang-raster { grid-template-columns: 1fr; }
+}
+.vg-schalter { flex-wrap: wrap; margin-bottom: 10px; }
+.vg-richtung { display: inline-flex; align-items: center; gap: 4px; font-size: 0.85rem; font-weight: 600; }
+.vg-richtung .icon { width: 15px; height: 15px; }
+.vg-richtung.gleich { color: var(--ok); }
+.vg-richtung.anders { color: var(--warn); }
+.vg-tabelle td:first-child { white-space: nowrap; }
+.praxis-bereich { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; margin-bottom: 18px; }
+.praxis-bereich > .card { margin: 0; }
+@media (min-width: 1100px) {
+  [data-vergleich]:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 18px; align-items: center; }
+}

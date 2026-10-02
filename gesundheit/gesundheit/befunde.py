@@ -18,6 +18,7 @@ from typing import Callable
 
 from . import auswertung, belastung, bewertung, charts, store, util
 from .auswertung import WEEKDAYS_LONG
+from .katalog import METRICS
 
 log = logging.getLogger(__name__)
 WARN, GOOD, INFO = "warn", "gut", "info"
@@ -483,8 +484,115 @@ def relationship(db, pid, person, today):
         abs(rel["r"]) * 2, basis=f"aus {rel['n']} Tagen")
 
 
+def waist(db, pid, person, today):
+    """Waist from the tape: the trend over twelve weeks, else the waist to height ratio."""
+    points = store.daily_series(db, pid, "circ_waist", today - timedelta(days=83), today)
+    if len(points) < 2:
+        return None
+    first = util.to_date(points[0]["day"])
+    span = (util.to_date(points[-1]["day"]) - first).days
+    h = auswertung.height(db, pid)
+    current = points[-1]["value"]
+    ratio = current / h if h else None
+    category = bewertung.whtr_category(ratio) if ratio else None
+    start = today - timedelta(days=83)
+    stats = [(f"{_n(current, 1)} cm", "Taille zuletzt")]
+    steps = [f"{len(points)} Messungen der Taille in den letzten zwölf Wochen"]
+    if ratio:
+        steps.append(f"Taille zu Größe: {_n(current, 1)} ÷ {_n(h)} cm = {_n(ratio, 2)} ({category[1]})")
+    chart = lambda: charts.line(points, start, today, "cm", 1, "Taille der letzten zwölf Wochen",
+                                trend=False)
+    if len(points) >= 4 and span >= 21:
+        xs = [(util.to_date(p["day"]) - first).days for p in points]
+        fit = auswertung.linear_fit(xs, [p["value"] for p in points])
+        total = fit[0] * span if fit else 0
+        weeks = round(span / 7)
+        stats.append((f"{util.fmt_signed(total, 1)} cm", f"in {weeks} Wochen (Trend)"))
+        if ratio:
+            stats.append((_n(ratio, 2), "Taille zu Größe"))
+        steps += [f"Gerade durch alle Messungen: {util.fmt_signed(fit[0] * 7, 2)} cm pro Woche",
+                  f"× {weeks} Wochen = {util.fmt_signed(total, 1)} cm",
+                  "Ab 2 cm in die eine oder andere Richtung zeigt das Cockpit diesen Befund."]
+        if total <= -2:
+            return Finding(
+                "taille", GOOD, "Körper", "Deine Taille ist",
+                f"{_n(-total, 1)} cm schmaler geworden.", f"{util.fmt_signed(total, 1)} cm",
+                "Der Taillenumfang zeigt das Bauchfett besser als das Gewicht allein; "
+                "weniger Taille ist meist ein gutes Zeichen, auch wenn die Waage stehen bleibt.",
+                stats, steps, chart, ("bereiche.koerper", {}), 1 + abs(total) / 2,
+                basis=f"aus {len(points)} Messungen")
+        if total >= 2:
+            return Finding(
+                "taille", WARN, "Körper", "Deine Taille hat",
+                f"um {_n(total, 1)} cm zugelegt.", f"{util.fmt_signed(total, 1)} cm",
+                "Mehr Taille heißt oft mehr Bauchfett. Bewegung, Schlaf und weniger Zucker "
+                "und Alkohol wirken hier meist zuerst.",
+                stats, steps, chart, ("bereiche.koerper", {}), 1 + total / 2,
+                basis=f"aus {len(points)} Messungen")
+    if ratio and ratio >= 0.5:
+        if not any(label == "Taille zu Größe" for _v, label in stats):
+            stats.append((_n(ratio, 2), "Taille zu Größe"))
+        steps.append("Faustregel (NICE 2022): Taille unter der halben Körpergröße, also unter 0,5.")
+        return Finding(
+            "taille", INFO, "Körper", "Deine Taille liegt",
+            "über der halben Körpergröße.", _n(ratio, 2),
+            f"Taille zu Größe {_n(ratio, 2)}: {category[1]}. Die Faustregel gilt für Frauen und "
+            "Männer; ein Ziel kann sein, die Taille Schritt für Schritt unter die Hälfte der "
+            "Körpergröße zu bringen.",
+            stats, steps, chart, ("bereiche.koerper", {}), 0.9 + (ratio - 0.5) * 5,
+            basis=f"aus {len(points)} Messungen")
+    return None
+
+
+def practice(db, pid, person, today):
+    """The last analysis at the practice against the one before."""
+    days: dict[str, dict] = {}
+    for r in db.execute("SELECT day, metric, value FROM measurements WHERE person_id = ? "
+                        "AND source = 'praxis' ORDER BY measured_at", (pid,)):
+        days.setdefault(r["day"], {})[r["metric"]] = r["value"]
+    shown = sorted(days)
+    if len(shown) < 2 or (today - util.to_date(shown[-1])).days > 60:
+        return None
+    last, before = days[shown[-1]], days[shown[-2]]
+    changes = []
+    for key, unit, decimals in (("phase_angle", "°", 1), ("bcm", "kg", 1), ("fat_mass", "kg", 1),
+                                ("cell_share", "%", 1)):
+        if key in last and key in before:
+            changes.append((key, last[key] - before[key], unit, decimals))
+    if not changes:
+        return None
+    by_key = {k: d for k, d, _u, _dec in changes}
+    phase = by_key.get("phase_angle")
+    cells = by_key.get("bcm")
+    fat = by_key.get("fat_mass")
+    if (phase is not None and phase <= -0.3) or (cells is not None and cells <= -1):
+        tone, title_b = WARN, "weniger Zellmasse als beim Termin davor."
+    elif (phase or 0) > 0 or (cells or 0) > 0 or (fat or 0) < 0:
+        tone, title_b = GOOD, "in die richtige Richtung."
+    else:
+        tone, title_b = INFO, "ziemlich gleich geblieben."
+    stats = [(f"{util.fmt_signed(d, dec)}{' ' + u if u != '°' else u}", METRICS[k].label)
+             for k, d, u, dec in changes[:3]]
+    dates = [util.fmt_day(d) for d in shown[-6:]]
+    phases = [days[d].get("phase_angle") for d in shown[-6:]]
+    big_key, big_delta, big_unit, big_dec = changes[0]
+    return Finding(
+        "praxis", tone, "Praxis", "Seit dem letzten Termin ging es",
+        title_b, f"{util.fmt_signed(big_delta, big_dec)}{big_unit if big_unit == '°' else ' ' + big_unit}",
+        f"Analyse vom {util.fmt_date(shown[-1])} gegen die vom {util.fmt_date(shown[-2])}. "
+        "Phasenwinkel und Körperzellmasse stehen für die aktive, gesunde Masse; beide steigen mit "
+        "Training und guter Ernährung. Mit der Ernährungsberatung besprechen, was das für dich heißt.",
+        stats,
+        [f"{len(shown)} Analysen in der Praxis, verglichen werden die letzten zwei"]
+        + [f"{METRICS[k].label}: {util.fmt_signed(d, dec)}" for k, d, _u, dec in changes]
+        + ["Ab −0,3° Phasenwinkel oder −1 kg Körperzellmasse zeigt das Cockpit einen Hinweis."],
+        (lambda: charts.columns(dates, phases, "°", 1, "Phasenwinkel je Termin", highlight="last"))
+        if any(p is not None for p in phases) else None,
+        ("bereiche.koerper", {}), 1.2 if tone == WARN else 0.9, basis=f"aus {len(shown)} Terminen")
+
+
 RULES = [resting_pulse, hrv, easy_trainings, load_jump, sleep_debt, bedtime, weight_trend,
-         blood_pressure, step_streak, weekday_gap, relationship]
+         waist, practice, blood_pressure, step_streak, weekday_gap, relationship]
 
 
 def _stamp(db, pid) -> tuple:

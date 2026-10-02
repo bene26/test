@@ -15,15 +15,23 @@ SOURCES = {
     "iphone": ("iPhone", "iPhone", "apple"),
     "apple_garmin": ("Garmin über Apple Health", "Garmin (Apple)", "apple"),
     "apple_withings": ("Withings über Apple Health", "Withings (Apple)", "apple"),
+    "apple_renpho": ("Renpho über Apple Health", "Renpho (Apple)", "apple"),
     "apple_andere": ("Andere Apps über Apple Health", "Andere (Apple)", "apple"),
+    "massband": ("Maßband, selbst eingetragen", "Maßband", "manuell"),
+    "praxis": ("Ernährungsberatung (Messung in der Praxis)", "Praxis", "manuell"),
 }
 APPLE_SOURCES = tuple(k for k, v in SOURCES.items() if v[2] == "apple")
+MANUAL_SOURCES = tuple(k for k, v in SOURCES.items() if v[2] == "manuell")
 
 # key: label, description, default source order
 FAMILIES = {
-    "koerper": ("Körper", "Gewicht, Fett, Muskeln, Wasser, Knochen, Größe",
-                ["withings", "apple_withings", "apple_andere", "iphone", "garmin",
-                 "apple_garmin", "apple_watch"]),
+    # The practice comes last: its analyser measures differently than a scale, so it only
+    # fills days without a home weighing; the body page compares both side by side.
+    "koerper": ("Körper", "Gewicht, Fett, Muskeln, Wasser, Knochen, Größe, Analyse in der Praxis",
+                ["withings", "apple_withings", "apple_renpho", "apple_andere", "iphone", "garmin",
+                 "apple_garmin", "apple_watch", "praxis"]),
+    "umfang": ("Umfänge", "Taille, Hüfte, Bauch, Brust, Arme, Beine vom Maßband",
+               ["massband", "apple_renpho", "apple_andere", "iphone", "apple_withings"]),
     "blutdruck": ("Blutdruck", "Systolisch, diastolisch, Puls bei der Messung",
                   ["withings", "apple_withings", "apple_andere", "iphone", "garmin",
                    "apple_garmin", "apple_watch"]),
@@ -74,6 +82,38 @@ _M = [
            page="koerper"),
     Metric("bmr", "Grundumsatz", "kcal", "koerper", "last", 0, 500, 5000, page="koerper"),
     Metric("height", "Größe", "cm", "koerper", "last", 0, 100, 250, page="koerper"),
+    # Analyse in der Praxis (bioelektrische Impedanz, BIA)
+    Metric("phase_angle", "Phasenwinkel", "°", "koerper", "last", 1, 1, 15, good="up",
+           page="koerper"),
+    Metric("bia_r", "Resistanz", "Ω", "koerper", "last", 0, 100, 1500, page="koerper"),
+    Metric("bia_xc", "Reaktanz", "Ω", "koerper", "last", 0, 5, 200, page="koerper"),
+    Metric("ecw", "Extrazelluläres Wasser", "l", "koerper", "last", 1, 3, 60, page="koerper"),
+    Metric("icw", "Intrazelluläres Wasser", "l", "koerper", "last", 1, 3, 60, page="koerper"),
+    Metric("bcm", "Körperzellmasse (BCM)", "kg", "koerper", "last", 1, 5, 100, good="up",
+           page="koerper"),
+    Metric("ecm", "Extrazelluläre Masse (ECM)", "kg", "koerper", "last", 1, 5, 100,
+           page="koerper"),
+    Metric("ecm_bcm", "ECM/BCM-Index", "", "koerper", "last", 2, 0.3, 3, good="down",
+           page="koerper"),
+    Metric("cell_share", "Zellanteil", "%", "koerper", "last", 1, 20, 80, good="up",
+           page="koerper"),
+    # Umfänge (Maßband)
+    Metric("circ_neck", "Hals", "cm", "umfang", "last", 1, 20, 70, page="koerper"),
+    Metric("circ_shoulders", "Schultern", "cm", "umfang", "last", 1, 60, 200, page="koerper"),
+    Metric("circ_chest", "Brust", "cm", "umfang", "last", 1, 50, 200, page="koerper"),
+    Metric("circ_waist", "Taille", "cm", "umfang", "last", 1, 40, 200, good="down",
+           page="koerper"),
+    Metric("circ_belly", "Bauch", "cm", "umfang", "last", 1, 40, 220, good="down",
+           page="koerper"),
+    Metric("circ_hip", "Hüfte", "cm", "umfang", "last", 1, 50, 220, page="koerper"),
+    Metric("circ_arm_l", "Oberarm links", "cm", "umfang", "last", 1, 10, 80, page="koerper"),
+    Metric("circ_arm_r", "Oberarm rechts", "cm", "umfang", "last", 1, 10, 80, page="koerper"),
+    Metric("circ_thigh_l", "Oberschenkel links", "cm", "umfang", "last", 1, 20, 120,
+           page="koerper"),
+    Metric("circ_thigh_r", "Oberschenkel rechts", "cm", "umfang", "last", 1, 20, 120,
+           page="koerper"),
+    Metric("circ_calf_l", "Wade links", "cm", "umfang", "last", 1, 15, 80, page="koerper"),
+    Metric("circ_calf_r", "Wade rechts", "cm", "umfang", "last", 1, 15, 80, page="koerper"),
     # Blutdruck
     Metric("bp_sys", "Systolisch", "mmHg", "blutdruck", "mean", 0, 50, 260, good="down",
            page="herz"),
@@ -122,6 +162,11 @@ _M = [
            chart="bar", good="up", page="aktivitaet"),
 ]
 METRICS = {m.key: m for m in _M}
+CIRCUMFERENCES = tuple(m.key for m in _M if m.family == "umfang")
+# What the practice's analyser reports: shared body values first, then the BIA-only ones.
+PRACTICE_METRICS = ("weight", "fat_ratio", "fat_mass", "fat_free_mass", "muscle_mass",
+                    "hydration", "bmr", "visceral_fat", "phase_angle", "bia_r", "bia_xc", "ecw",
+                    "icw", "bcm", "ecm", "ecm_bcm", "cell_share")
 
 # Not shown as a chart of their own (codes, or values that only make sense next to others).
 NO_CHART = {"ekg_afib", "ekg_puls", "height"}

@@ -48,6 +48,9 @@ KEYS.update({
     "zubettgehen": Key("zubettgehen", "Zubettgehen", "Uhr", 2, "", "mean", 1, "1 Stunde später ins Bett"),
     "training_min": Key("training_min", "Trainingsminuten", "min", 0, "up", "sum", 30,
                         "30 Minuten Training"),
+    "whtr": Key("whtr", "Taille zu Größe", "", 2, "down", "mean", 0.05,
+                "0,05 Taille zu Größe"),
+    "whr": Key("whr", "Taille zu Hüfte", "", 2, "down", "mean", 0.05, "0,05 Taille zu Hüfte"),
 })
 GROUPS = [
     ("Aktivität", ["steps", "active_min", "active_kcal", "distance_km", "floors", "training_min"]),
@@ -57,6 +60,11 @@ GROUPS = [
     ("Körper", ["weight", "fat_ratio", "muscle_mass", "fat_mass", "hydration", "bone_mass",
                 "visceral_fat", "bmr"]),
     ("Blutdruck und mehr", ["bp_sys", "bp_dia", "pulse", "temperature", "pwv", "hr_min", "hr_max"]),
+    ("Umfänge", ["circ_waist", "circ_belly", "circ_hip", "whtr", "whr", "circ_chest", "circ_neck",
+                 "circ_shoulders", "circ_arm_l", "circ_arm_r", "circ_thigh_l", "circ_thigh_r",
+                 "circ_calf_l", "circ_calf_r"]),
+    ("Analyse in der Praxis", ["phase_angle", "bcm", "ecm", "ecm_bcm", "cell_share", "ecw", "icw",
+                               "bia_r", "bia_xc"]),
 ]
 
 
@@ -78,6 +86,8 @@ def series(db, pid: int, key: str, start, end) -> list[dict]:
     start, end = util.to_date(start), util.to_date(end)
     if key in METRICS:
         return store.daily_series(db, pid, key, start, end)
+    if key in ("whtr", "whr"):
+        return _ratio(db, pid, key, start, end)
     if key == "training_min":
         totals = {d.isoformat(): 0.0 for d in util.days(start, end)}
         for w in store.workouts(db, pid, start, end):
@@ -106,6 +116,27 @@ def series(db, pid: int, key: str, start, end) -> list[dict]:
         if value is not None:
             result.append({"day": n["night"], "value": float(value), "source": n["source"]})
     return result
+
+
+def height(db, pid: int) -> float | None:
+    """Height from the profile, else the latest measured one."""
+    row = db.execute("SELECT height_cm FROM persons WHERE id = ?", (pid,)).fetchone()
+    if row and row["height_cm"]:
+        return row["height_cm"]
+    measured = store.latest(db, pid, "height")
+    return measured["value"] if measured else None
+
+
+def _ratio(db, pid, key, start, end) -> list[dict]:
+    """Waist to height (needs a height) or waist to hip (both on the same day)."""
+    waist = store.daily_series(db, pid, "circ_waist", start, end)
+    if key == "whtr":
+        h = height(db, pid)
+        return [{"day": p["day"], "value": p["value"] / h, "source": p["source"]}
+                for p in waist] if h else []
+    hips = {p["day"]: p["value"] for p in store.daily_series(db, pid, "circ_hip", start, end)}
+    return [{"day": p["day"], "value": p["value"] / hips[p["day"]], "source": p["source"]}
+            for p in waist if hips.get(p["day"])]
 
 
 def _first_day(db, pid) -> str | None:

@@ -156,6 +156,12 @@
   {% endif %}
   <p class="small muted">Später soll eine eigene kleine iPhone-App die Werte automatisch schicken, dann entfällt der Export.</p>
 </section>
+
+<section class="card quelle-karte breit" id="manuell" aria-labelledby="m-titel">
+  <h2 id="m-titel">Maßband und Praxis</h2>
+  <p>Das <strong>Renpho-Maßband</strong> schreibt über die Renpho-App nur den Taillenumfang nach Apple Health (andere Umfänge kennt Apple Health nicht); er kommt mit dem nächsten Export von selbst. Hals, Schultern, Brust, Bauch, Hüfte, Arme und Beine trägst du ein. Die <strong>Körperanalyse der Ernährungsberatung</strong> (Phasenwinkel, Körperzellmasse, Wasser, Fett, Muskeln) ebenso, oder ältere Termine als Tabelle.</p>
+  <p><a class="btn" href="{{ url_for('messungen.index') }}">{{ icon('upload') }} Messungen eintragen</a></p>
+</section>
 </div>
 
 {% if persons|length > 1 %}

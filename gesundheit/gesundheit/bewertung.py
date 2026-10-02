@@ -52,3 +52,26 @@ def trend_class(change: float | None, good: str) -> str:
         return "neutral"
     better = change > 0 if good == "up" else change < 0
     return "gut" if better else "schlecht"
+
+
+# Waist to height ratio: "keep your waist to less than half your height" (NICE 2022),
+# the same rule for women and men, so no sex is needed. Orientation, not a diagnosis.
+WHTR_LEVELS = [(0, "niedrig", "Unter 0,4"), (0.4, "gesund", "Gesunder Bereich"),
+               (0.5, "erhoeht", "Erhöht"), (0.6, "hoch", "Deutlich erhöht")]
+
+
+def whtr_category(value: float) -> tuple[str, str]:
+    result = WHTR_LEVELS[0]
+    for level in WHTR_LEVELS:
+        if value >= level[0]:
+            result = level
+    return result[1], result[2]
+
+
+def phase_angle_note(value: float) -> str:
+    """A cautious sentence; reference values depend on age, sex and device."""
+    if value < 4.5:
+        return "eher niedrig; mit der Praxis besprechen, was das bei dir bedeutet"
+    if value <= 7.5:
+        return "im üblichen Bereich für Erwachsene (etwa 5 bis 7 Grad)"
+    return "eher hoch, typisch für viel Muskulatur"
