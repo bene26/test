@@ -23,7 +23,7 @@
   </div>
 
   {% set bon %}
-    <div class="bon-kopf"><span class="bon-logo">P</span><strong>Projekt-Cockpit</strong></div>
+    {% set marke = app_name|default('Projekt-Cockpit') %}<div class="bon-kopf"><span class="bon-logo">{{ marke[:1] }}</span><strong>{{ marke }}</strong></div>
     <div class="bon-zeile bon-meta"><span>Beleg Nr. {{ code }}</span><span>{{ heute }}</span></div>
     <div class="bon-trenn"></div>
     <div class="bon-zeile"><span>Seite</span><span>{{ ziel_kurz }}</span></div>

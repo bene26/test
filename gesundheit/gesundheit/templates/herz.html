@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% from "_macros.html" import digits, kachel, quelle, zeitraum %}
+{% block title %}Herz & Kreislauf{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Herz &amp; Kreislauf</h1><p class="sub">Blutdruck, Ruhepuls, Herzfrequenzvariabilität, Sauerstoff und EKG.</p></div>
+  {{ zeitraum(days, periods, 'bereiche.herz') }}
+</div>
+
+<section class="card" id="blutdruck" aria-labelledby="bd-titel">
+  <h2 id="bd-titel">Blutdruck</h2>
+  <div class="bd-kopf">
+    {% if bp_week %}
+    <div class="bd-woche">
+      <span class="small muted">Mittel der letzten 7 Tage ({{ bp_week.count }} Messungen)</span>
+      <span class="bd-wert">{{ bp_week.sys|zahl }}<span class="bd-strich">/</span>{{ bp_week.dia|zahl }}</span>
+      <span class="stufe stufe-{{ bp_week.category[0] }}">{{ bp_week.category[1] }}</span>
+      {% if bp_week.raised %}<span class="stufe stufe-grad1">zu Hause erhöht (ab 135/85)</span>{% endif %}
+    </div>
+    {% else %}
+    <p class="muted">In den letzten 7 Tagen wurde kein Blutdruck gemessen.</p>
+    {% endif %}
+    <ul class="stufen-skala" aria-label="Stufen">
+      {% for key, label, s, d in bp_levels %}<li class="stufe stufe-{{ key }}">{{ label }}{% if s %} <small>ab {{ s }}/{{ d }}</small>{% endif %}</li>{% endfor %}
+    </ul>
+  </div>
+  {{ bp_chart }}
+  <p class="small muted">{{ bp_note }}</p>
+  {% if bp_readings %}
+  <details class="messungen">
+    <summary>Einzelne Messungen ({{ bp_readings|length }})</summary>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Zeitpunkt</th><th class="num">Systolisch</th><th class="num">Diastolisch</th><th class="num">Puls</th><th>Stufe</th><th>Quelle</th></tr></thead>
+      <tbody>
+      {% for r in bp_readings %}
+      <tr><td>{{ r.measured_at|tag }}, {{ r.measured_at|uhrzeit }}</td><td class="num">{{ r['values'].bp_sys|zahl }}</td><td class="num">{{ r['values'].bp_dia|zahl }}</td>
+        <td class="num">{{ r['values'].pulse|zahl if r['values'].pulse else '–' }}</td>
+        <td><span class="stufe stufe-{{ r.category[0] }}">{{ r.category[1] }}</span></td><td>{{ quelle(r.source) }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+  {% endif %}
+</section>
+
+<div class="columns-even">
+  {% for c in charts_more %}
+  <section class="card">
+    <h2>{{ c.meta.label }} <a class="count" href="{{ url_for('main.history', metric=c.meta.key, zeitraum=days) }}">Verlauf</a></h2>
+    {% if c.summary.count %}<p class="small muted">Schnitt {{ c.summary.avg|zahl(c.meta.decimals) }} {{ c.meta.unit }} · {{ c.summary.min|zahl(c.meta.decimals) }} bis {{ c.summary.max|zahl(c.meta.decimals) }}</p>{% endif %}
+    {{ c.chart }}
+  </section>
+  {% endfor %}
+</div>
+
+{% if extra %}
+<h2 class="abschnitt">Weitere Werte</h2>
+<div class="stats kacheln" data-fallblatt>
+  {% for t in extra %}{{ kachel(t) }}{% endfor %}
+</div>
+{% endif %}
+
+<section class="card" id="ekg">
+  <h2>EKG-Aufzeichnungen <span class="count">letzte 12 Monate</span></h2>
+  {% if ecg %}
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Zeitpunkt</th><th>Einstufung des Geräts</th><th class="num">Puls</th><th>Quelle</th></tr></thead>
+    <tbody>
+    {% for e in ecg %}
+    {% set code = e['values'].ekg_afib|int if e['values'].ekg_afib is not none else none %}
+    <tr><td>{{ e.measured_at|zeitpunkt }}</td>
+      <td>{% if code is not none %}<span class="stufe {{ 'stufe-grad2' if code == 1 else 'stufe-hochnormal' if code == 2 else 'stufe-optimal' }}">{{ ekg_labels.get(code, 'unbekannt') }}</span>{% else %}–{% endif %}</td>
+      <td class="num">{{ e['values'].ekg_puls|zahl if e['values'].ekg_puls else '–' }}</td><td>{{ quelle(e.source) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="small muted">Die Einstufung stammt vom Gerät (z. B. Withings ScanWatch oder BPM Core). Die EKG-Kurven selbst werden nicht gespeichert; ansehen und als PDF teilen geht in der Withings-App.</p>
+  {% else %}
+  <p class="muted">Keine EKG-Aufzeichnungen. Withings-Geräte mit EKG schicken ihre Einstufung automatisch mit.</p>
+  {% endif %}
+</section>
+{% endblock %}

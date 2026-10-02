@@ -1,0 +1,40 @@
+# Gesundheits-Cockpit. Settings come from the file .env in this folder
+# (copy .env.example to .env). Nothing secret belongs in this file.
+services:
+  gesundheit:
+    build:
+      context: ..                    # repository root: the design is shared with the cockpit
+      dockerfile: gesundheit/Dockerfile
+    image: gesundheits-cockpit:latest
+    container_name: gesundheits-cockpit
+    restart: unless-stopped
+    ports:
+      - "${GESUNDHEIT_PORT:-8090}:8090"
+    volumes:
+      - ./data:/data
+      - ./import:/import:ro          # optional: very large Apple Health exports go here
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      GESUNDHEIT_BASE_URL: ${GESUNDHEIT_BASE_URL:-}
+      GESUNDHEIT_SECURE_COOKIES: ${GESUNDHEIT_SECURE_COOKIES:-false}
+      GESUNDHEIT_TRUST_PROXY: ${GESUNDHEIT_TRUST_PROXY:-false}
+      GESUNDHEIT_SYNC_MINUTES: ${GESUNDHEIT_SYNC_MINUTES:-60}
+      GESUNDHEIT_UPLOAD_MAX_MB: ${GESUNDHEIT_UPLOAD_MAX_MB:-2048}
+      GESUNDHEIT_KEY: ${GESUNDHEIT_KEY:-}
+      WITHINGS_CLIENT_ID: ${WITHINGS_CLIENT_ID:-}
+      WITHINGS_CLIENT_SECRET: ${WITHINGS_CLIENT_SECRET:-}
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    cap_add:            # only used by the entrypoint before it drops root
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETUID
+      - SETGID
+    security_opt:
+      - no-new-privileges:true

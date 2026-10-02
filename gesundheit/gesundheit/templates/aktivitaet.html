@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "_macros.html" import digits, quelle, zeitraum %}
+{% block title %}Aktivität{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Aktivität</h1><p class="sub">Schritte, Bewegung und Trainings von Uhr und Telefon.</p></div>
+  {{ zeitraum(days, periods, 'bereiche.aktivitaet') }}
+</div>
+
+<div class="stats kacheln" data-fallblatt>
+  <a class="stat" href="{{ url_for('main.history', metric='steps', zeitraum=days) }}"><div class="label">Schritte im Schnitt</div><div class="kachel-wert"><span class="value">{{ digits(steps.summary.avg|zahl) }}</span></div><div class="kachel-fuss">Ziel {{ goals.goal_steps|zahl }} · erreicht an {{ steps.series|selectattr('value', 'ge', goals.goal_steps)|list|length }} Tagen</div></a>
+  <a class="stat" href="{{ url_for('main.history', metric='active_min', zeitraum=days) }}"><div class="label">Aktive Minuten im Schnitt</div><div class="kachel-wert"><span class="value">{{ digits(minutes.summary.avg|zahl) }}</span><span class="einheit">min</span></div><div class="kachel-fuss">Ziel {{ goals.goal_active_min }} min am Tag</div></a>
+  <a class="stat" href="{{ url_for('main.history', metric='active_kcal', zeitraum=days) }}"><div class="label">Aktivkalorien im Schnitt</div><div class="kachel-wert"><span class="value">{{ digits(totals.active_kcal.avg|zahl) }}</span><span class="einheit">kcal</span></div></a>
+  <a class="stat" href="{{ url_for('main.history', metric='distance_km', zeitraum=days) }}"><div class="label">Strecke im Schnitt</div><div class="kachel-wert"><span class="value">{{ digits(totals.distance_km.avg|zahl(1)) }}</span><span class="einheit">km</span></div></a>
+  <a class="stat" href="{{ url_for('main.history', metric='floors', zeitraum=days) }}"><div class="label">Etagen im Schnitt</div><div class="kachel-wert"><span class="value">{{ digits(totals.floors.avg|zahl) }}</span></div></a>
+</div>
+
+<section class="card">
+  <h2>Schritte <a class="count" href="{{ url_for('main.history', metric='steps', zeitraum=days) }}">Verlauf</a></h2>
+  {{ steps.chart }}
+</section>
+
+<div class="columns">
+  <section class="card">
+    <h2>Aktive Minuten</h2>
+    {{ minutes.chart }}
+  </section>
+  <section class="card">
+    <h2>Trainings nach Art</h2>
+    {% if by_kind %}
+    <ul class="plain-list arten">
+      {% for kind, v in by_kind %}<li><strong>{{ kinds.get(kind, kind) }}</strong><span>{{ v.count }} × · {{ v.minutes|dauer }}{% if v.km %} · {{ v.km|zahl(1) }} km{% endif %}</span></li>{% endfor %}
+    </ul>
+    {% else %}<p class="muted">Keine Trainings in diesem Zeitraum.</p>{% endif %}
+  </section>
+</div>
+
+{% if garmin_charts %}
+<h2 class="abschnitt">Erholung und Form <span class="small muted">(Garmin)</span></h2>
+<div class="columns-even">
+  {% for c in garmin_charts %}
+  <section class="card">
+    <h2>{{ c.meta.label }} <a class="count" href="{{ url_for('main.history', metric=c.meta.key, zeitraum=days) }}">Verlauf</a></h2>
+    {{ c.chart }}
+  </section>
+  {% endfor %}
+</div>
+{% endif %}
+
+<section class="card" id="trainings">
+  <h2>Trainings <span class="count">{{ workouts|length }}</span></h2>
+  {% if workouts %}
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Beginn</th><th>Art</th><th class="num">Dauer</th><th class="num">Strecke</th><th class="num">kcal</th><th class="num">Puls ⌀ / max</th><th>Quelle</th></tr></thead>
+    <tbody>
+    {% for w in workouts %}
+    <tr><td>{{ w.started_at|zeitpunkt }}</td><td>{{ kinds.get(w.kind, w.kind) }}</td><td class="num">{{ w.duration_min|dauer if w.duration_min else '–' }}</td>
+      <td class="num">{{ (w.distance_km|zahl(2) ~ ' km') if w.distance_km else '–' }}</td><td class="num">{{ w.energy_kcal|zahl if w.energy_kcal else '–' }}</td>
+      <td class="num">{% if w.hr_avg %}{{ w.hr_avg|zahl }} / {{ w.hr_max|zahl if w.hr_max else '–' }}{% else %}–{% endif %}</td><td>{{ quelle(w.source) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="small muted">Dasselbe Training von zwei Quellen (Beginn innerhalb von 5 Minuten) steht nur einmal da.</p>
+  {% else %}<p class="muted">Keine Trainings in diesem Zeitraum.</p>{% endif %}
+</section>
+{% endblock %}

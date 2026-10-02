@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "_macros.html" import digits, kachel, quelle, zeitraum %}
+{% block title %}Körper{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Körper</h1><p class="sub">Gewicht und Zusammensetzung, vor allem von der Withings-Waage.</p></div>
+  {{ zeitraum(days, periods, 'bereiche.koerper') }}
+</div>
+
+<div class="stats kacheln" data-fallblatt>
+  {% if weight_tile %}{{ kachel(weight_tile) }}{% endif %}
+  <div class="stat kachel">
+    <div class="label">BMI</div>
+    {% if bmi %}
+    <div class="kachel-wert"><span class="value">{{ digits(bmi|zahl(1)) }}</span></div>
+    <div class="kachel-fuss"><span class="stufe stufe-{{ bmi_category[0] }}">{{ bmi_category[1] }}</span> bei {{ height|zahl }} cm</div>
+    {% else %}
+    <div class="kachel-wert"><span class="value">–</span></div>
+    <div class="kachel-fuss">Größe unter <a href="{{ url_for('einstellungen.index') }}#ziele">Einstellungen</a> eintragen</div>
+    {% endif %}
+  </div>
+  <div class="stat kachel">
+    <div class="label">Gewicht im Zeitraum</div>
+    <div class="kachel-wert"><span class="value">{{ digits(weight.summary.min|zahl(1)) }}</span><span class="einheit">bis {{ weight.summary.max|zahl(1) }} kg</span></div>
+    <div class="kachel-fuss">{{ weight.summary.count }} Tage gewogen, Schnitt {{ weight.summary.avg|zahl(1) }} kg</div>
+  </div>
+</div>
+
+<section class="card">
+  <h2>Gewicht <a class="count" href="{{ url_for('main.history', metric='weight', zeitraum=days) }}">Verlauf</a></h2>
+  {{ weight.chart }}
+</section>
+
+{% if composition %}
+<h2 class="abschnitt">Zusammensetzung</h2>
+<div class="stats kacheln" data-fallblatt>
+  {% for t in composition %}{{ kachel(t) }}{% endfor %}
+</div>
+{% endif %}
+
+<div class="columns">
+  <section class="card">
+    <h2>Körperfett <a class="count" href="{{ url_for('main.history', metric='fat_ratio', zeitraum=days) }}">Verlauf</a></h2>
+    {{ fat.chart }}
+  </section>
+  <section class="card">
+    <h2>Wiegungen <span class="count">{{ weighings|length }}</span></h2>
+    {% if weighings %}
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Zeitpunkt</th><th class="num">kg</th><th class="num">Fett %</th><th class="num">Muskeln</th><th>Quelle</th></tr></thead>
+      <tbody>
+      {% for w in weighings %}
+      <tr><td>{{ w.measured_at|tag }}, {{ w.measured_at|uhrzeit }}</td><td class="num">{{ w['values'].weight|zahl(1) if w['values'].weight else '–' }}</td>
+        <td class="num">{{ w['values'].fat_ratio|zahl(1) if w['values'].fat_ratio else '–' }}</td>
+        <td class="num">{{ w['values'].muscle_mass|zahl(1) if w['values'].muscle_mass else '–' }}</td><td>{{ quelle(w.source) }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}<p class="muted">Keine Wiegungen in diesem Zeitraum.</p>{% endif %}
+  </section>
+</div>
+<p class="small muted">Körperfett, Muskeln und Wasser misst die Waage über einen schwachen Strom (Bioimpedanz). Die Werte schwanken mit Tageszeit und Trinkmenge; am besten vergleichbar sind Messungen morgens nüchtern. BMI ist eine grobe Orientierung und unterscheidet nicht zwischen Muskeln und Fett.</p>
+{% endblock %}

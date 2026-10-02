@@ -1,0 +1,238 @@
+/* Gesundheits-Cockpit: additions to the shared design (app.css from the Projekt-Cockpit).
+   Only classes that the cockpit does not have: rings, charts, source cards, stages.
+   No inline styles anywhere (CSP), all colours from the design tokens. */
+
+:root {
+  --st-tief: #3f51d6;
+  --st-leicht: #7b8cff;
+  --st-rem: #b47cff;
+  --st-wach: #f2a65a;
+  --st-schlaf: #8f97cf;
+  --ring-schritte: var(--accent);
+  --ring-minuten: #34c48b;
+  --ring-kalorien: #ff7a59;
+  --ring-schlaf: #7b8cff;
+  --q-withings: #1aa39a;
+  --q-garmin: #2f7de1;
+  --q-apple: #ff4d6d;
+  --q-iphone: #8a8fa3;
+}
+[data-tone="hell"] { --st-leicht: #6a7cf0; --st-schlaf: #7d86c4; --ring-schlaf: #5e6fe6; }
+
+.vh { position: absolute; width: 1px; height: 1px; margin: 0; opacity: 0; overflow: hidden; }
+.abschnitt { margin: 22px 0 10px; }
+.fehlertext { color: var(--danger); }
+.gefahr { border-color: var(--danger); }
+
+/* Search button in the sidebar (opens the card file) */
+.nav-search-open {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--nav-text);
+  opacity: 0.75;
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nav-search-open:hover { opacity: 1; }
+
+/* Period switch: 7 T / 30 T / 90 T / 1 J */
+.zeitraum { display: inline-flex; gap: 2px; padding: 4px; border: 1px solid var(--border); border-radius: var(--radius-btn); background: var(--surface-2); }
+.zeitraum a { padding: 6px 12px; border-radius: var(--radius-btn); color: var(--text); font-size: 0.88rem; font-weight: 600; }
+.zeitraum a:hover { text-decoration: none; background: var(--surface); }
+.zeitraum a[aria-current] { background: var(--accent); color: var(--accent-contrast); }
+
+/* Key figures */
+.kacheln { grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); }
+.kacheln.klein { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 0; }
+.kachel { display: flex; flex-direction: column; gap: 4px; }
+.kachel-wert { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; }
+.kachel-wert .einheit { color: var(--stat-muted); font-size: 0.9rem; font-weight: 600; }
+.kachel .spark { width: 100%; height: 30px; margin-top: 2px; }
+.spark path { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.kachel-fuss { margin-top: auto; color: var(--stat-muted); font-size: 0.78rem; line-height: 1.4; }
+.kachel-fuss .delta { font-weight: 700; color: var(--stat-text); }
+.trend-gut .delta { color: var(--ok); }
+.trend-schlecht .delta { color: var(--danger); }
+.kachel.veraltet .kachel-wert { opacity: 0.6; }
+
+.quelle-chip { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text); font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+.quelle-chip::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%; background: var(--muted); vertical-align: 1px; }
+.q-withings::before, .q-apple_withings::before { background: var(--q-withings); }
+.q-garmin::before, .q-apple_garmin::before { background: var(--q-garmin); }
+.q-apple_watch::before { background: var(--q-apple); }
+.q-iphone::before, .q-apple_andere::before { background: var(--q-iphone); }
+.q-apple_withings::before, .q-apple_garmin::before { box-shadow: 0 0 0 2px var(--q-apple); }
+.stat .quelle-chip { padding: 0; background: none; color: var(--stat-muted); font-weight: 600; }
+
+/* Today: activity rings */
+.ringe { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.ring-kachel { display: flex; align-items: center; gap: 14px; padding: 8px; border-radius: var(--radius-sm); color: var(--text); }
+.ring-kachel:hover { text-decoration: none; background: var(--surface-2); }
+.ring-bild { position: relative; flex: 0 0 auto; width: 96px; height: 96px; }
+.ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring circle { fill: none; stroke-width: 13; }
+.ring-track { stroke: var(--surface-2); }
+.ring-fill { stroke-linecap: round; stroke: var(--ring-schritte); }
+.ring-minuten .ring-fill { stroke: var(--ring-minuten); }
+.ring-kalorien .ring-fill { stroke: var(--ring-kalorien); }
+.ring-schlaf .ring-fill { stroke: var(--ring-schlaf); }
+.ring-fill.full { filter: drop-shadow(0 0 6px color-mix(in srgb, currentColor 40%, transparent)); }
+.ring-mitte { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); }
+.ring-mitte strong { font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.ring-mitte small { font-size: 0.75rem; color: var(--muted); margin-left: 1px; }
+.ring-text { display: grid; gap: 2px; min-width: 0; }
+.ring-label { color: var(--muted); font-size: 0.82rem; }
+.ring-wert { font-weight: 800; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.ring-ziel { color: var(--muted); font-size: 0.78rem; }
+@media (max-width: 1100px) { .ringe { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) {
+  .ring-kachel { flex-direction: column; text-align: center; gap: 6px; }
+  .ring-bild { width: 84px; height: 84px; }
+}
+
+/* Charts (charts.py) */
+.chart { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto auto; column-gap: 8px; margin: 4px 0 0; }
+.chart-y { grid-row: 1; display: flex; flex-direction: column; justify-content: space-between; height: 220px; margin: -0.5em 0; color: var(--muted); font-size: 0.72rem; font-variant-numeric: tabular-nums; text-align: right; }
+.chart-plot { position: relative; grid-row: 1; grid-column: 2; }
+.chart-plot svg { display: block; width: 100%; height: 220px; overflow: visible; }
+.chart-x { grid-row: 2; grid-column: 2; display: flex; justify-content: space-between; margin-top: 6px; color: var(--muted); font-size: 0.72rem; white-space: nowrap; }
+.chart-x span:nth-child(2), .chart-x span:nth-child(4) { visibility: visible; }
+@media (max-width: 600px) { .chart-x span:nth-child(2), .chart-x span:nth-child(4) { visibility: hidden; } }
+.chart-legend { grid-row: 3; grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 10px; color: var(--muted); font-size: 0.78rem; }
+.chart .grid { stroke: var(--border); stroke-width: 1; }
+.chart .line { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.chart .area { fill: var(--accent); opacity: 0.1; }
+.chart .trend { fill: none; stroke: var(--text); stroke-width: 1.5; stroke-dasharray: 5 4; opacity: 0.55; }
+.chart .dot { stroke: var(--accent); stroke-width: 7; stroke-linecap: round; }
+.chart.viele .dot { stroke-width: 4; }
+.chart .band { fill: var(--ok); opacity: 0.1; }
+.chart .goal { stroke: var(--warn); stroke-width: 1.5; stroke-dasharray: 6 5; }
+.chart .limit { stroke: var(--danger); stroke-width: 1.2; stroke-dasharray: 3 4; opacity: 0.8; }
+.chart .bar { fill: var(--accent); opacity: 0.5; }
+.chart .bar.reached { opacity: 1; }
+.chart .bar:hover, .chart .night:hover { opacity: 0.85; }
+.chart .bp-range { stroke: var(--muted); stroke-width: 3; stroke-linecap: round; opacity: 0.6; }
+.chart .bp .dot { stroke-width: 8; }
+.chart .bp-optimal .dot, .chart .bp-normal .dot { stroke: var(--ok); }
+.chart .bp-hochnormal .dot { stroke: var(--warn); }
+.chart .bp-grad1 .dot, .chart .bp-grad2 .dot, .chart .bp-grad3 .dot { stroke: var(--danger); }
+.chart .bp-dia { opacity: 0.75; }
+.st-tief { fill: var(--st-tief); }
+.st-leicht { fill: var(--st-leicht); }
+.st-rem { fill: var(--st-rem); }
+.st-wach { fill: var(--st-wach); }
+.st-schlaf { fill: var(--st-schlaf); }
+.chart-empty { display: grid; place-items: center; min-height: 160px; border: 1px dashed var(--border); border-radius: var(--radius-sm); color: var(--muted); text-align: center; padding: 16px; }
+.chart-empty p { margin: 0; }
+.chart-tip { position: absolute; z-index: 5; transform: translate(-50%, calc(-100% - 12px)); padding: 6px 10px; border-radius: 8px; background: var(--surface-solid); border: 1px solid var(--border); box-shadow: var(--shadow); color: var(--text); font-size: 0.8rem; white-space: nowrap; pointer-events: none; }
+.chart-cursor { stroke: var(--muted); stroke-width: 1; }
+
+/* Legend swatches (charts, sleep stages) */
+.leg::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 3px; background: var(--accent); vertical-align: -1px; }
+.leg-trend::before { height: 0; border-top: 2px dashed var(--text); border-radius: 0; background: none; opacity: 0.6; vertical-align: 3px; }
+.leg-band::before { background: var(--ok); opacity: 0.35; }
+.leg-goal::before { height: 0; border-top: 2px dashed var(--warn); border-radius: 0; background: none; vertical-align: 3px; }
+.leg-limit::before { height: 0; border-top: 2px dotted var(--danger); border-radius: 0; background: none; vertical-align: 3px; }
+.leg-reached::before { background: var(--accent); }
+.leg-bp::before { width: 4px; background: var(--muted); }
+.leg-tief::before { background: var(--st-tief); }
+.leg-leicht::before { background: var(--st-leicht); }
+.leg-rem::before { background: var(--st-rem); }
+.leg-wach::before { background: var(--st-wach); }
+.leg-schlaf::before { background: var(--st-schlaf); }
+
+/* Levels (blood pressure, BMI, ECG) */
+.stufe { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; background: var(--surface-2); color: var(--text); }
+.stufe small { font-weight: 500; opacity: 0.8; }
+.stufe-optimal, .stufe-normal { background: var(--ok-bg); color: var(--ok); }
+.stufe-hochnormal, .stufe-untergewicht, .stufe-uebergewicht { background: var(--warn-bg); color: var(--warn); }
+.stufe-grad1, .stufe-grad2, .stufe-grad3, .stufe-adipositas { background: var(--danger-bg); color: var(--danger); }
+.stufen-skala { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0; padding: 0; }
+
+.bd-gross, .nacht-gross { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin: 4px 0 10px; }
+.bd-wert, .nacht-dauer { font-family: var(--font-display); font-size: 2.6rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: var(--display-tracking); }
+.bd-strich { margin: 0 2px; color: var(--muted); font-weight: 400; }
+.bd-einheit, .nacht-score { color: var(--muted); }
+.nacht-score strong { color: var(--text); font-size: 1.2rem; }
+.bd-kopf { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; margin-bottom: 14px; }
+.bd-woche { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.bd-woche > .small { flex-basis: 100%; }
+.messungen { margin-top: 10px; }
+.messungen summary { cursor: pointer; font-weight: 600; }
+
+.phasen-leiste { display: block; width: 100%; height: 16px; border-radius: 6px; overflow: hidden; margin: 4px 0 10px; }
+.phasen-legende { display: flex; flex-wrap: wrap; gap: 4px 16px; list-style: none; padding: 0; margin: 0 0 10px; font-size: 0.85rem; }
+.werte-liste { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 12px 0; }
+.werte-liste dt { color: var(--muted); }
+.werte-liste dd { margin: 0; font-weight: 600; }
+
+.woche-zahlen { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.woche-zahlen div { display: grid; gap: 2px; }
+.woche-zahlen strong { font-family: var(--font-display); font-size: 1.4rem; font-variant-numeric: tabular-nums; }
+.quellen-status li { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.arten li { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.arten span { color: var(--muted); font-variant-numeric: tabular-nums; }
+.start-schritte { display: grid; gap: 10px; padding-left: 20px; }
+
+/* Sources */
+.quellen-raster { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; margin-bottom: 16px; }
+.quellen-raster > .card { margin: 0; }
+.quelle-karte.breit { grid-column: 1 / -1; }
+@media (max-width: 900px) { .quellen-raster { grid-template-columns: minmax(0, 1fr); } }
+.card.quelle-karte > h2 { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 10px; }
+.quelle-logo { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; color: #fff; font-family: var(--font); font-size: 0.95rem; font-weight: 800; letter-spacing: 0; text-transform: none; }
+.quelle-logo.q-withings { background: var(--q-withings); }
+.quelle-logo.q-garmin { background: var(--q-garmin); }
+.quelle-logo.q-apple { background: var(--q-apple); }
+.quelle-logo::before { display: none; }
+.einrichtung { display: grid; gap: 8px; padding-left: 20px; margin: 10px 0 14px; }
+code.kopierbar { display: block; margin: 6px 0 2px; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--surface-2); overflow-wrap: anywhere; user-select: all; }
+.garmin-schalter { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin: 12px 0; }
+.garmin-schalter .check { margin: 0; }
+.inline-feld { display: inline-flex; align-items: center; gap: 6px; margin: 0; }
+.inline-feld input { width: 80px; }
+.trennen, .ordner { margin-top: 12px; }
+.trennen summary, .ordner summary { cursor: pointer; color: var(--muted); font-size: 0.9rem; }
+.apple-raster { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 20px; }
+@media (max-width: 900px) { .apple-raster { grid-template-columns: minmax(0, 1fr); } }
+.upload { display: grid; gap: 10px; }
+.upload-feld { display: grid; justify-items: center; gap: 4px; padding: 22px 16px; border: 2px dashed var(--border); border-radius: var(--radius); background: var(--surface-2); color: var(--text); text-align: center; cursor: pointer; margin: 0; }
+.upload-feld:hover, .upload:has(input:focus-visible) .upload-feld { border-color: var(--accent); }
+.upload-feld .icon { width: 28px; height: 28px; color: var(--accent); }
+.upload-feld span { font-weight: 700; overflow-wrap: anywhere; }
+.upload-feld small { color: var(--muted); }
+.importe progress.bar { min-width: 90px; }
+
+.reihenfolge-raster { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+.reihenfolge { padding: 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); }
+.reihenfolge h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 2px; }
+.reihenfolge ol { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 4px; }
+.reihenfolge li { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 8px; background: var(--surface); }
+.reihenfolge li.leer { opacity: 0.55; }
+.reihenfolge .rang { width: 1.6em; color: var(--muted); font-family: var(--font-mono); font-size: 0.8rem; text-align: right; }
+.reihenfolge .pfeile { margin-left: auto; }
+.reihenfolge .pfeile form { display: flex; gap: 2px; }
+.reihenfolge .btn-small { padding: 2px 6px; }
+.reihenfolge .btn-small .icon { width: 14px; height: 14px; }
+.quellen-liste { padding-left: 20px; display: grid; gap: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ring-fill { transition: none; }
+}
+@media print {
+  .zeitraum, .chart-tip { display: none !important; }
+}
+.chart .dot.aktiv { stroke-width: 13; }
+.chart .bar.aktiv, .chart .night.aktiv { opacity: 0.8; }
+
+/* Split-flap digits in the narrower key figure tiles */
+:is([data-theme="violett"]:not([data-digits="schlicht"]), [data-digits="fallblatt"]) .kachel .value { font-size: 1.35rem; gap: 3px; }
+:is([data-theme="violett"]:not([data-digits="schlicht"]), [data-digits="fallblatt"]) .kachel-wert { flex-wrap: nowrap; align-items: center; }

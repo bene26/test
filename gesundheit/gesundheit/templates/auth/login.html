@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, icon %}
+{% block title %}Anmelden{% endblock %}
+{% block content %}
+<div class="auth-v7">
+  <div>
+    <div class="brand auth-brand"><span class="logo" aria-hidden="true"></span>{{ app_name }}</div>
+    <div class="v7-card">
+      <div class="v7-intro" aria-hidden="true"><span class="logo"></span></div>
+      <div class="v7-body">
+        <h1>Willkommen <em>zurück</em></h1>
+        <p class="sub">Melde dich an, um deine Gesundheitsdaten zu sehen.</p>
+        <form method="post" action="{{ url_for('auth.login') }}">
+          {{ csrf() }}
+          <input type="hidden" name="next" value="{{ next_url }}">
+          <div class="v7-field">
+            <label for="username">Benutzername</label>
+            <div class="v7-input">{{ icon('user') }}<input id="username" type="text" name="username" required maxlength="60" autocomplete="username" autofocus></div>
+          </div>
+          <div class="v7-field">
+            <label for="password">Passwort</label>
+            <div class="v7-input">{{ icon('lock') }}<input id="password" type="password" name="password" required maxlength="200" autocomplete="current-password"><button class="v7-eye" type="button" data-toggle-password aria-controls="password" aria-pressed="false" aria-label="Passwort anzeigen">{{ icon('eye') }}</button></div>
+          </div>
+          <div class="v7-row">
+            <label class="check"><input type="checkbox" name="remember"> Angemeldet bleiben (30 Tage)</label>
+          </div>
+          <button class="btn btn-primary v7-submit" type="submit">Anmelden {{ icon('arrow') }}</button>
+        </form>
+        <p class="v7-foot">Passwort vergessen? Auf dem Server <code>python -m gesundheit.manage passwort NAME</code> ausführen (siehe Installationsanleitung).</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

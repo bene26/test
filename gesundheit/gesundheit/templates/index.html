@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, digits, icon, kachel, phasen, quelle %}
+{% block title %}Übersicht{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ now|datum_wt }}</h1>
+    <p class="sub">{% if now.hour < 11 %}Guten Morgen.{% elif now.hour < 17 %}Guten Tag.{% else %}Guten Abend.{% endif %} So sieht dein Tag bisher aus.</p>
+  </div>
+  {% if connections %}
+  <div class="actions">
+    <form method="post" action="{{ url_for('main.sync_now') }}">{{ csrf() }}
+      <button class="btn" type="submit"{% if syncing %} disabled{% endif %}>{{ icon('refresh') }} {{ 'Abgleich läuft …' if syncing else 'Jetzt abgleichen' }}</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+{% if empty %}
+<section class="card start-leer" aria-labelledby="leer-titel">
+  <h2 id="leer-titel">Noch keine Daten</h2>
+  <p>Verbinde deine Geräte, dann füllt sich diese Seite von selbst.</p>
+  <ol class="start-schritte">
+    <li><strong>Withings</strong> (Waage, Blutdruck, Thermometer, Schlafmatte): einmal eine kostenlose Anwendung bei Withings anlegen und verbinden. <a href="{{ url_for('quellen.index') }}#withings">Zu Withings</a></li>
+    <li><strong>Apple Watch und iPhone</strong>: in der Health-App „Alle Gesundheitsdaten exportieren“ und die ZIP-Datei hochladen. <a href="{{ url_for('quellen.index') }}#apple">Zu Apple Health</a></li>
+    <li><strong>Garmin</strong>: kommt über Apple Health mit, wenn die Connect-App dort schreibt. Für Body Battery, Stress und HRV direkt verbinden. <a href="{{ url_for('quellen.index') }}#garmin">Zu Garmin</a></li>
+  </ol>
+</section>
+{% endif %}
+
+<section class="card heute" aria-labelledby="heute-titel">
+  <h2 id="heute-titel">Heute</h2>
+  <div class="ringe">
+    {% for r in rings %}
+    <a class="ring-kachel" href="{{ r.url }}">
+      <span class="ring-bild">{{ r.svg }}<span class="ring-mitte">{% if r.percent is not none %}<strong>{{ r.percent }}</strong><small>%</small>{% else %}<strong>–</strong>{% endif %}</span></span>
+      <span class="ring-text">
+        <span class="ring-label">{{ r.label }}</span>
+        <span class="ring-wert">{% if r.value is none %}<span class="muted">noch nichts</span>{% elif r.dauer %}{{ r.value|dauer }}{% else %}{{ r.value|zahl(r.decimals) }}{% if r.unit %} {{ r.unit }}{% endif %}{% endif %}</span>
+        <span class="ring-ziel">Ziel {% if r.dauer %}{{ r.goal|dauer }}{% else %}{{ r.goal|zahl(0) }}{% if r.unit %} {{ r.unit }}{% endif %}{% endif %}</span>
+      </span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+{% if tiles %}
+<h2 class="sr-only">Kennzahlen</h2>
+<div class="stats kacheln" data-fallblatt>
+  {% for t in tiles %}{{ kachel(t) }}{% endfor %}
+</div>
+{% endif %}
+
+<div class="columns-even">
+  <section class="card" aria-labelledby="bd-titel">
+    <h2 id="bd-titel">Blutdruck <a class="count" href="{{ url_for('bereiche.herz') }}#blutdruck">alle Messungen</a></h2>
+    {% if bp_info %}
+    {% set v = bp_info.reading['values'] %}
+    <div class="bd-gross">
+      <span class="bd-wert">{{ v.bp_sys|zahl }}<span class="bd-strich">/</span>{{ v.bp_dia|zahl }}</span>
+      <span class="bd-einheit">mmHg{% if v.pulse %} · Puls {{ v.pulse|zahl }}{% endif %}</span>
+    </div>
+    <p><span class="stufe stufe-{{ bp_info.category[0] }}">{{ bp_info.category[1] }}</span> <span class="small muted">{{ bp_info.reading.measured_at|zeitpunkt }} · {{ quelle(bp_info.reading.source) }}</span></p>
+    <p class="small muted">Einstufung als Orientierung (ESH 2023), keine Diagnose.</p>
+    {% else %}
+    <p class="muted">Noch keine Blutdruckmessung in den letzten 90 Tagen.</p>
+    {% endif %}
+  </section>
+
+  <section class="card" aria-labelledby="nacht-titel">
+    <h2 id="nacht-titel">Letzte Nacht <a class="count" href="{{ url_for('bereiche.schlaf') }}">Schlaf</a></h2>
+    {% if night %}
+    <div class="nacht-gross">
+      <span class="nacht-dauer">{{ night.asleep_min|dauer }}</span>
+      {% if night.score %}<span class="nacht-score">Bewertung <strong>{{ night.score }}</strong></span>{% endif %}
+    </div>
+    {% if night.deep_min is not none %}
+    {{ phasen(night) }}
+    <ul class="phasen-legende">
+      <li class="leg leg-tief">Tief {{ night.deep_min|dauer }}</li><li class="leg leg-leicht">Leicht {{ night.light_min|dauer }}</li>
+      <li class="leg leg-rem">REM {{ night.rem_min|dauer }}</li><li class="leg leg-wach">Wach {{ night.awake_min|dauer }}</li>
+    </ul>
+    {% endif %}
+    <p class="small muted">{% if night.bed_start %}{{ night.bed_start|uhrzeit }} bis {{ night.bed_end|uhrzeit }} · {% endif %}{{ quelle(night.source) }}</p>
+    {% else %}
+    <p class="muted">Für letzte Nacht gibt es noch keine Schlafdaten.</p>
+    {% endif %}
+  </section>
+</div>
+
+<div class="columns">
+  <section class="card" aria-labelledby="woche-titel">
+    <h2 id="woche-titel">Die letzten 7 Tage <a class="count" href="{{ url_for('bereiche.aktivitaet', zeitraum=7) }}">Aktivität</a></h2>
+    {{ week.steps }}
+    <div class="woche-zahlen">
+      <div><span class="small muted">Schritte im Schnitt</span><strong>{{ week.steps_avg|zahl }}</strong></div>
+      <div><span class="small muted">Schlaf im Schnitt</span><strong>{{ week.sleep_avg|dauer }}</strong></div>
+      <div><span class="small muted">Trainings</span><strong>{{ week.workouts|length }}</strong></div>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="quellen-titel">
+    <h2 id="quellen-titel">Quellen <a class="count" href="{{ url_for('quellen.index') }}">verwalten</a></h2>
+    <ul class="plain-list quellen-status">
+      {% for provider, label in [('withings', 'Withings'), ('garmin', 'Garmin direkt')] %}
+      {% set c = connections.get(provider) %}
+      <li><span>{{ label }}</span>
+        {% if not c %}<span class="badge">nicht verbunden</span>
+        {% elif c.last_error %}<span class="badge red" title="{{ c.last_error }}">Fehler</span>
+        {% else %}<span class="badge green">{{ c.last_ok|vor }}</span>{% endif %}</li>
+      {% endfor %}
+      <li><span>Apple Health</span>
+        {% if not last_import %}<span class="badge">noch kein Import</span>
+        {% elif last_import.status == 'fertig' %}<span class="badge green">{{ last_import.finished_at|vor }}</span>
+        {% elif last_import.status == 'fehler' %}<span class="badge red">Fehler</span>
+        {% else %}<span class="badge">läuft ({{ last_import.progress }} %)</span>{% endif %}</li>
+    </ul>
+    <p class="small muted">Withings und Garmin gleichen sich stündlich ab. Apple Health kommt per Export-Datei; eine eigene iPhone-App, die das automatisch macht, ist für später geplant.</p>
+  </section>
+</div>
+{% endblock %}

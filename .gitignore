@@ -6,3 +6,6 @@ __pycache__/
 .venv/
 .pytest_cache/
 dist/
+gesundheit/data/
+gesundheit/import/
+gesundheit/.env

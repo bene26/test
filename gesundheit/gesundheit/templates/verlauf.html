@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% from "_macros.html" import digits, quelle, zeitraum %}
+{% block title %}{{ meta.label }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow"><a href="{{ url_for('bereiche.' ~ meta.page) }}">{{ {'koerper': 'Körper', 'herz': 'Herz & Kreislauf', 'aktivitaet': 'Aktivität'}[meta.page] }}</a></p>
+    <h1>{{ meta.label }}</h1>
+    {% if latest %}<p class="sub">Zuletzt {{ latest.value|zahl(meta.decimals) }}{% if meta.unit %} {{ meta.unit }}{% endif %} am {{ latest.day|datum_wt }} · {{ quelle(latest.source) }}</p>{% endif %}
+  </div>
+  {{ zeitraum(days, periods, 'main.history', {'metric': meta.key}) }}
+</div>
+
+<div class="stats kacheln klein" data-fallblatt>
+  <div class="stat"><div class="label">Durchschnitt</div><div class="kachel-wert"><span class="value">{{ digits(stats.avg|zahl(meta.decimals)) }}</span><span class="einheit">{{ meta.unit }}</span></div></div>
+  <div class="stat"><div class="label">Niedrigster</div><div class="kachel-wert"><span class="value">{{ digits(stats.min|zahl(meta.decimals)) }}</span><span class="einheit">{{ meta.unit }}</span></div></div>
+  <div class="stat"><div class="label">Höchster</div><div class="kachel-wert"><span class="value">{{ digits(stats.max|zahl(meta.decimals)) }}</span><span class="einheit">{{ meta.unit }}</span></div></div>
+  <div class="stat"><div class="label">Tage mit Wert</div><div class="kachel-wert"><span class="value">{{ digits(stats.count) }}</span><span class="einheit">von {{ days }}</span></div></div>
+</div>
+
+<section class="card">
+  <h2>Verlauf</h2>
+  {{ chart }}
+</section>
+
+<div class="columns">
+  <section class="card">
+    <h2>Werte je Tag <span class="count">neueste zuerst</span></h2>
+    {% if rows %}
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Tag</th><th class="num">{{ meta.label }}</th><th>Gezählt von</th><th>Andere Quellen</th></tr></thead>
+      <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.day|datum_wt }}</td>
+        <td class="num">{{ r.value|zahl(meta.decimals) }}{% if meta.unit %} {{ meta.unit }}{% endif %}</td>
+        <td>{{ quelle(r.source) }}</td>
+        <td class="small muted">{% for s, v in per_source[r.day].items() if s != r.source %}{{ s|quelle_kurz }} {{ v|zahl(meta.decimals) }}{{ ', ' if not loop.last }}{% endfor %}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}<p class="muted">Keine Werte in diesem Zeitraum.</p>{% endif %}
+  </section>
+  <section class="card">
+    <h2>Woher die Werte kommen</h2>
+    {% if sources_seen %}
+    <p>Pro Tag zählt die erste Quelle, die einen Wert hat. Reihenfolge für <strong>{{ FAMILIES[meta.family][0] }}</strong>:</p>
+    <ol class="quellen-liste">{% for s in sources_seen %}<li>{{ quelle(s) }}</li>{% endfor %}</ol>
+    {% endif %}
+    <p class="small muted">Ändern unter <a href="{{ url_for('quellen.index') }}#reihenfolge-{{ meta.family }}">Quellen → Reihenfolge</a>. Werte verschiedener Quellen werden nie zusammengezählt.</p>
+  </section>
+</div>
+{% endblock %}
