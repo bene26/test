@@ -235,4 +235,4 @@ code.kopierbar { display: block; margin: 6px 0 2px; padding: 8px 10px; border-ra
 
 /* Split-flap digits in the narrower key figure tiles */
 :is([data-theme="violett"]:not([data-digits="schlicht"]), [data-digits="fallblatt"]) .kachel .value { font-size: 1.35rem; gap: 3px; }
-:is([data-theme="violett"]:not([data-digits="schlicht"]), [data-digits="fallblatt"]) .kachel-wert { flex-wrap: nowrap; align-items: center; }
+:is([data-theme="violett"]:not([data-digits="schlicht"]), [data-digits="fallblatt"]) .kachel-wert { align-items: center; row-gap: 2px; }
