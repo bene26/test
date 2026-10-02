@@ -72,6 +72,13 @@
     {% endfor %}
     {% endfor %}
   </nav>
+  {% set ds = data_state() %}
+  {% if ds %}
+  <a class="nav-datenstand{{ ' frisch' if ds.fresh }}" href="{{ url_for('quellen.index') }}">
+    <span class="nd-punkt" aria-hidden="true"></span>
+    <span class="nd-text"><strong>{{ ds.title }}</strong><small>{{ ds.text }}</small></span>
+  </a>
+  {% endif %}
   <form class="logout" method="post" action="{{ url_for('auth.logout') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button type="submit" title="Abmelden">{{ icon('logout') }}<span class="nav-label">Abmelden</span></button>

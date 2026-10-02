@@ -6,6 +6,8 @@
    4. pickers on the analysis pages send themselves, print button for reports
    5. the 3D skyline: grows week by week, read-out per day, switch between steps and load,
       totals count up
+   6. goal forecast: the slider recomputes the chance (same normal distribution as prognose.py)
+   7. prepared questions: the answer types itself
    No inline styles in the markup (CSP); positions are set through the CSSOM. */
 (function () {
   "use strict";
@@ -234,6 +236,131 @@
       figure.addEventListener("pointermove", show);
       figure.addEventListener("pointerdown", show);
       figure.addEventListener("pointerleave", hide);
+    });
+  });
+
+  // Switches between views inside a card (forecast kinds): links without JavaScript.
+  function views(card, buttonAttr, viewAttr, onShow) {
+    var panels = Array.prototype.slice.call(card.querySelectorAll("[" + viewAttr + "]"));
+    var buttons = Array.prototype.slice.call(card.querySelectorAll("[" + buttonAttr + "]"));
+    buttons.forEach(function (button) {
+      button.addEventListener("click", function (e) {
+        var key = button.getAttribute(buttonAttr);
+        var target = panels.filter(function (p) { return p.getAttribute(viewAttr) === key; })[0];
+        if (!target) return;
+        e.preventDefault();
+        panels.forEach(function (p) { p.hidden = p !== target; });
+        buttons.forEach(function (b) {
+          var on = b === button;
+          b.setAttribute("aria-pressed", on ? "true" : "false");
+          if (on) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current");
+        });
+        if (onShow) onShow(target, key);
+      });
+    });
+  }
+
+  // 6. Goal forecast
+  function erf(x) {  // Abramowitz and Stegun 7.1.26, error below 1.5e-7
+    var sign = x < 0 ? -1 : 1;
+    x = Math.abs(x);
+    var t = 1 / (1 + 0.3275911 * x);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+    return sign * y;
+  }
+  function fmt(v, decimals) {
+    return v.toLocaleString("de-DE", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  }
+  function signed(v, decimals) {
+    var r = Number(v.toFixed(decimals));
+    if (r === 0) return "±0";
+    return (r > 0 ? "+" : "−") + fmt(Math.abs(r), decimals);
+  }
+  function verdict(p) {
+    return p < 20 ? "unwahrscheinlich" : p < 45 ? "eher nicht" : p < 70 ? "gut möglich" : "sehr wahrscheinlich";
+  }
+
+  document.querySelectorAll("[data-prognosen]").forEach(function (card) {
+    views(card, "data-prognose-zeige", "data-prognose");
+    card.querySelectorAll("[data-prognose]").forEach(function (panel) {
+      var slider = panel.querySelector("[data-pg-regler]");
+      if (!slider) return;
+      var num = function (name) { return parseFloat(panel.getAttribute(name)); };
+      var mean = num("data-mean"), sd = num("data-sd"), lo = num("data-lo"), hi = num("data-hi");
+      var decimals = parseInt(panel.getAttribute("data-decimals"), 10) || 0;
+      var down = panel.getAttribute("data-direction") === "down";
+      var needBase = num("data-need-base"), needSpan = num("data-need-span");
+      var needDecimals = parseInt(panel.getAttribute("data-need-decimals"), 10) || 0;
+      var unit = panel.getAttribute("data-unit") || "";
+      var W = 300, H = 120;
+      function x(v) { return (v - lo) / (hi - lo) * W; }
+      function y(v) { return H - Math.exp(-0.5 * Math.pow((v - mean) / sd, 2)) * (H - 8); }
+      function update() {
+        var goal = parseFloat(slider.value);
+        var z = (goal - mean) / sd;
+        var below = 0.5 * (1 + erf(z / Math.SQRT2));
+        var p = Math.round((down ? below : 1 - below) * 100);
+        panel.querySelector("[data-pg-prozent]").textContent = p;
+        panel.querySelector("[data-pg-urteil]").textContent = verdict(p);
+        panel.querySelector("[data-pg-ziel]").textContent = fmt(goal, decimals) + " " + unit;
+        panel.querySelector("[data-pg-ausgabe]").textContent = fmt(goal, decimals) + " " + unit;
+        panel.querySelector("[data-pg-noetig]").textContent = signed((goal - needBase) / needSpan, needDecimals);
+        var g = Math.min(Math.max(goal, lo), hi);
+        var edge = [];
+        for (var i = 0; i <= 80; i++) {
+          var v = lo + (hi - lo) * i / 80;
+          if (down ? v < g : v > g) edge.push(v);
+        }
+        if (down) edge.push(g); else edge.unshift(g);
+        var d = "M" + x(edge[0]).toFixed(1) + " " + H;
+        edge.forEach(function (v) { d += " L" + x(v).toFixed(1) + " " + y(v).toFixed(1); });
+        d += " L" + x(edge[edge.length - 1]).toFixed(1) + " " + H + " Z";
+        panel.querySelector("[data-glocke-flaeche]").setAttribute("d", d);
+        panel.querySelector("[data-glocke-ziel]").setAttribute("d", "M" + x(g).toFixed(1) + " 0 V" + H);
+      }
+      slider.addEventListener("input", update);
+    });
+  });
+
+  // 7. Prepared questions
+  document.querySelectorAll("[data-fragen]").forEach(function (card) {
+    var chips = Array.prototype.slice.call(card.querySelectorAll("[data-frage]"));
+    var answers = Array.prototype.slice.call(card.querySelectorAll("[data-antwort]"));
+    var timer = null;
+    function type(answer) {
+      var lines = Array.prototype.slice.call(answer.querySelectorAll("p"));
+      var texts = lines.map(function (l) { return l.getAttribute("data-voll") || l.textContent; });
+      lines.forEach(function (l, i) { l.setAttribute("data-voll", texts[i]); });
+      if (timer) clearInterval(timer);
+      if (reduce) { lines.forEach(function (l, i) { l.textContent = texts[i]; }); return; }
+      lines.forEach(function (l) { l.textContent = ""; l.classList.remove("cursor"); });
+      var line = 0, pos = 0;
+      timer = setInterval(function () {
+        if (line >= lines.length) {
+          clearInterval(timer);
+          lines[lines.length - 1].classList.remove("cursor");
+          return;
+        }
+        lines[line].classList.add("cursor");
+        pos += line === 0 ? 1 : 3;
+        lines[line].textContent = texts[line].slice(0, pos);
+        if (pos >= texts[line].length) {
+          if (line < lines.length - 1) lines[line].classList.remove("cursor");
+          line++;
+          pos = 0;
+        }
+      }, 18);
+    }
+    chips.forEach(function (chip) {
+      chip.addEventListener("click", function (e) {
+        var key = chip.getAttribute("data-frage");
+        var answer = answers.filter(function (a) { return a.getAttribute("data-antwort") === key; })[0];
+        if (!answer) return;
+        e.preventDefault();
+        chips.forEach(function (c) { c.setAttribute("aria-pressed", c === chip ? "true" : "false"); });
+        answers.forEach(function (a) { a.hidden = a !== answer; });
+        type(answer);
+      });
     });
   });
 })();

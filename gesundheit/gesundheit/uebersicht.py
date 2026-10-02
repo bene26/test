@@ -7,6 +7,7 @@ from datetime import timedelta
 
 from . import belastung, charts, store, util
 from .auswertung import WEEKDAYS_LONG
+from .katalog import APPLE_SOURCES
 
 PERIODS = {"3M": (91, "Deine letzten 3 Monate"), "6M": (182, "Deine letzten 6 Monate"),
            "12M": (364, "Dein Jahr · 12 Monate")}
@@ -81,3 +82,56 @@ def skyline(db, pid: int, person: dict, end, period: str = DEFAULT_PERIOD) -> di
         })
     return {"period": period_choice(period), "label": label, "views": views,
             "periods": list(PERIODS)}
+
+
+SOURCE_TILES = [
+    ("withings", "Withings", "Waage, Blutdruck, Schlafmatte, Thermometer", ("withings",)),
+    ("garmin", "Garmin direkt", "Body Battery, Stress, HRV, Schlaf, Trainings", ("garmin",)),
+    ("apple", "Apple Health", "Apple Watch, iPhone und Apps, die dort schreiben", APPLE_SOURCES),
+]
+
+
+def _recent_count(db, pid: int, sources: tuple, since: str) -> int:
+    marks = ", ".join("?" for _ in sources)
+    total = 0
+    for table, column in (("daily_values", "day"), ("measurements", "day"), ("sleep", "night"),
+                          ("workouts", "day")):
+        total += db.execute(f"SELECT COUNT(*) FROM {table} WHERE person_id = ? AND source IN ({marks}) "
+                            f"AND {column} >= ?", (pid, *sources, since)).fetchone()[0]
+    return total
+
+
+def sources(db, pid: int, person: dict, today) -> list[dict]:
+    """One tile per source with its state, for the overview (managing stays on "Quellen")."""
+    today = util.to_date(today)
+    since = (today - timedelta(days=6)).isoformat()
+    connections = {r["provider"]: r for r in db.execute(
+        "SELECT provider, last_ok, last_error FROM connections WHERE person_id = ?", (pid,))}
+    last_import = db.execute("SELECT status, finished_at FROM imports WHERE person_id = ? "
+                             "ORDER BY id DESC LIMIT 1", (pid,)).fetchone()
+    tiles = []
+    for key, name, devices, keys in SOURCE_TILES:
+        tile = {"key": key, "name": name, "devices": devices,
+                "count": _recent_count(db, pid, keys, since)}
+        if key == "apple":
+            if not last_import:
+                tile.update(state="aus", status="noch kein Import")
+            elif last_import["status"] == "fehler":
+                tile.update(state="fehler", status="letzter Import mit Fehler")
+            elif last_import["status"] != "fertig":
+                tile.update(state="laeuft", status="Import läuft")
+            else:
+                tile.update(state="an", status=f"Import {util.fmt_ago(last_import['finished_at'])}")
+        else:
+            c = connections.get(key)
+            if key == "garmin" and not person.get("garmin_enabled"):
+                tile.update(state="aus", status="ausgeschaltet")
+            elif not c:
+                tile.update(state="aus", status="nicht verbunden")
+            elif c["last_error"]:
+                tile.update(state="fehler", status="Abgleich mit Fehler")
+            else:
+                tile.update(state="an", status=f"abgeglichen {util.fmt_ago(c['last_ok'])}"
+                            if c["last_ok"] else "verbunden")
+        tiles.append(tile)
+    return tiles

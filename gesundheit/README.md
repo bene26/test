@@ -1,6 +1,6 @@
 # Gesundheits-Cockpit
 
-Die Gesundheitsdaten der ganzen Familie von **Withings** (Waage, Blutdruck, Thermometer, Schlafmatte, ScanWatch), **Garmin** und **Apple Watch / iPhone** an einem Ort, auf deinem eigenen NAS: mit **Auswertungen**, **Zusammenhängen**, **Vergleich zwischen Personen** und **Berichten**. Eigener Docker-Container mit eigenem Login und eigener Datenbank, im selben Design wie das Projekt-Cockpit (fünf Designs, Akzentfarben, zehn Menü-Stile, Fallblatt-Zahlen, Fehlerseiten-Grafiken, Strg+K).
+Die Gesundheitsdaten der ganzen Familie von **Withings** (Waage, Blutdruck, Thermometer, Schlafmatte, ScanWatch), **Garmin** und **Apple Watch / iPhone** an einem Ort, auf deinem eigenen NAS: mit **Befunden**, **Form und Wochen-Coach**, **Zielprognosen**, **Auswertungen**, **Zusammenhängen**, **Vergleich zwischen Personen** und **Berichten**. Eigener Docker-Container mit eigenem Login und eigener Datenbank. Standard ist das helle Design **Indigo** (weiße Karten, Indigo-Akzent, 3D-Skyline); die fünf Designs des Projekt-Cockpits, Akzentfarben, zehn Menü-Stile, Fallblatt-Zahlen, Fehlerseiten-Grafiken und Strg+K gibt es auch hier.
 
 ## Mehrere Personen
 
@@ -12,7 +12,8 @@ Keine Cloud, keine Werbung, keine Weitergabe. Die Daten verlassen das NAS nicht;
 
 | Seite | Inhalt |
 |---|---|
-| **Übersicht** | Drei Aktivitätsringe ineinander (Bewegen, aktive Minuten, Schritte; zweite Runde, wenn das Ziel übertroffen ist), Halbkreis-Anzeigen für Schlafbewertung, Body Battery und Trainingsbereitschaft, Kennzahlen mit Trendkurve und Veränderung in 30 Tagen, letzte Nacht als Ring der Schlafphasen, letzter Blutdruck auf der Stufen-Skala, Schritte der Woche, Stand der Quellen |
+| **Übersicht** | **3D-Skyline** deines Jahres (eine Säule je Tag, Wochen entlang des Bands, umschaltbar Schritte/Belastung, 3, 6 oder 12 Monate, höchster Tag gelb, Wert beim Darüberfahren, baut sich Woche für Woche auf), **Form heute** (Fitness minus Ermüdung auf der Skala belastet ↔ frisch), Aktivitätsringe, der **wichtigste Befund** groß mit drei Zahlen, Rechenweg und Diagramm, weitere Befunde als Karten, **Wochen-Coach**, **Frag dein Cockpit**, Erholungs-Anzeigen, **Zielprognose** mit Glockenkurve und Regler, Kennzahlen, letzte Nacht, Blutdruck, Woche, Datenquellen. Neue Befunde meldet ein Hinweis unten rechts |
+| **Befunde** | Alles, was in den Werten auffällt, jeweils gegen den eigenen Normalbereich: Ruhepuls und HRV der letzten Woche, zu harte „lockere“ Trainings (Zonen nach Karvonen), Belastungssprünge, Schlafmangel, schwankende Schlafenszeit, Gewichtstrend, Blutdruck über 135/85, Serien, schwache Wochentage, starke Zusammenhänge. Jeder Befund mit Rechenweg; die Zahl am Menüpunkt zählt die Hinweise |
 | **Körper** | Gewicht mit Trendlinie, Zielgewicht und Band „Normalgewicht laut BMI“, BMI, Körperfett, Muskeln, Wasser, Knochen, Viszeralfett, Grundumsatz, Liste der Wiegungen |
 | **Herz & Kreislauf** | Blutdruck je Tag (Bereich von diastolisch bis systolisch, farbig nach Stufe), Mittel der letzten 7 Tage mit Einstufung nach ESH 2023 und Grenze für Heimmessungen (135/85), einzelne Messungen, Ruhepuls, HRV, Sauerstoffsättigung, Pulswellengeschwindigkeit, Temperatur, Atemfrequenz, EKG-Einstufungen |
 | **Schlaf** | Letzte Nacht mit Phasen (Tief, Leicht, REM, Wach), Schlafdauer je Nacht als gestapelte Balken mit Ziel, Schnitt, Bett- und Aufstehzeit, Anteile, Bewertung, Liste der Nächte |
@@ -22,12 +23,25 @@ Keine Cloud, keine Werbung, keine Weitergabe. Die Daten verlassen das NAS nicht;
 | **Zusammenhänge** | Automatische Erkenntnisse wie „Nach längeren Nächten ist dein Ruhepuls niedriger“ (nur wenn mindestens 20 gemeinsame Tage und ein deutlicher Zusammenhang da sind), dazu frei wählbar: Wert A gegen Wert B, am selben Tag oder am Tag danach, als Streudiagramm mit Ausgleichsgerade, Korrelation und Effekt („pro 1 Stunde Schlaf mehr im Schnitt 2 bpm weniger Ruhepuls“) |
 | **Vergleich** | Alle oder ausgewählte Personen: Verlauf als farbige Linien, Tabelle mit Schnitt, Spanne, Veränderung und Zielerreichung, Rangliste, Radar „Ziele erreicht“ (jede Person an ihren eigenen Zielen gemessen) und eine Wochen-Challenge für Schritte, Minuten, Strecke und Trainingsminuten |
 | **Berichte** | Woche oder Monat je Person, mit Vorwoche bzw. Vormonat verglichen: Kennzahlen, Diagramme, Blutdruck-Protokoll (morgens, mittags, abends mit Mittelwerten und Einstufung) und Trainings. Drucken oder als PDF speichern, z. B. für den Arzttermin |
-| **Personen** | Profile mit Farbe, Geburtsjahr, Größe und Zielen (Schritte, Minuten, Kalorien, Schlaf, Trainings pro Woche, Zielgewicht) |
+| **Personen** | Profile mit Farbe, Geburtsjahr, Größe und Zielen (Schritte, Minuten, Kalorien, Schlaf, Trainings pro Woche, Zielgewicht mit Datum für die Prognose) |
 | **Quellen** | Withings verbinden, Garmin ein- und ausschalten und anmelden, Apple-Health-Export hochladen, Reihenfolge der Quellen je Bereich |
 | **Daten** | Was gespeichert ist je Quelle, CSV-Export, Aufbewahrungsdauer, Löschen je Quelle oder alles |
-| **Einstellungen** | Darstellung (wie im Projekt-Cockpit, mit Live-Vorschau), Größe und Ziele, Passwort |
+| **Einstellungen** | Darstellung (Indigo und die fünf Designs des Projekt-Cockpits, hell oder dunkel, mit Live-Vorschau), Passwort |
 
 Jede Seite hat die Zeiträume **7 T, 30 T, 90 T, 1 J**. Diagramme haben weiche Kurven mit Farbverlauf, bauen sich beim Öffnen auf und zeigen beim Darüberfahren oder Antippen den genauen Wert mit Quelle. Alles ist serverseitiges SVG ohne Diagramm-Bibliothek; mit „Bewegung reduzieren“ entfallen die Animationen.
+
+## Wie Befunde, Form, Coach und Prognose rechnen
+
+Alles läuft mit festen, nachvollziehbaren Regeln auf dem NAS, ohne KI und ohne Internet. Jede Zahl lässt sich im Rechenweg auf der Seite nachverfolgen.
+
+- **Belastung** je Tag ist der Trainingsimpuls nach Banister: Minuten × Herzfrequenzreserve × 0,64 × e^(1,92 × Reserve). Trainings ohne Puls zählen als mittel, aktive Minuten außerhalb von Trainings als leicht. Der Höchstpuls kommt aus dem Alter (220 − Alter) oder dem höchsten Trainingspuls, der Ruhepuls aus den letzten 30 Tagen.
+- **Form** = Fitness (gleitender 42-Tage-Schnitt der Belastung) minus Ermüdung (7-Tage-Schnitt). Unter −10 „im Aufbau“, unter −30 „überlastet“, über +5 „frisch“. Erst ab drei Wochen mit Werten in den letzten sechs.
+- **Befunde** vergleichen immer mit dir selbst, z. B. Ruhepuls der letzten 7 Tage gegen die 28 Tage davor (ab +3 Schlägen und der 1,5-fachen üblichen Schwankung). Die Grenzen stehen in jedem Rechenweg.
+- **Wochen-Coach**: Ein Wochentag bekommt eine Einheit, wenn du an ihm in mindestens 4 der letzten 8 Wochen trainiert hast (häufigste Art, übliche Dauer). Sprechen mindestens zwei Zeichen für zu wenig Erholung (Form, Belastungssprung, Ruhepuls, HRV, Schlafmangel), wird die nächste harte Einheit kürzer und locker unter der Zone-2-Grenze; bei starker Überlastung kommt ein Ruhetag dazu. Das Original bleibt durchgestrichen sichtbar.
+- **Zielprognose**: Normalverteilung um den fortgeschriebenen Trend. Gewicht: Gerade durch die Messungen der letzten 60 Tage, Unsicherheit aus Tagesschwankung, Unsicherheit des Trends und 0,25 kg pro Woche Spielraum für geänderte Gewohnheiten. Schritte im Monat: Geschafftes plus ein üblicher Tag für jeden Resttag. Der Regler rechnet die Chance im Browser mit derselben Formel neu.
+- **Frag dein Cockpit**: vorbereitete Fragen („Bin ich heute erholt?“, „Trainiere ich zu hart?“ …), deren Antworten aus deinen Zahlen zusammengesetzt werden. Eine Frage erscheint nur, wenn genug Daten für eine ehrliche Antwort da sind.
+
+Zusammenhang heißt nicht Ursache, und kein Befund ersetzt ärztlichen Rat.
 
 ## Woher die Werte kommen
 
@@ -134,9 +148,9 @@ sudo docker exec -it -u 1000:1000 gesundheits-cockpit python -m gesundheit.manag
 ```
 cd gesundheit
 pip install -r requirements.txt pytest
-python -m pytest                      # 208 Tests
+python -m pytest                      # 245 Tests
 python tools/demo_daten.py /tmp/demo  # ein Jahr Beispieldaten für drei Personen (nie in den echten Datenordner!)
 GESUNDHEIT_DATA_DIR=/tmp/demo flask --app gesundheit run --port 8090
 ```
 
-Aufbau: `gesundheit/katalog.py` (Quellen, Bereiche, alle Werte), `persons.py` (Profile, gezeigte Person), `store.py` (Speichern und Quellen-Reihenfolge, immer je Person), `auswertung.py` (Zeiträume, Bestwerte, Zusammenhänge, Vergleich, Berichte), `withings.py`, `apple.py`, `garmin.py` (Anbindungen), `jobs.py` (Hintergrund-Abgleich und Importe), `charts.py` (Diagramme als SVG), `views/` (Seiten). Das Design kommt aus `../cockpit/static` (im Container nach `/app/shared` kopiert); `themes.py` ist eine Kopie aus dem Cockpit, ein Test prüft, dass beide gleich bleiben.
+Aufbau: `gesundheit/katalog.py` (Quellen, Bereiche, alle Werte), `persons.py` (Profile, gezeigte Person), `store.py` (Speichern und Quellen-Reihenfolge, immer je Person), `auswertung.py` (Zeiträume, Bestwerte, Zusammenhänge, Vergleich, Berichte), `belastung.py` (Belastung, Fitness, Ermüdung, Form), `befunde.py` (Regeln für die Befunde), `coach.py` (Wochenplan), `prognose.py` (Zielprognosen), `fragen.py` (vorbereitete Antworten), `uebersicht.py` (Skyline, Datenquellen), `withings.py`, `apple.py`, `garmin.py` (Anbindungen), `jobs.py` (Hintergrund-Abgleich und Importe), `charts.py` (Diagramme als SVG, auch die isometrische Skyline), `views/` (Seiten). Das Design kommt aus `../cockpit/static` (im Container nach `/app/shared` kopiert); `themes.py` übernimmt die Designs des Cockpits (ein Test prüft das) und ergänzt „Indigo“, dessen Farben in `static/gesundheit.css` stehen.

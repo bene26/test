@@ -13,7 +13,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from . import auswertung, auth, befunde, crypto, db, katalog, persons, themes, util
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 APP_NAME = "Gesundheits-Cockpit"
 log = logging.getLogger("gesundheit")
 
@@ -211,6 +211,7 @@ def _register_template_helpers(app: Flask) -> None:
         WORKOUT_KINDS=katalog.WORKOUT_KINDS,
         nav_status=_nav_status,
         nav_findings=_nav_findings,
+        data_state=_data_state,
         app_version=__version__,
         app_name=APP_NAME,
     )
@@ -241,6 +242,24 @@ def _nav_findings() -> int:
         g.nav_findings = (befunde.warnings(befunde.compute(db.get_db(), person["id"], person))
                           if person else 0)
     return g.nav_findings
+
+
+def _data_state() -> dict | None:
+    """Newest sync or import of the person shown (card at the bottom of the sidebar)."""
+    person = g.get("person")
+    if not person:
+        return None
+    conn = db.get_db()
+    stamps = [r[0] for r in conn.execute(
+        "SELECT last_ok FROM connections WHERE person_id = ? AND last_ok IS NOT NULL AND last_ok != '' "
+        "UNION ALL SELECT finished_at FROM imports WHERE person_id = ? AND status = 'fertig'",
+        (person["id"], person["id"]))]
+    newest = max((util.to_datetime(v) for v in stamps if util.to_datetime(v)), default=None)
+    if newest is None:
+        return {"fresh": False, "title": "Noch kein Abgleich", "text": "Quellen verbinden"}
+    fresh = (util.now() - newest).total_seconds() < 24 * 3600
+    return {"fresh": fresh, "title": "Daten aktuell" if fresh else "Daten älter als ein Tag",
+            "text": f"zuletzt {util.fmt_ago(newest)}"}
 
 
 def _register_security_headers(app: Flask) -> None:

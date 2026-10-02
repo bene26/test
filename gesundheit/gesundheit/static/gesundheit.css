@@ -710,6 +710,7 @@ h2 .icon, h3 .icon { width: 20px; height: 20px; vertical-align: -3px; color: var
 .sk-peak .sk-seite { fill: color-mix(in srgb, var(--sky-peak) 80%, #000); }
 .sk-peak .sk-vorn { fill: color-mix(in srgb, var(--sky-peak) 62%, #000); }
 .sk-bar.aktiv .sk-oben { fill: var(--sky-peak); }
+.sk-monat, .sk-spitze { pointer-events: none; }
 .sk-monat { fill: currentColor; opacity: 0.7; font-size: 11px; font-weight: 600; }
 .sk-spitze text { fill: currentColor; font-size: 12px; font-weight: 700; text-anchor: middle; }
 .sk-spitze .sk-spitze-tag { font-size: 10px; font-weight: 500; opacity: 0.75; }
@@ -805,6 +806,7 @@ h2 .icon, h3 .icon { width: 20px; height: 20px; vertical-align: -3px; color: var
 }
 .bf-toast form { margin: 0; }
 .bf-toast-text { display: flex; flex-direction: column; min-width: 0; font-size: 0.88rem; line-height: 1.35; }
+.bf-toast-text em { font-style: normal; color: rgba(255, 255, 255, 0.65); }
 .bf-toast-text strong { font-size: 0.78rem; letter-spacing: 0.04em; text-transform: uppercase; color: rgba(255, 255, 255, 0.65); }
 .bf-toast-los { padding: 8px 14px; border: 0; border-radius: 999px; background: #ffffff; color: #15151c; font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap; }
 .bf-toast-zu { display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.1); color: #ffffff; cursor: pointer; }
@@ -856,3 +858,159 @@ h2 .icon, h3 .icon { width: 20px; height: 20px; vertical-align: -3px; color: var
 .ueb-oben .skyline-karte { margin: 0; }
 .ueb-rand { display: grid; gap: 18px; align-content: start; }
 @media (max-width: 1100px) { .ueb-oben { grid-template-columns: 1fr; } }
+
+/* Card head with title left and a pill or switch right */
+.karte-kopf { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px 14px; margin-bottom: 14px; }
+.karte-kopf h2 { margin: 0; }
+.karte-kopf .bf-kopf { margin: 0; }
+.karte-kopf > .bf-pille { gap: 6px; }
+.bf-pille .icon { width: 14px; height: 14px; fill: currentColor; stroke: none; }
+
+/* Week coach */
+.coach-tage { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.ct { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto 28px; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; }
+.ct-heute { background: var(--surface-2); box-shadow: inset 3px 0 0 var(--accent); }
+.ct-tag { display: flex; flex-direction: column; line-height: 1.2; }
+.ct-tag small { color: var(--muted); font-size: 0.78rem; }
+.ct-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+.ct-text strong { font-weight: 650; }
+.ct-text small { color: var(--muted); font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ct-text s { color: var(--muted); font-size: 0.82rem; text-decoration-color: var(--accent); text-decoration-thickness: 2px; }
+.ct-wert { color: var(--muted); font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+.ct-haken { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--muted) 40%, transparent); }
+.ct-haken .icon { width: 14px; height: 14px; stroke-width: 3; }
+.ct-erledigt .ct-haken { border-color: var(--accent); background: var(--accent); color: var(--accent-contrast); }
+.ct-verpasst .ct-text strong { color: var(--muted); font-weight: 500; text-decoration: line-through; }
+.ct-ruhe .ct-text strong { font-weight: 500; }
+.ct-angepasst {
+  background: linear-gradient(100deg, color-mix(in srgb, var(--accent) 14%, var(--surface)), color-mix(in srgb, var(--accent) 6%, var(--surface)) 60%, color-mix(in srgb, var(--accent) 16%, var(--surface)));
+  background-size: 200% 100%;
+  animation: ct-schimmer 4s ease-in-out infinite;
+}
+@keyframes ct-schimmer { 50% { background-position: 100% 0; } }
+.coach-warum { margin-top: 14px; padding: 14px 16px; border-radius: 16px; background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.cw-titel { display: flex; align-items: center; gap: 6px; margin: 0 0 10px; color: var(--accent-text); font-weight: 700; }
+.cw-titel .icon { width: 15px; height: 15px; fill: currentColor; stroke: none; }
+.cw-zahlen { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin: 0 0 8px; }
+.cw-zahlen div { display: flex; flex-direction: column-reverse; }
+.cw-zahlen dd { margin: 0; font-family: var(--font-display); font-size: 1.35rem; font-weight: 750; letter-spacing: -0.03em; }
+.cw-zahlen dt { color: var(--muted); font-size: 0.78rem; }
+.coach-warum p.small { margin: 0; color: var(--muted); }
+
+/* Goal forecast */
+.pg-ansicht { display: grid; grid-template-columns: minmax(220px, 0.85fr) minmax(0, 1.15fr); gap: 8px 24px; align-items: start; }
+.pg-zahl { margin: 0; font-family: var(--font-display); font-size: 4.2rem; font-weight: 750; line-height: 0.95; letter-spacing: -0.05em; font-variant-numeric: tabular-nums; }
+.pg-zahl small { margin-left: 4px; font-size: 1.6rem; color: var(--muted); letter-spacing: 0; }
+.pg-frage { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0 14px; color: var(--muted); }
+.pg-frage strong { color: var(--text); }
+.pg-urteil { padding: 2px 10px; border-radius: 999px; background: var(--surface-2); color: var(--text); font-size: 0.8rem; font-weight: 650; }
+.pg-regler { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 6px 10px; padding: 14px; border-radius: 16px; background: var(--surface-2); }
+.pg-regler label { color: var(--muted); font-size: 0.85rem; }
+.pg-regler output { font-family: var(--font-display); font-size: 1.4rem; font-weight: 750; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.pg-regler input[type="range"] { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); }
+.pg-regler p { grid-column: 1 / -1; margin: 0; }
+.pg-boxen { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pg-boxen div { display: flex; flex-direction: column; padding: 10px 12px; border-radius: 12px; background: var(--surface); }
+.pg-boxen strong { font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+.pg-boxen small { color: var(--muted); font-size: 0.75rem; }
+.pg-grafik { margin: 0; min-width: 0; }
+.pg-enden, .pg-achse { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+.glocke { display: block; width: 100%; height: 190px; margin: 6px 0 4px; }
+.glocke-linie { fill: color-mix(in srgb, var(--muted) 10%, transparent); stroke: color-mix(in srgb, var(--muted) 45%, transparent); stroke-width: 1.5; }
+.glocke-flaeche { fill: color-mix(in srgb, var(--accent) 38%, transparent); }
+.glocke-ziel { stroke: var(--accent); stroke-width: 2; }
+.pg-grafik figcaption { margin-top: 6px; }
+.pg-weg { grid-column: 1 / -1; margin-top: 6px; border-top: 1px solid var(--border); padding-top: 10px; }
+.pg-weg summary { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--accent-text); font-weight: 650; list-style: none; }
+.pg-weg summary::-webkit-details-marker { display: none; }
+.pg-weg summary .icon { width: 16px; height: 16px; transition: transform 0.2s ease; }
+.pg-weg[open] summary .icon { transform: rotate(90deg); }
+.pg-weg dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin: 12px 0 8px; }
+.pg-weg dl div { padding: 10px 12px; border-radius: 12px; background: var(--surface-2); }
+.pg-weg dt { color: var(--muted); font-size: 0.78rem; }
+.pg-weg dd { margin: 2px 0 0; display: flex; flex-direction: column; }
+.pg-weg dd strong { font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.pg-weg dd small { color: var(--muted); font-size: 0.75rem; line-height: 1.35; }
+
+/* Ask the cockpit */
+.fr-kopf { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.fr-kopf h2 { margin: 0; }
+.fr-kopf p { margin: 0; }
+.fr-marke { display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 75%, #fff), var(--accent)); color: var(--accent-contrast); box-shadow: 0 8px 18px color-mix(in srgb, var(--accent) 35%, transparent); }
+.fr-marke .icon { width: 20px; height: 20px; fill: currentColor; stroke: none; }
+.fr-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.fr-chip { padding: 7px 14px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); font-size: 0.88rem; font-weight: 600; transition: background 0.15s ease, color 0.15s ease; }
+.fr-chip:hover { text-decoration: none; border-color: color-mix(in srgb, var(--text) 25%, transparent); }
+.fr-chip[aria-pressed="true"] { border-color: var(--text); background: var(--text); color: var(--surface); }
+.fr-antwort { min-height: 128px; padding: 16px 18px; border-radius: 16px; background: var(--surface-2); }
+.fr-kopfzeile { margin: 0 0 8px; font-family: var(--font-display); font-size: 1.15rem; font-weight: 750; letter-spacing: -0.02em; }
+.fr-text { margin: 0; color: var(--muted); line-height: 1.55; }
+.fr-antwort .cursor::after { content: ""; display: inline-block; width: 2px; height: 1.05em; margin-left: 2px; vertical-align: -2px; background: var(--accent); animation: fr-cursor 0.8s steps(1) infinite; }
+@keyframes fr-cursor { 50% { opacity: 0; } }
+
+@media (max-width: 900px) {
+  .pg-ansicht { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .ct { grid-template-columns: 44px minmax(0, 1fr) 26px; gap: 10px; padding: 9px 8px; }
+  .ct-wert { display: none; }
+  .pg-zahl { font-size: 3.4rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ct-angepasst { animation: none; }
+  .fr-antwort .cursor::after { animation: none; }
+}
+
+/* Overview: compact "today", pairs of cards, recovery gauges, source tiles */
+.heute-kompakt { padding: 18px 20px; }
+.hk-inhalt { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 16px; align-items: center; }
+.hk-ringe svg { display: block; width: 112px; height: 112px; }
+.hk-liste { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.hk-liste a { display: grid; grid-template-columns: 10px minmax(0, 1fr); column-gap: 8px; align-items: center; color: var(--text); }
+.hk-liste a:hover { text-decoration: none; }
+.hk-label { color: var(--muted); font-size: 0.8rem; }
+.hk-wert { grid-column: 2; font-weight: 750; font-variant-numeric: tabular-nums; }
+.hk-wert small { color: var(--muted); font-weight: 500; }
+.hk-liste .ring-punkt { grid-row: span 2; align-self: center; }
+.ueb-paar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; margin-bottom: 18px; }
+.ueb-paar > .card { margin: 0; }
+.prognose { margin-bottom: 18px; }
+.erholung-karte { margin-bottom: 18px; }
+.quellen-kacheln { margin: 0 0 12px; padding: 0; list-style: none; display: grid; gap: 10px; }
+.qk a { display: grid; gap: 4px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px; color: var(--text); transition: border-color 0.15s ease; }
+.qk a:hover { text-decoration: none; border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.qk-kopf { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.qk-name { font-weight: 700; }
+.qk-zustand { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px 2px 8px; border-radius: 999px; background: var(--surface-2); font-size: 0.78rem; font-weight: 650; }
+.qk-punkt { width: 8px; height: 8px; border-radius: 50%; background: color-mix(in srgb, var(--muted) 50%, transparent); }
+.qk-an .qk-punkt { background: var(--g-ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--g-ok) 20%, transparent); }
+.qk-fehler .qk-punkt { background: var(--g-danger); }
+.qk-laeuft .qk-punkt { background: var(--accent); }
+.qk-geraete { color: var(--muted); font-size: 0.82rem; }
+.qk-fuss { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; color: var(--muted); font-size: 0.78rem; }
+@media (max-width: 1100px) { .ueb-paar { grid-template-columns: 1fr; } }
+.prognose .bf-marke .icon { fill: none; stroke: currentColor; stroke-width: 2.2; }
+.ueb-spalte { display: grid; gap: 18px; align-content: start; }
+.ueb-spalte .erholung-karte { margin: 0; }
+.ueb-spalte .held-gauges { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+
+/* Data state at the bottom of the sidebar */
+.nav-datenstand { display: none; }
+@media (min-width: 901px) {
+  [data-nav="voll"] .nav-datenstand {
+    display: flex; align-items: center; gap: 10px; margin: 6px 0 2px; padding: 10px 12px;
+    border: 1px solid var(--border); border-radius: 14px; background: var(--surface-2); color: var(--text);
+  }
+  [data-nav="voll"] .nav-datenstand:hover { text-decoration: none; border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+}
+.nd-punkt { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--g-warn); }
+.frisch .nd-punkt { background: var(--g-ok); box-shadow: 0 0 0 4px color-mix(in srgb, var(--g-ok) 18%, transparent); }
+.nd-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.nd-text strong { font-size: 0.85rem; }
+.nd-text small { color: var(--muted); font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 640px) {
+  .befunde-klein { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .befund-klein { padding: 12px; }
+  .bf-gross { font-size: 1.35rem; }
+  .bf-kurz { font-size: 0.82rem; }
+}

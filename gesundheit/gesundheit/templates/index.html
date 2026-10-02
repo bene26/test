@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% from "_macros.html" import csrf, icon, kachel, quelle %}
 {% from "_befunde.html" import gross, klein, toast, form_karte %}
-{% block title %}Übersicht{% if news %}{{ toast(news) }}{% endif %}
-{% endblock %}
+{% from "_coach.html" import woche, prognose, fragen %}
+{% block title %}Übersicht{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -40,8 +40,20 @@
   {% include "_skyline.html" %}
   <div class="ueb-rand">
     {{ form_karte(form) }}
+    <section class="card heute-kompakt" aria-labelledby="heute-titel">
+      <p class="fk-label" id="heute-titel">Heute</p>
+      <div class="hk-inhalt">
+        <div class="hk-ringe">{{ rings_svg }}</div>
+        <ul class="hk-liste">
+          {% for r in activity %}
+          <li class="kreis-{{ r.key }}"><a href="{{ r.url }}"><span class="ring-punkt" aria-hidden="true"></span><span class="hk-label">{{ r.label }}</span><span class="hk-wert">{% if r.value is none %}–{% else %}{{ r.value|zahl }}{% endif %}<small> / {{ r.goal|zahl }}{% if r.unit %} {{ r.unit }}{% endif %}</small></span></a></li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
   </div>
 </div>
+
 {% if findings %}
 {{ gross(findings[0]) }}
 {% if findings|length > 1 %}
@@ -49,36 +61,22 @@
 <div class="befunde-klein">{% for f in findings[1:7] %}{{ klein(f) }}{% endfor %}</div>
 {% endif %}
 {% endif %}
-{% endif %}
 
-<section class="card heute-held" aria-labelledby="heute-titel">
-  <div class="held-ringe">
-    <h2 id="heute-titel">Heute</h2>
-    <div class="ringe-gruppe">
-      <div class="ringe-bild">{{ rings_svg }}</div>
-      <ul class="ringe-liste">
-        {% for r in activity %}
-        <li class="ring-zeile kreis-{{ r.key }}">
-          <a href="{{ r.url }}">
-            <span class="ring-punkt" aria-hidden="true"></span>
-            <span class="ring-text">
-              <span class="ring-label">{{ r.label }}</span>
-              <span class="ring-wert">{% if r.value is none %}<span class="muted">noch nichts</span>{% else %}{{ r.value|zahl }}<small>{% if r.unit %} {{ r.unit }}{% endif %} / {{ r.goal|zahl }}</small>{% endif %}</span>
-            </span>
-            <span class="ring-prozent">{{ r.percent ~ ' %' if r.percent is not none else '' }}</span>
-          </a>
-        </li>
-        {% endfor %}
-      </ul>
-    </div>
+<div class="ueb-paar">
+  {{ woche(week_plan) }}
+  <div class="ueb-spalte">
+    {% if questions %}{{ fragen(questions, question) }}{% endif %}
+    {% if gauges %}
+    <section class="card erholung-karte" aria-labelledby="erholung-titel">
+      <h2 id="erholung-titel">Erholung</h2>
+      <div class="held-gauges">{% for gauge in gauges %}<div class="gauge-kachel">{{ gauge }}</div>{% endfor %}</div>
+    </section>
+    {% endif %}
   </div>
-  {% if gauges %}
-  <div class="held-gauges">
-    <h2 class="sr-only">Erholung</h2>
-    {% for gauge in gauges %}<div class="gauge-kachel">{{ gauge }}</div>{% endfor %}
-  </div>
-  {% endif %}
-</section>
+</div>
+
+{% if forecasts %}{{ prognose(forecasts, forecast) }}{% endif %}
+{% endif %}
 
 {% if tiles %}
 <h2 class="sr-only">Kennzahlen</h2>
@@ -141,20 +139,17 @@
   </section>
 
   <section class="card" aria-labelledby="quellen-titel">
-    <h2 id="quellen-titel">Quellen <a class="count" href="{{ url_for('quellen.index') }}">verwalten</a></h2>
-    <ul class="plain-list quellen-status">
-      {% for provider, label in [('withings', 'Withings'), ('garmin', 'Garmin direkt')] %}
-      {% set c = connections.get(provider) %}
-      <li><span>{{ label }}</span>
-        {% if not c %}<span class="badge">nicht verbunden</span>
-        {% elif c.last_error %}<span class="badge red" title="{{ c.last_error }}">Fehler</span>
-        {% else %}<span class="badge green">{{ c.last_ok|vor }}</span>{% endif %}</li>
+    <h2 id="quellen-titel">Datenquellen <a class="count" href="{{ url_for('quellen.index') }}">verwalten</a></h2>
+    <ul class="quellen-kacheln">
+      {% for t in sources %}
+      <li class="qk qk-{{ t.state }}">
+        <a href="{{ url_for('quellen.index') }}#{{ t.key }}">
+          <span class="qk-kopf"><span class="qk-name">{{ t.name }}</span><span class="qk-zustand"><span class="qk-punkt" aria-hidden="true"></span>{{ {'an': 'aktiv', 'aus': 'aus', 'fehler': 'Fehler', 'laeuft': 'läuft'}[t.state] }}</span></span>
+          <span class="qk-geraete">{{ t.devices }}</span>
+          <span class="qk-fuss"><span>{{ t.status }}</span><span>{{ t.count|zahl }} Werte in 7 Tagen</span></span>
+        </a>
+      </li>
       {% endfor %}
-      <li><span>Apple Health</span>
-        {% if not last_import %}<span class="badge">noch kein Import</span>
-        {% elif last_import.status == 'fertig' %}<span class="badge green">{{ last_import.finished_at|vor }}</span>
-        {% elif last_import.status == 'fehler' %}<span class="badge red">Fehler</span>
-        {% else %}<span class="badge">läuft ({{ last_import.progress }} %)</span>{% endif %}</li>
     </ul>
     {% if persons|length > 1 %}
     <p class="small"><a href="{{ url_for('vergleich.index') }}">{{ icon('users') }} Mit {{ persons|length - 1 }} {{ 'anderer Person' if persons|length == 2 else 'anderen Personen' }} vergleichen</a></p>

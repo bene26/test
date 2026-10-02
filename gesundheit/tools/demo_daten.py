@@ -25,7 +25,8 @@ PROFILES = {
     "Anna": {"color": "pink", "birth_year": 1986, "height_cm": 181, "watch": "garmin",
              "watch_share": 0.85, "steps": 9800, "sleep": 412, "weight": (82.4, -3.6),
              "fat": (22.5, -2.2), "resting": (58, -3), "bp": (131, 84), "goal_steps": 10000,
-             "goal_weight_dg": 770, "workout_hr": 152, "hard_last_week": True,
+             "goal_weight_dg": 785, "goal_weight_days": 120, "workout_hr": 152,
+             "hard_last_week": True,
              "sports": {1: "laufen", 3: "kraft", 5: "radfahren", 6: "wandern"}},
     "Ben": {"color": "blau", "birth_year": 1984, "height_cm": 188, "watch": "apple_watch",
             "watch_share": 0.95, "steps": 7600, "sleep": 395, "weight": (91.0, 1.2),
@@ -177,7 +178,9 @@ def fill_household(db, today: date, days: int = 365) -> list[int]:
         pid = row["id"] if row else persons.create(
             db, name, profile["color"], birth_year=profile["birth_year"],
             height_cm=profile["height_cm"], goal_steps=profile["goal_steps"],
-            goal_weight_dg=profile.get("goal_weight_dg"))
+            goal_weight_dg=profile.get("goal_weight_dg"),
+            goal_weight_date=(today + timedelta(days=profile["goal_weight_days"])).isoformat()
+            if profile.get("goal_weight_days") else None)
         fill(db, pid, today, days, seed, profile)
         ids.append(pid)
     db.commit()

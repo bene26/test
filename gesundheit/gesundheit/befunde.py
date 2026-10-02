@@ -547,10 +547,11 @@ def mark_seen(db, pid: int, person: dict, keys) -> None:
                (json.dumps(known[-SEEN_KEEP:]), pid))
 
 
-def news(findings: list[Finding], person: dict) -> Finding | None:
-    """The most important finding the person has not seen yet (for the toast)."""
+def news(findings: list[Finding], person: dict) -> list[Finding]:
+    """Findings the person has not seen yet, most important first (for the toast; plain
+    patterns are not announced)."""
     known = set(seen(person))
-    return next((f for f in findings if f.key not in known and f.tone != INFO), None)
+    return [f for f in findings if f.key not in known and f.tone != INFO]
 
 
 def warnings(findings: list[Finding]) -> int:

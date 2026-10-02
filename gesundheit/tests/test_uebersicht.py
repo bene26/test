@@ -306,11 +306,11 @@ def test_seen_findings_and_news(db, pid):
     daily(db, pid, "resting_hr", range(0, 7), lambda n: 61)
     befunde.clear_cache()
     found = befunde.compute(db, pid, person(db, pid), TODAY)
-    assert befunde.news(found, person(db, pid)) is found[0]
+    assert befunde.news(found, person(db, pid)) == [found[0]]
     befunde.mark_seen(db, pid, person(db, pid), [found[0].key, "<script>"])
     db.commit()
     assert befunde.seen(person(db, pid)) == [found[0].key]
-    assert befunde.news(found, person(db, pid)) is None
+    assert befunde.news(found, person(db, pid)) == []
     assert befunde.seen({"seen_findings": "kein json"}) == []
 
 
@@ -347,3 +347,189 @@ def test_form_card_on_overview(logged_in, db, me):
     page = logged_in.get("/").get_data(as_text=True)
     assert "Form heute" in page and "Fitness" in page and "Ermüdung" in page
     assert 'class="fk-punkt" d="M' in page
+
+
+# ---------- Week coach ----------
+
+from gesundheit import coach, fragen, prognose  # noqa: E402
+
+
+def _workout_on(db, pid, d, kind="laufen", minutes=60, hr=150, km=10.0, key=None):
+    store.upsert_workout(db, pid, "garmin", key or f"{kind}-{d.isoformat()}", {
+        "kind": kind, "duration_min": minutes, "hr_avg": hr, "hr_max": hr + 20, "distance_km": km,
+        "started_at": datetime.combine(d, datetime.min.time()).replace(hour=18)})
+
+
+def test_habits_need_half_of_eight_weeks(db, pid):
+    monday = TODAY - timedelta(days=TODAY.weekday())
+    for week in range(1, 9):
+        _workout_on(db, pid, monday - timedelta(weeks=week), "laufen", 50 + week)        # Monday, 8 of 8
+        if week <= 3:
+            _workout_on(db, pid, monday - timedelta(weeks=week) + timedelta(days=3), "kraft")  # 3 of 8
+    db.commit()
+    plan = coach.habits(db, pid, monday)
+    assert set(plan) == {0}
+    assert plan[0]["kind"] == "laufen" and plan[0]["minutes"] == 55 and plan[0]["weeks"] == 8
+
+
+def test_week_ticks_off_done_and_plans_the_rest(db, pid):
+    persons.update(db, pid, birth_year=1986, goal_steps=9000)
+    monday = TODAY - timedelta(days=TODAY.weekday())          # TODAY is a Wednesday
+    for week in range(1, 9):
+        _workout_on(db, pid, monday - timedelta(weeks=week), "laufen", 45, 130)            # Monday
+        _workout_on(db, pid, monday - timedelta(weeks=week) + timedelta(days=5), "radfahren", 90, 135)
+    _workout_on(db, pid, monday, "laufen", 47, 131)
+    db.commit()
+    w = coach.week(db, pid, person(db, pid), TODAY)
+    rows = w["rows"]
+    assert [r["weekday"] for r in rows] == ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+    assert rows[0]["status"] == "erledigt" and rows[0]["title"] == "Laufen 47 min"
+    assert rows[1]["status"] == "ruhe" and rows[1]["sub"] == "Schrittziel 9.000"
+    assert rows[2]["today"] and rows[5]["status"] == "offen" and rows[5]["title"] == "Radfahren 90 min"
+    assert w["repaired"] == 0 and w["done"] == 1 and w["planned"] == 2
+    assert w["range"] == "28. Sep bis 4. Okt" and w["week"] == 40
+
+
+def test_week_is_repaired_when_recovery_is_poor(db, pid):
+    persons.update(db, pid, birth_year=1986)
+    monday = TODAY - timedelta(days=TODAY.weekday())
+    for week in range(1, 9):
+        _workout_on(db, pid, monday - timedelta(weeks=week) + timedelta(days=4), "laufen", 70, 160)
+        _workout_on(db, pid, monday - timedelta(weeks=week) + timedelta(days=6), "wandern", 150, 120)
+    db.commit()
+
+    class F:  # a finding as the coach sees it
+        def __init__(self, rule, big):
+            self.rule, self.big, self.tone = rule, big, "warn"
+    form = {"form": -35, "label": "überlastet"}
+    w = coach.week(db, pid, person(db, pid), TODAY, [F("sprung", "+60 %"), F("ruhepuls", "+5 bpm")], form)
+    friday, sunday = w["rows"][4], w["rows"][6]
+    assert friday["repaired"] and friday["original"] == "Laufen 70 min"
+    assert friday["title"].startswith("Laufen 40 min locker, unter ") and "Puls" in friday["title"]
+    assert sunday["repaired"] and sunday["title"] == "Ruhetag" and sunday["original"] == "Wandern 150 min"
+    assert w["repaired"] == 2 and [r[1] for r in w["reasons"]][0].startswith("Form heute")
+    # a single reason is not enough to change the plan
+    w = coach.week(db, pid, person(db, pid), TODAY, [F("schlaf", "−2 h")], None)
+    assert w["repaired"] == 0
+
+
+# ---------- Forecasts ----------
+
+def test_normal_distribution_helpers():
+    assert prognose.normal_cdf(0) == pytest.approx(0.5)
+    assert prognose.chance(80, 2, 80, "down") == pytest.approx(0.5)
+    assert prognose.chance(80, 2, 76, "down") == pytest.approx(0.0228, abs=0.001)
+    assert prognose.chance(80, 2, 76, "up") == pytest.approx(0.9772, abs=0.001)
+    assert prognose.chance(80, 0, 81, "down") == 1.0
+    assert prognose.verdict(10) == "unwahrscheinlich" and prognose.verdict(80) == "sehr wahrscheinlich"
+
+
+def test_weight_forecast_follows_the_trend(db, pid):
+    for n in range(0, 60, 2):
+        store.add_measurement(db, pid, "weight", 80 + n * 0.02 + wobble(n, 0.1),
+                              datetime.combine(day(n), datetime.min.time()).replace(hour=7), "withings")
+    persons.update(db, pid, goal_weight_dg=785, goal_weight_date=(TODAY + timedelta(days=70)).isoformat())
+    db.commit()
+    f = prognose.weight(db, pid, person(db, pid), TODAY)
+    # losing 0.14 kg a week: about 78.6 kg on the goal date, so 78.5 is about even
+    assert f["mean"] == pytest.approx(78.6, abs=0.15)
+    assert 25 <= f["probability"] <= 60 and f["direction"] == "down"
+    assert f["lo"] < f["goal"] < f["hi"] and round(f["lo"] * 10) == f["lo"] * 10
+    assert "glocke-flaeche" in str(f["chart"]) and "style=" not in str(f["chart"])
+    assert [p[0] for p in f["parts"]] == ["Trend", "Zeit", "Erwartet", "Unsicherheit"]
+    assert f["need"]["value"] < 0
+    persons.update(db, pid, goal_weight_dg=None)
+    db.commit()
+    assert prognose.weight(db, pid, person(db, pid), TODAY) is None
+
+
+def test_steps_month_forecast(db, pid):
+    persons.update(db, pid, goal_steps=10000)
+    daily(db, pid, "steps", range(1, 57), lambda n: 11000 + wobble(n, 1500))
+    f = prognose.steps_month(db, pid, person(db, pid), TODAY)
+    assert f["goal"] == 300000 and f["direction"] == "up"
+    assert f["probability"] >= 90  # 29 days done at about 11.000 plus one to go
+    assert f["question"] == "300.000 Schritte im September?"
+
+
+def test_forecast_card_on_overview(logged_in, db, me):
+    today = util.today()
+    persons.update(db, me, goal_steps=8000)
+    store.set_daily_many(db, me, [("steps", today - timedelta(days=n), "garmin", 9000 + wobble(n, 900))
+                                  for n in range(1, 40)])
+    db.commit()
+    page = logged_in.get("/").get_data(as_text=True)
+    assert "Zielprognose" in page and 'data-pg-regler' in page and "So entsteht die Zahl" in page
+
+
+# ---------- Questions ----------
+
+def test_questions_only_with_enough_data(db, pid):
+    assert fragen.answers(db, pid, person(db, pid), TODAY) == []
+    persons.update(db, pid, goal_sleep_min=480, goal_steps=8000)
+    for n in range(10):
+        store.upsert_sleep(db, pid, day(n), "garmin", {"asleep_min": 420})
+    daily(db, pid, "steps", range(14), lambda n: 9000)
+    daily(db, pid, "active_min", range(7), lambda n: 15)
+    found = {a["key"]: a for a in fragen.answers(db, pid, person(db, pid), TODAY)}
+    assert found["schlaf"]["head"] == "Nein, dir fehlen im Schnitt 1 h 00 min pro Nacht."
+    assert "105 aktive Minuten" in found["bewegung"]["text"]
+    assert found["bewegung"]["head"] == "Noch nicht ganz."
+    assert "gewicht" not in found and "blutdruck" not in found
+
+
+def test_question_errors_do_not_break_the_overview(db, pid, monkeypatch):
+    def broken(*_args):
+        raise RuntimeError("kaputt")
+    monkeypatch.setattr(fragen, "QUESTIONS", [("x", "Kaputt?", broken)])
+    assert fragen.answers(db, pid, person(db, pid), TODAY) == []
+
+
+def test_question_chips_work_without_javascript(logged_in, db, me):
+    today = util.today()
+    for n in range(10):
+        store.upsert_sleep(db, me, today - timedelta(days=n), "garmin", {"asleep_min": 400})
+    db.commit()
+    page = logged_in.get("/?frage=schlaf").get_data(as_text=True)
+    assert "Frag dein Cockpit" in page
+    assert re.search(r'data-frage="schlaf" aria-pressed="true"', page)
+    assert re.search(r'<div data-antwort="schlaf">', page)  # shown, not hidden
+
+
+# ---------- Sources and data state ----------
+
+def test_source_tiles(db, pid):
+    store.set_daily(db, pid, "steps", TODAY, "apple_watch", 5000)
+    store.set_daily(db, pid, "steps", day(10), "apple_watch", 5000)
+    db.execute("INSERT INTO connections (provider, person_id, secret_enc, connected_at, last_ok, last_error) "
+               "VALUES ('withings', ?, '', '2026-09-30 08:00:00', '2026-09-30 08:00:00', 'Zeitüberschreitung')",
+               (pid,))
+    db.commit()
+    tiles = {t["key"]: t for t in uebersicht.sources(db, pid, person(db, pid), TODAY)}
+    assert tiles["withings"]["state"] == "fehler"
+    assert tiles["garmin"]["state"] == "aus"
+    assert tiles["apple"]["state"] == "aus" and tiles["apple"]["count"] == 1  # only the last 7 days
+
+
+def test_sidebar_data_state(logged_in, db, me):
+    page = logged_in.get("/daten").get_data(as_text=True)
+    assert "Noch kein Abgleich" in page
+    db.execute("INSERT INTO imports (kind, filename, status, progress, started_at, finished_at, person_id) "
+               "VALUES ('apple', 'x.zip', 'fertig', 100, ?, ?, ?)", (util.stamp(), util.stamp(), me))
+    db.commit()
+    page = logged_in.get("/daten").get_data(as_text=True)
+    assert "Daten aktuell" in page and "nav-datenstand frisch" in page
+
+
+def test_goal_date_is_saved_only_with_a_goal_weight(logged_in, db, me):
+    base = {"name": "anna", "color": "blau", "goal_steps": "9000", "goal_active_min": "30",
+            "goal_active_kcal": "500", "goal_sleep_h": "8", "goal_workouts": "3"}
+    logged_in.get(f"/personen/{me}")
+    logged_in.post(f"/personen/{me}", dict(base, goal_weight="75,5", goal_weight_date="2027-03-01"))
+    row = db.execute("SELECT goal_weight_dg, goal_weight_date FROM persons WHERE id = ?", (me,)).fetchone()
+    assert tuple(row) == (755, "2027-03-01")
+    logged_in.post(f"/personen/{me}", dict(base, goal_weight="", goal_weight_date="2027-03-01"))
+    row = db.execute("SELECT goal_weight_dg, goal_weight_date FROM persons WHERE id = ?", (me,)).fetchone()
+    assert tuple(row) == (None, None)
+    response = logged_in.post(f"/personen/{me}", dict(base, goal_weight="75", goal_weight_date="morgen"))
+    assert "kein gültiges Datum" in response.get_data(as_text=True)

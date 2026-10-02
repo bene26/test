@@ -5,7 +5,8 @@ from datetime import timedelta
 from flask import (Blueprint, abort, current_app, flash, g, jsonify, redirect,
                    render_template, request, url_for)
 
-from .. import befunde, belastung, bewertung, charts, jobs, store, uebersicht, util
+from .. import (befunde, belastung, bewertung, charts, coach, fragen, jobs, prognose, store,
+               uebersicht, util)
 from ..db import get_db
 from ..katalog import METRICS, NO_CHART
 from . import PERIODS, period
@@ -113,11 +114,24 @@ def index():
     last_import = db.execute("SELECT * FROM imports WHERE person_id = ? ORDER BY id DESC LIMIT 1",
                              (pid,)).fetchone()
     findings = befunde.compute(db, pid, person, today)
+    form = belastung.form(db, pid, person, today)
+    forecasts = prognose.main(db, pid, person, today)
+    questions = fragen.answers(db, pid, person, today, form=form, findings=findings,
+                               forecasts=forecasts)
+    kinds = [f["kind"] for f in forecasts]
+    keys = [q["key"] for q in questions]
     return render_template(
         "index.html", now=util.now(),
         sky=uebersicht.skyline(db, pid, person, today, request.args.get("zeit")),
-        findings=findings, news=befunde.news(findings, person),
-        form=belastung.form(db, pid, person, today),
+        findings=findings, news=befunde.news(findings, person), form=form,
+        week_plan=coach.week(db, pid, person, today, findings, form),
+        forecasts=forecasts,
+        forecast=request.args.get("prognose") if request.args.get("prognose") in kinds
+        else (kinds[0] if kinds else None),
+        questions=questions,
+        question=request.args.get("frage") if request.args.get("frage") in keys
+        else (keys[0] if keys else None),
+        sources=uebersicht.sources(db, pid, person, today),
         activity=activity, rings_svg=charts.rings(activity),
         tiles=tiles, gauges=gauges, bp_info=bp_info, night=night, sleep_donut=sleep_donut,
         week=week, connections=connections, last_import=last_import,

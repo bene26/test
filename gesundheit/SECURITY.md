@@ -15,7 +15,8 @@ Alles hier sind **Gesundheitsdaten, also besondere Kategorien personenbezogener 
 - Messwerte: Gewicht, Körperzusammensetzung, Blutdruck, Puls, Ruhepuls, Herzfrequenzvariabilität, Sauerstoffsättigung, Temperatur, Pulswellengeschwindigkeit, VO2max
 - EKG-Einstufungen (Vorhofflimmern ja, nein oder unklar) aus Withings-Geräten, ohne die Kurven selbst
 - Schlaf (Dauer, Phasen, Bewertung), Aktivität (Schritte, Kalorien, Minuten), Trainings, Garmin-Werte (Body Battery, Stress, Trainingsbereitschaft)
-- Profile: Vorname oder Spitzname, Farbe, Geburtsjahr (optional, kein Datum), Größe, Ziele. Keine Standorte (GPS-Routen aus Apple Health werden nicht eingelesen)
+- Profile: Vorname oder Spitzname, Farbe, Geburtsjahr (optional, kein Datum), Größe, Ziele (auch Zielgewicht mit Zieldatum), welche Befunde schon gesehen wurden. Keine Standorte (GPS-Routen aus Apple Health werden nicht eingelesen)
+- Abgeleitete Werte (Belastung, Form, Befunde, Wochenplan, Prognosen, Antworten) werden bei jedem Aufruf aus den gespeicherten Werten berechnet und nicht gespeichert; Befunde liegen höchstens fünf Minuten im Arbeitsspeicher
 - Zugangsdaten zu fremden Diensten: Withings-Token je Person und das Client-Secret der Withings-Anwendung (einmal für alle), Garmin-Token je Person. **Das Garmin-Passwort wird nie gespeichert**, nur einmal zum Anmelden weitergegeben.
 
 ## Vertrauensgrenzen
@@ -32,7 +33,7 @@ Alles hier sind **Gesundheitsdaten, also besondere Kategorien personenbezogener 
 |---|---|
 | Gesundheitsdaten lesen | Login für jede Seite außer Anmelden, Einrichten und `/health`; Sitzungen auf dem Server (nur der SHA-256 des Tokens liegt in der Datenbank); Cookies `HttpOnly`, `SameSite=Lax`, mit HTTPS `Secure`; `Cache-Control: no-store`; `robots: noindex`. |
 | Konto übernehmen | Einrichtungscode beim ersten Start (nur im Container-Log und im Datenordner); Passwort mindestens 12 Zeichen, gehasht mit Werkzeug (scrypt); 5 Fehlversuche pro 15 Minuten und Adresse; Passwortwechsel meldet alle anderen Geräte ab. |
-| Fremde Aktionen auslösen (CSRF) | Jedes POST braucht das Token der Sitzung, auch das Wechseln der Person; `form-action 'self'`; kein Zustandswechsel per GET. Der Withings-Rückruf prüft den zufälligen `state` und ordnet das Konto der Person zu, die den Vorgang gestartet hat. |
+| Fremde Aktionen auslösen (CSRF) | Jedes POST braucht das Token der Sitzung, auch das Wechseln der Person und „Befund gesehen“; `form-action 'self'`; kein Zustandswechsel per GET (Umschalter wie Skyline, Prognose oder Fragen sind reine Anzeige-Parameter). Der Withings-Rückruf prüft den zufälligen `state` und ordnet das Konto der Person zu, die den Vorgang gestartet hat. |
 | Werte bei der falschen Person | Jede Zeile in der Datenbank trägt die Person; alle Abfragen filtern danach. Dasselbe Withings-Konto kann nicht zwei Personen zugeordnet werden. Die gezeigte Person steht nur als Nummer im Cookie und wird bei jeder Anfrage gegen die Datenbank geprüft. |
 | Token von Withings oder Garmin stehlen | In der Datenbank nur verschlüsselt (Fernet, AES-128-CBC mit HMAC). Der Schlüssel liegt getrennt in `GESUNDHEIT_KEY` oder in der Datei `schluessel` im Datenordner (Rechte 600). Token erscheinen nie in Seiten, Logs oder Fehlermeldungen. Trennen löscht sie sofort. |
 | Schadcode über den Upload | Nur ZIP mit `export.xml`; Größenlimit für den Upload und für jede entpackte Datei; Prüfung des Packverhältnisses (ZIP-Bombe); Dateinamen aus dem ZIP werden nie als Pfad benutzt, nichts wird auf die Platte entpackt; XML über `defusedxml` (keine Entitäten, keine externen Verweise); nur bekannte Datentypen werden übernommen, Zahlen mit Bereichsprüfung. |
@@ -50,7 +51,8 @@ Jemand im Heimnetz oder mit Zugriff auf das NAS liest die Datenbank und sieht di
 - **Datenminimierung:** Herzfrequenz, Schritte, Energie und Strecke aus Apple Health werden schon beim Einlesen zu Tageswerten zusammengefasst; die Einzelwerte werden nicht gespeichert. GPS-Routen, EKG-Kurven, Medikamente, Zyklusdaten und Notizen werden ignoriert. Die hochgeladene ZIP-Datei wird nach dem Einlesen gelöscht.
 - **Aufbewahrung:** einstellbar (Standard: unbegrenzt). Ältere Werte löscht die App nachts von selbst.
 - **Löschen:** unter *Daten* je Quelle oder je Person, unter *Personen* das ganze Profil, oder alles auf einmal; sofort und endgültig (danach `VACUUM`, damit nichts in freien Seiten der Datei bleibt).
-- **Auswertungen** rechnen nur mit den eigenen Daten auf dem NAS; nichts wird an Dienste geschickt. Zusammenhänge werden als Korrelation mit dem Hinweis „Zusammenhang heißt nicht Ursache“ gezeigt.
+- **Auswertungen, Befunde, Coach, Prognosen und „Frag dein Cockpit“** rechnen nur mit den eigenen Daten auf dem NAS, mit festen Regeln statt KI; nichts wird an Dienste geschickt. Zusammenhänge werden als Korrelation mit dem Hinweis „Zusammenhang heißt nicht Ursache“ gezeigt.
+- **Befunde und Wochen-Coach sind keine medizinische Beratung.** Sie vergleichen mit dem eigenen Normalbereich und sagen das dazu; beim Blutdruck steht der Hinweis auf die Hausarztpraxis. Ein Fehler in einer einzelnen Regel wird protokolliert (nur der Name der Regel, keine Werte) und blendet nur diesen Befund aus.
 - **Export:** alle Werte als CSV.
 - **Keine medizinische Beratung:** Einstufungen (z. B. Blutdruck nach ESH 2023) sind Orientierung und werden so beschriftet.
 

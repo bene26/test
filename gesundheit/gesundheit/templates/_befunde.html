@@ -38,21 +38,23 @@
 </a>
 {%- endmacro %}
 
-{# Dark toast for a finding the person has not seen yet; both buttons are POST forms. #}
-{% macro toast(f) -%}
+{# Dark toast for findings the person has not seen yet; both buttons are POST forms and mark
+   all of them as seen. #}
+{% macro toast(items) -%}
+{% set f = items[0] %}
 <aside class="bf-toast" aria-label="Neuer Befund" data-toast>
   <span class="bf-marke" aria-hidden="true">{{ icon('sparkle') }}</span>
   <div class="bf-toast-text">
-    <strong>Neuer Befund</strong>
-    <span>{{ f.title_a }} {{ f.title_b }}</span>
+    <strong>{{ 'Neuer Befund' if items|length == 1 else items|length ~ ' neue Befunde' }}</strong>
+    <span>{{ f.title_a }} {{ f.title_b }}{% if items|length > 1 %} <em>und {{ items|length - 1 }} {{ 'weiterer' if items|length == 2 else 'weitere' }}</em>{% endif %}</span>
   </div>
   <form method="post" action="{{ url_for('befunde.mark_seen') }}">{{ csrf() }}
-    <input type="hidden" name="key" value="{{ f.key }}">
+    {% for item in items %}<input type="hidden" name="key" value="{{ item.key }}">{% endfor %}
     <input type="hidden" name="next" value="{{ url_for('befunde.index') }}#{{ f.key }}">
     <button class="bf-toast-los" type="submit">Ansehen</button>
   </form>
   <form method="post" action="{{ url_for('befunde.mark_seen') }}">{{ csrf() }}
-    <input type="hidden" name="key" value="{{ f.key }}">
+    {% for item in items %}<input type="hidden" name="key" value="{{ item.key }}">{% endfor %}
     <button class="bf-toast-zu" type="submit" title="Ausblenden">{{ icon('close') }}<span class="sr-only">Ausblenden</span></button>
   </form>
 </aside>
