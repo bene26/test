@@ -10,6 +10,8 @@ MIGRATIONS: list[str] = [
     resources.files("gesundheit").joinpath("schema.sql").read_text(encoding="utf-8"),
     # 2: several persons; every value belongs to one (see persons.py).
     resources.files("gesundheit").joinpath("migration_2.sql").read_text(encoding="utf-8"),
+    # 3: date for the weight goal, findings already seen.
+    resources.files("gesundheit").joinpath("migration_3.sql").read_text(encoding="utf-8"),
 ]
 
 

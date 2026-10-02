@@ -35,8 +35,9 @@
         <div class="field"><label for="z-schlaf">Schlaf (Stunden)</label><input id="z-schlaf" type="text" name="goal_sleep_h" inputmode="decimal" maxlength="5" value="{{ (p.goal_sleep_min / 60)|zahl(1) }}" required></div>
         <div class="field"><label for="z-training">Trainings pro Woche</label><input id="z-training" type="number" name="goal_workouts" min="0" max="21" value="{{ p.goal_workouts }}" required></div>
         <div class="field"><label for="z-gewicht">Zielgewicht in kg (optional)</label><input id="z-gewicht" type="text" name="goal_weight" inputmode="decimal" maxlength="6" value="{{ (p.goal_weight_dg / 10)|zahl(1) if p.goal_weight_dg else '' }}"></div>
+        <div class="field"><label for="z-datum">Bis wann (optional)</label><input id="z-datum" type="date" name="goal_weight_date" value="{{ p.goal_weight_date or '' }}"></div>
       </div>
-      <p class="small muted">Die Ziele steuern die Ringe, die Ziellinien und den Vergleich nach Zielerreichung. Damit ist der Vergleich fair: jede Person wird an ihren eigenen Zielen gemessen. Die WHO empfiehlt Erwachsenen 150 bis 300 Minuten Bewegung pro Woche, Kindern und Jugendlichen 60 Minuten am Tag.</p>
+      <p class="small muted">Die Ziele steuern die Ringe, die Ziellinien und den Vergleich nach Zielerreichung. Mit Zielgewicht und Datum rechnet die Übersicht aus, wie wahrscheinlich das Ziel bis dahin erreicht wird. Damit ist der Vergleich fair: jede Person wird an ihren eigenen Zielen gemessen. Die WHO empfiehlt Erwachsenen 150 bis 300 Minuten Bewegung pro Woche, Kindern und Jugendlichen 60 Minuten am Tag.</p>
     </section>
   </div>
   <p><button class="btn btn-primary" type="submit">Speichern</button> <a class="btn" href="{{ url_for('personen.index') }}">Zurück</a></p>

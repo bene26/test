@@ -11,7 +11,7 @@ from flask import Request as FlaskRequest
 from jinja2 import ChoiceLoader, FileSystemLoader, TemplateNotFound
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from . import auswertung, auth, crypto, db, katalog, persons, themes, util
+from . import auswertung, auth, befunde, crypto, db, katalog, persons, themes, util
 
 __version__ = "0.2.0"
 APP_NAME = "Gesundheits-Cockpit"
@@ -153,10 +153,10 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.before_request(persons.load_current)
     app.after_request(persons.remember)
 
-    from .views import (auswertungen, berichte, bereiche, daten, einstellungen, main, personen,
-                        quellen, vergleich)
-    for module in (auth, main, bereiche, auswertungen, vergleich, berichte, personen, quellen,
-                   einstellungen, daten):
+    from .views import (auswertungen, befunde, berichte, bereiche, daten, einstellungen, main,
+                        personen, quellen, vergleich)
+    for module in (auth, main, bereiche, befunde, auswertungen, vergleich, berichte, personen,
+                   quellen, einstellungen, daten):
         app.register_blueprint(module.bp)
 
     _register_template_helpers(app)
@@ -210,6 +210,7 @@ def _register_template_helpers(app: Flask) -> None:
         KEYS=auswertung.KEYS,
         WORKOUT_KINDS=katalog.WORKOUT_KINDS,
         nav_status=_nav_status,
+        nav_findings=_nav_findings,
         app_version=__version__,
         app_name=APP_NAME,
     )
@@ -231,6 +232,15 @@ def _nav_status() -> int:
         g.nav_status = db.get_db().execute(
             "SELECT COUNT(*) FROM connections WHERE last_error != ''").fetchone()[0]
     return g.nav_status
+
+
+def _nav_findings() -> int:
+    """Number of current warnings among the findings (badge at "Befunde")."""
+    if "nav_findings" not in g:
+        person = g.get("person")
+        g.nav_findings = (befunde.warnings(befunde.compute(db.get_db(), person["id"], person))
+                          if person else 0)
+    return g.nav_findings
 
 
 def _register_security_headers(app: Flask) -> None:

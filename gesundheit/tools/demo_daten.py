@@ -18,19 +18,24 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from gesundheit import persons, store, util  # noqa: E402
 from gesundheit.db import connect, init_db  # noqa: E402
 
-# Three household members with different devices and habits.
+# Three household members with different devices and habits. Each carries a few patterns
+# for the findings: Anna trains too hard and stepped up her last week, Ben's blood pressure is
+# raised, his bedtime irregular and his Sundays quiet, Lena is on a step streak.
 PROFILES = {
     "Anna": {"color": "pink", "birth_year": 1986, "height_cm": 181, "watch": "garmin",
              "watch_share": 0.85, "steps": 9800, "sleep": 412, "weight": (82.4, -3.6),
              "fat": (22.5, -2.2), "resting": (58, -3), "bp": (131, 84), "goal_steps": 10000,
+             "goal_weight_dg": 770, "workout_hr": 152, "hard_last_week": True,
              "sports": {1: "laufen", 3: "kraft", 5: "radfahren", 6: "wandern"}},
     "Ben": {"color": "blau", "birth_year": 1984, "height_cm": 188, "watch": "apple_watch",
             "watch_share": 0.95, "steps": 7600, "sleep": 395, "weight": (91.0, 1.2),
-            "fat": (24.0, 0.6), "resting": (63, 1), "bp": (136, 87), "goal_steps": 8000,
+            "fat": (24.0, 0.6), "resting": (63, 1), "bp": (140, 90), "goal_steps": 8000,
+            "bed_spread": 75, "sunday": 0.45,
             "sports": {2: "radfahren", 6: "laufen"}},
     "Lena": {"color": "gruen", "birth_year": 2010, "height_cm": 164, "watch": "garmin",
              "watch_share": 0.9, "steps": 11800, "sleep": 470, "weight": (52.0, 1.5),
              "fat": None, "resting": (61, -2), "bp": None, "goal_steps": 12000,
+             "streak": 9, "workout_hr": 128,
              "sports": {0: "ballsport", 2: "schwimmen", 4: "ballsport"}},
 }
 
@@ -50,6 +55,8 @@ def fill(db, pid: int, today: date, days: int = 365, seed: int = 7, profile: dic
     for i, day in enumerate(util.days(start, today)):
         progress = i / max(days - 1, 1)
         weekend = day.weekday() >= 5
+        back = (today - day).days
+        hard_week = profile.get("hard_last_week") and back < 7
         source = main_watch if rng.random() < profile["watch_share"] else other_watch
         # Scale: most mornings; the same weighing also arrives via Apple Health.
         if rng.random() < 0.7:
@@ -89,7 +96,8 @@ def fill(db, pid: int, today: date, days: int = 365, seed: int = 7, profile: dic
 
         # Sleep first: a short night makes the next day a little worse (relationships to find).
         asleep = profile["sleep"] + 35 * math.sin(i / 6) + (25 if weekend else 0) + rng.gauss(0, 28)
-        bed = _at(day - timedelta(days=1), 22, 50) + timedelta(minutes=rng.gauss(15, 25))
+        bed = _at(day - timedelta(days=1), 22, 50) + timedelta(
+            minutes=rng.gauss(15, profile.get("bed_spread", 25) if back < 30 else 25))
         late = (bed - _at(day - timedelta(days=1), 22, 50)).total_seconds() / 3600
         asleep -= late * 25
         sleep_factor = (asleep - profile["sleep"]) / 60
@@ -105,6 +113,10 @@ def fill(db, pid: int, today: date, days: int = 365, seed: int = 7, profile: dic
 
         steps = max(1800, profile["steps"] + 2500 * math.sin(i / 5) + (2500 if weekend else 0)
                     + 600 * sleep_factor + rng.gauss(0, 1800))
+        if day.weekday() == 6:
+            steps *= profile.get("sunday", 1)
+        if back < profile.get("streak", 0):
+            steps = max(steps, profile["goal_steps"] * (1.04 + rng.random() * 0.2))
         active_min = max(5, steps / 260 + rng.gauss(0, 8))
         daily += [("steps", day, source, steps),
                   ("distance_km", day, source, steps * 0.00074),
@@ -116,6 +128,8 @@ def fill(db, pid: int, today: date, days: int = 365, seed: int = 7, profile: dic
                   ("hr_max", day, source, 138 + rng.gauss(0, 12))]
         base, drift = profile["resting"]
         resting = base + drift * progress - 1.6 * sleep_factor + rng.gauss(0, 1.3)
+        if hard_week:
+            resting += 3 + (7 - back) * 0.6  # the body notices the harder week
         if source == "apple_watch":
             daily += [("resting_hr", day, "apple_watch", resting + 1),
                       ("hrv_sdnn", day, "apple_watch", 52 + 6 * sleep_factor + rng.gauss(0, 7))]
@@ -132,15 +146,20 @@ def fill(db, pid: int, today: date, days: int = 365, seed: int = 7, profile: dic
             measurements.append(("vo2max", 46.5 + 2 * progress, _at(day, 12), "garmin", ""))
 
         kind = profile["sports"].get(day.weekday())
+        if hard_week and not kind:
+            kind = "laufen"
         if kind:
             workout_no += 1
             begin = _at(day, 18 if not weekend else 10, 5)
             minutes = {"laufen": 42, "kraft": 50, "radfahren": 95, "wandern": 150,
                        "ballsport": 75, "schwimmen": 45}[kind] + rng.gauss(0, 8)
+            if hard_week:
+                minutes *= 1.4
             km = {"laufen": 7.8, "radfahren": 36, "wandern": 11, "schwimmen": 1.6}.get(kind, 0)
             data = {"kind": kind, "started_at": begin, "ended_at": begin + timedelta(minutes=minutes),
                     "duration_min": minutes, "distance_km": km * (1 + rng.gauss(0, 0.08)) or None,
-                    "energy_kcal": minutes * 8, "hr_avg": 135 + rng.gauss(0, 10), "hr_max": 168}
+                    "energy_kcal": minutes * 8,
+                    "hr_avg": profile.get("workout_hr", 135) + rng.gauss(0, 7), "hr_max": 168}
             store.upsert_workout(db, pid, source, f"demo{workout_no}", data)
             if kind == "laufen":
                 store.upsert_workout(db, pid, "iphone", f"demo-iphone{workout_no}",
@@ -157,7 +176,8 @@ def fill_household(db, today: date, days: int = 365) -> list[int]:
         row = db.execute("SELECT id FROM persons WHERE name = ?", (name,)).fetchone()
         pid = row["id"] if row else persons.create(
             db, name, profile["color"], birth_year=profile["birth_year"],
-            height_cm=profile["height_cm"], goal_steps=profile["goal_steps"])
+            height_cm=profile["height_cm"], goal_steps=profile["goal_steps"],
+            goal_weight_dg=profile.get("goal_weight_dg"))
         fill(db, pid, today, days, seed, profile)
         ids.append(pid)
     db.commit()

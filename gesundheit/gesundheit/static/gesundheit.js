@@ -4,6 +4,8 @@
    2. chart read-out: hover or tap shows the nearest value
    3. upload of the Apple Health export with progress, then live import status
    4. pickers on the analysis pages send themselves, print button for reports
+   5. the 3D skyline: grows week by week, read-out per day, switch between steps and load,
+      totals count up
    No inline styles in the markup (CSP); positions are set through the CSSOM. */
 (function () {
   "use strict";
@@ -142,6 +144,96 @@
     follow(row.getAttribute("data-import-status"), function (data) {
       if (bar) bar.value = data.progress;
       if (text) text.textContent = data.status === "laeuft" ? "liest … " + data.progress + " %" : "wartet";
+    });
+  });
+
+  // 5. Skyline
+  function countUp(el) {
+    var target = parseFloat(el.getAttribute("data-count"));
+    var decimals = parseInt(el.getAttribute("data-decimals"), 10) || 0;
+    if (reduce || isNaN(target) || !window.requestAnimationFrame) return;
+    var format = function (v) {
+      return v.toLocaleString("de-DE", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    };
+    var start = null;
+    function step(t) {
+      if (start === null) start = t;
+      var p = Math.min((t - start) / 1400, 1);
+      el.textContent = format(target * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) window.requestAnimationFrame(step);
+    }
+    window.requestAnimationFrame(step);
+  }
+
+  function grow(view) {
+    view.querySelectorAll("[data-count]").forEach(countUp);
+    if (reduce) return;
+    view.querySelectorAll(".sk-bar").forEach(function (bar) {
+      if (!bar.animate) return;
+      var w = parseInt(bar.getAttribute("data-w"), 10) || 0;
+      bar.animate([{ transform: "scaleY(0.02)", opacity: 0.2 }, { transform: "scaleY(1)", opacity: 1 }],
+        { duration: 650, delay: 200 + w * 22, easing: "cubic-bezier(.2,.8,.2,1)", fill: "backwards" });
+    });
+  }
+
+  document.querySelectorAll("[data-sky]").forEach(function (card) {
+    var views = Array.prototype.slice.call(card.querySelectorAll("[data-sky-ansicht]"));
+    var buttons = Array.prototype.slice.call(card.querySelectorAll("[data-sky-zeige]"));
+    views.forEach(function (v) { if (!v.hidden) grow(v); });
+
+    buttons.forEach(function (button) {
+      button.addEventListener("click", function (e) {
+        var key = button.getAttribute("data-sky-zeige");
+        var target = views.filter(function (v) { return v.getAttribute("data-sky-ansicht") === key; })[0];
+        if (!target) return;
+        e.preventDefault();
+        if (!target.hidden) return;
+        views.forEach(function (v) { v.hidden = v !== target; });
+        buttons.forEach(function (b) { b.setAttribute("aria-pressed", b === button ? "true" : "false"); });
+        grow(target);
+      });
+    });
+
+    views.forEach(function (view) {
+      var figure = view.querySelector("[data-skyline]");
+      var tip = view.querySelector("[data-sky-tip]");
+      if (!figure || !tip) return;
+      var active = null;
+      function hide() {
+        tip.hidden = true;
+        if (active) active.classList.remove("aktiv");
+        active = null;
+      }
+      function show(e) {
+        var bar = e.target.closest ? e.target.closest("[data-tip]") : null;
+        if (!bar) { hide(); return; }
+        if (active !== bar) {
+          if (active) active.classList.remove("aktiv");
+          active = bar;
+          bar.classList.add("aktiv");
+          var parts = bar.getAttribute("data-tip").split("|");
+          tip.textContent = "";
+          var title = document.createElement("strong");
+          title.textContent = parts[0];
+          tip.appendChild(title);
+          for (var i = 1; i + 1 < parts.length; i += 2) {
+            var line = document.createElement("span");
+            var value = document.createElement("b");
+            value.textContent = parts[i];
+            line.appendChild(value);
+            line.appendChild(document.createTextNode(parts[i + 1]));
+            tip.appendChild(line);
+          }
+        }
+        var box = figure.getBoundingClientRect();
+        var x = Math.min(Math.max(e.clientX - box.left, 95), box.width - 95);
+        tip.style.left = x + "px";
+        tip.style.top = Math.max(e.clientY - box.top, 70) + "px";
+        tip.hidden = false;
+      }
+      figure.addEventListener("pointermove", show);
+      figure.addEventListener("pointerdown", show);
+      figure.addEventListener("pointerleave", hide);
     });
   });
 })();

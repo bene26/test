@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% from "_macros.html" import csrf, icon, kachel, quelle %}
-{% block title %}Übersicht{% endblock %}
+{% from "_befunde.html" import gross, klein, toast, form_karte %}
+{% block title %}Übersicht{% if news %}{{ toast(news) }}{% endif %}
+{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -8,13 +10,16 @@
     <h1>{% if now.hour < 11 %}Guten Morgen{% elif now.hour < 17 %}Hallo{% else %}Guten Abend{% endif %}, {{ person.name }}</h1>
     <p class="sub">So sieht dein Tag bisher aus.</p>
   </div>
-  {% if connections %}
   <div class="actions">
+    <nav class="zeitraum" aria-label="Zeitraum der Skyline">
+      {% for p in sky.periods %}<a href="{{ url_for('main.index', zeit=p) }}"{% if p == sky.period %} aria-current="true"{% endif %}>{{ p }}</a>{% endfor %}
+    </nav>
+    {% if connections %}
     <form method="post" action="{{ url_for('main.sync_now') }}">{{ csrf() }}
       <button class="btn" type="submit"{% if syncing %} disabled{% endif %}>{{ icon('refresh') }} {{ 'Abgleich läuft …' if syncing else 'Jetzt abgleichen' }}</button>
     </form>
+    {% endif %}
   </div>
-  {% endif %}
 </div>
 
 {% if empty %}
@@ -28,6 +33,22 @@
   </ol>
   {% if persons|length == 1 %}<p class="small muted">Weitere Familienmitglieder legst du unter <a href="{{ url_for('personen.index') }}">Personen</a> an.</p>{% endif %}
 </section>
+{% endif %}
+
+{% if not empty %}
+<div class="ueb-oben">
+  {% include "_skyline.html" %}
+  <div class="ueb-rand">
+    {{ form_karte(form) }}
+  </div>
+</div>
+{% if findings %}
+{{ gross(findings[0]) }}
+{% if findings|length > 1 %}
+<h2 class="sr-only">Weitere Befunde</h2>
+<div class="befunde-klein">{% for f in findings[1:7] %}{{ klein(f) }}{% endfor %}</div>
+{% endif %}
+{% endif %}
 {% endif %}
 
 <section class="card heute-held" aria-labelledby="heute-titel">
@@ -140,4 +161,5 @@
     {% endif %}
   </section>
 </div>
+{% if news %}{{ toast(news) }}{% endif %}
 {% endblock %}

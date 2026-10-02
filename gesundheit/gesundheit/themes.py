@@ -1,6 +1,9 @@
-"""Selectable designs and appearance options (same as the Projekt-Cockpit, cockpit/themes.py).
+"""Selectable designs and appearance options (as in the Projekt-Cockpit, cockpit/themes.py).
 
-Kept in step with cockpit/themes.py; gesundheit/tests/test_basis.py checks that both match.
+Kept in step with cockpit/themes.py; gesundheit/tests/test_basis.py checks that every
+cockpit design and option exists here too. The health app adds its own design "Indigo"
+(light, white cards, indigo accent), which is its default; its tokens live in
+static/gesundheit.css.
 
 The design is stored per user (users.theme), the finer options (light or dark,
 accent colour, text size, corners, menu style, digits, error page graphic) as JSON in
@@ -20,10 +23,14 @@ from flask import current_app, g, has_request_context, request
 COOKIE = "gs_theme"
 LOOK_COOKIE = "gs_look"
 NAV_COOKIE = "pc_nav"
-DEFAULT = "glas"
+DEFAULT = "indigo"
 
 # Order is the order on the settings page.
 THEMES = {
+    "indigo": {
+        "label": "Indigo",
+        "description": "Hell, weiße Karten, Indigo-Akzent, Seitenleiste",
+    },
     "violett": {
         "label": "Violett",
         "description": "Lila, Zahlen wie auf einer Abfahrtstafel, Seitenleiste",
@@ -47,9 +54,9 @@ THEMES = {
 }
 
 # Tone of each design without a mode set ("" = follows the device).
-DEFAULT_TONE = {"violett": "dunkel", "glas": "dunkel", "bronze": "dunkel", "hell": "hell",
-                "schlicht": ""}
-SIDEBAR_THEMES = {"violett", "glas", "hell"}
+DEFAULT_TONE = {"indigo": "hell", "violett": "dunkel", "glas": "dunkel", "bronze": "dunkel",
+                "hell": "hell", "schlicht": ""}
+SIDEBAR_THEMES = {"indigo", "violett", "glas", "hell"}
 DEFAULT_NAV = {"hell": "mini"}
 
 # key: (html attribute, {value: label}); "" means "as the design has it".
@@ -73,8 +80,8 @@ APPEARANCE = {
         "schluessel": "Schlüssel"}),
 }
 # Graphic on the error pages when "Wie im Design" is chosen (see app.css, Fehlerseiten).
-DEFAULT_GRAFIK = {"violett": "fallblatt", "glas": "loch", "bronze": "bon", "hell": "flieger",
-                  "schlicht": "kartei"}
+DEFAULT_GRAFIK = {"indigo": "flieger", "violett": "fallblatt", "glas": "loch", "bronze": "bon",
+                  "hell": "flieger", "schlicht": "kartei"}
 DEFAULT_LOOK = {key: "" for key in APPEARANCE}
 LABELS = {"modus": "Hell oder dunkel", "akzent": "Akzentfarbe", "schrift": "Schriftgröße",
           "ecken": "Ecken", "menue": "Menü-Stil", "zahlen": "Zahlen",

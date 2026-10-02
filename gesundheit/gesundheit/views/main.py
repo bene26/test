@@ -5,7 +5,7 @@ from datetime import timedelta
 from flask import (Blueprint, abort, current_app, flash, g, jsonify, redirect,
                    render_template, request, url_for)
 
-from .. import bewertung, charts, jobs, store, util
+from .. import befunde, belastung, bewertung, charts, jobs, store, uebersicht, util
 from ..db import get_db
 from ..katalog import METRICS, NO_CHART
 from . import PERIODS, period
@@ -112,8 +112,13 @@ def index():
         (pid,))}
     last_import = db.execute("SELECT * FROM imports WHERE person_id = ? ORDER BY id DESC LIMIT 1",
                              (pid,)).fetchone()
+    findings = befunde.compute(db, pid, person, today)
     return render_template(
-        "index.html", now=util.now(), activity=activity, rings_svg=charts.rings(activity),
+        "index.html", now=util.now(),
+        sky=uebersicht.skyline(db, pid, person, today, request.args.get("zeit")),
+        findings=findings, news=befunde.news(findings, person),
+        form=belastung.form(db, pid, person, today),
+        activity=activity, rings_svg=charts.rings(activity),
         tiles=tiles, gauges=gauges, bp_info=bp_info, night=night, sleep_donut=sleep_donut,
         week=week, connections=connections, last_import=last_import,
         empty=not has_any_data(db, pid),

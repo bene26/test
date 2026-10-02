@@ -26,6 +26,7 @@ def _fields(required_name=True):
         "goal_workouts": forms.Integer("Trainings pro Woche", required=True, min_value=0,
                                        max_value=21),
         "goal_weight": forms.Number("Zielgewicht", min_value=10, max_value=300),
+        "goal_weight_date": forms.Date("Zieldatum"),
     }
 
 
@@ -34,6 +35,7 @@ def _to_columns(values: dict) -> dict:
                                       "goal_active_min", "goal_active_kcal", "goal_workouts")}
     columns["goal_sleep_min"] = round(values["goal_sleep_h"] * 60)
     columns["goal_weight_dg"] = round(values["goal_weight"] * 10) if values["goal_weight"] else None
+    columns["goal_weight_date"] = values["goal_weight_date"] if columns["goal_weight_dg"] else None
     return columns
 
 

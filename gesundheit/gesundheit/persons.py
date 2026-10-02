@@ -24,7 +24,7 @@ COLORS = {
 }
 
 GOAL_FIELDS = ("goal_steps", "goal_active_min", "goal_active_kcal", "goal_sleep_min",
-               "goal_workouts", "goal_weight_dg")
+               "goal_workouts", "goal_weight_dg", "goal_weight_date")
 EDITABLE = ("name", "color", "birth_year", "height_cm") + GOAL_FIELDS + (
     "garmin_enabled", "garmin_backfill_days")
 

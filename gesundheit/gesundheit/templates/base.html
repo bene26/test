@@ -18,6 +18,7 @@
 <div class="shell{% if current_user and person %} with-nav{% endif %}">
 {% if current_user and person %}
 {% set nav_errors = nav_status() %}
+{% set nav_hints = nav_findings() if person else 0 %}
 <header class="sidenav">
   <div class="nav-top">
     <a class="brand" href="{{ url_for('main.index') }}"><span class="logo" aria-hidden="true"></span><span class="nav-label">{{ app_name }}</span></a>
@@ -48,7 +49,8 @@
   <nav id="hauptmenue" aria-label="Hauptnavigation">
     {% for section, items in [
         ('Heute', [
-          ('main.index', 'Übersicht', 'start', ('main.index', 'main.history'), 0, '')]),
+          ('main.index', 'Übersicht', 'start', ('main.index', 'main.history'), 0, ''),
+          ('befunde.index', 'Befunde', 'bulb', ('befunde',), nav_hints, 'Hinweise')]),
         ('Bereiche', [
           ('bereiche.koerper', 'Körper', 'body', ('bereiche.koerper',), 0, ''),
           ('bereiche.herz', 'Herz & Kreislauf', 'heart', ('bereiche.herz',), 0, ''),

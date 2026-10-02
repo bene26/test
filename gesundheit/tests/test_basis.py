@@ -76,9 +76,16 @@ def test_cookie_names_differ_from_cockpit(logged_in):
 
 def test_design_options_match_cockpit():
     cockpit_themes = _cockpit_module("themes")
-    assert themes.THEMES == cockpit_themes.THEMES
+    # Every cockpit design exists here unchanged; the health app adds "Indigo" as its default.
+    assert {k: v for k, v in themes.THEMES.items() if k in cockpit_themes.THEMES} \
+        == cockpit_themes.THEMES
+    assert set(themes.THEMES) - set(cockpit_themes.THEMES) == {"indigo"}
+    assert themes.DEFAULT == "indigo"
     assert themes.APPEARANCE == cockpit_themes.APPEARANCE
-    assert themes.DEFAULT_GRAFIK == cockpit_themes.DEFAULT_GRAFIK
+    for name in themes.THEMES:
+        assert name in themes.DEFAULT_TONE and name in themes.DEFAULT_GRAFIK
+    assert {k: themes.DEFAULT_GRAFIK[k] for k in cockpit_themes.DEFAULT_GRAFIK} \
+        == cockpit_themes.DEFAULT_GRAFIK
     assert themes.LOOK_COOKIE != cockpit_themes.LOOK_COOKIE
 
 

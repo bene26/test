@@ -104,7 +104,7 @@ class _Axis:
 
 
 def _frame(axis: _Axis, body: list[str], label: str, kind: str, y_text=None,
-           x_labels=None, legend: str = "") -> Markup:
+           x_labels=None, legend: str = "", overlay: str = "") -> Markup:
     decimals = _tick_decimals(axis.ticks)
     y_labels = y_text or [_fmt(t, decimals) for t in reversed(axis.ticks)]
     grid = "".join(f'<line class="grid" x1="0" x2="{W}" y1="{axis.y(t):.1f}" y2="{axis.y(t):.1f}" '
@@ -116,7 +116,7 @@ def _frame(axis: _Axis, body: list[str], label: str, kind: str, y_text=None,
         f'<div class="chart-y" aria-hidden="true">{"".join(f"<span>{escape(t)}</span>" for t in y_labels)}</div>'
         f'<div class="chart-plot"><svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" '
         f'role="img" aria-label="{escape(label)}" focusable="false">{grid}{"".join(body)}</svg>'
-        f'<div class="chart-tip" data-chart-tip hidden></div></div>'
+        f'{overlay}<div class="chart-tip" data-chart-tip hidden></div></div>'
         f'<div class="chart-x" aria-hidden="true">{"".join(f"<span>{escape(t)}</span>" for t in x_labels)}</div>'
         + (f'<figcaption class="chart-legend">{legend}</figcaption>' if legend else "")
         + "</figure>")
@@ -563,7 +563,8 @@ def heatmap(values: dict[str, float], end: date, unit: str, decimals: int, label
 
 def columns(labels: list[str], values: list[float | None], unit: str, decimals: int,
             label: str, highlight: str = "max") -> Markup:
-    """Category columns, e.g. the average per weekday. The best column is highlighted."""
+    """Category columns, e.g. the average per weekday. One column is highlighted: the highest
+    ("max"), the lowest ("min") or the last one ("last", e.g. the current week)."""
     present = [v for v in values if v is not None]
     if not present:
         return empty()
@@ -572,7 +573,11 @@ def columns(labels: list[str], values: list[float | None], unit: str, decimals: 
     n = len(labels)
     slot = W / n
     width = slot * 0.56
-    best = (max if highlight == "max" else min)(present)
+    filled = [i for i, v in enumerate(values) if v is not None]
+    if highlight == "last":
+        marked = filled[-1]
+    else:
+        marked = (max if highlight == "max" else min)(filled, key=lambda i: values[i])
     uid = _uid()
     unit_text = f" {unit}" if unit else ""
     body = [_gradient(uid, "b-top", "b-bottom"), f'<g class="bar-fill" fill="url(#{uid})">']
@@ -582,7 +587,7 @@ def columns(labels: list[str], values: list[float | None], unit: str, decimals: 
         height = value / top * H
         x = i * slot + (slot - width) / 2
         tip = f"{name}: {_fmt(value, decimals)}{unit_text}"
-        body.append(f'<rect class="bar{" reached" if value == best else ""}" x="{x:.1f}" y="{H - height:.1f}" '
+        body.append(f'<rect class="bar{" reached" if i == marked else ""}" x="{x:.1f}" y="{H - height:.1f}" '
                     f'width="{width:.1f}" height="{height:.1f}" rx="8" data-x="{(x + width / 2) / W:.4f}" '
                     f'data-y="{(H - height) / H:.4f}" data-tip="{escape(tip)}"><title>{escape(tip)}</title></rect>')
     body.append("</g>")
@@ -613,3 +618,148 @@ def spark_area(values: list[float]) -> Markup:
                   f'focusable="false">{_gradient(uid, "sp-top", "sp-bottom")}'
                   f'<path class="spark-flaeche" fill="url(#{uid})" d="{path} L100 32 L0 32 Z"/>'
                   f'<path class="spark-linie" d="{path}" vector-effect="non-scaling-stroke"/></svg>')
+
+
+# ---------- 3D skyline (overview) ----------
+
+# Screen steps per week (along the ribbon, rising) and per weekday (across it), in cell units.
+_SKY_U = (1.0, -0.22)
+_SKY_V = (0.56, 0.35)
+_SKY_GAP = 0.74
+
+
+def skyline(cells: list[dict], unit: str, decimals: int, label: str, width: float = 600,
+            tall: float = 170) -> Markup:
+    """One isometric column per day: weeks run along a rising ribbon, weekdays across it, the
+    height is the value. The highest day is marked. Uses a fixed aspect ratio (no stretching),
+    so text can live in the SVG.
+
+    cells: [{"day": date, "value": float | None, "tip": [title, (value, label), ...]}] by day.
+    """
+    values = [c["value"] for c in cells if c["value"]]
+    if not values:
+        return empty()
+    first = cells[0]["day"]
+    monday = first - timedelta(days=first.weekday())
+    weeks = (cells[-1]["day"] - monday).days // 7 + 1
+    s = (width - 28) / (weeks * _SKY_U[0] + 7 * _SKY_V[0])
+    ux, uy = _SKY_U[0] * s, _SKY_U[1] * s
+    vx, vy = _SKY_V[0] * s, _SKY_V[1] * s
+    top = 40
+    ox, oy = 14, top + tall - uy * weeks
+    height = oy + 7 * vy + 30
+    maximum = max(values)
+    peak = max((c for c in cells if c["value"]), key=lambda c: (c["value"], c["day"]))
+    # Toward the viewer: perpendicular to the screen on the ground plane, sign so the tops show.
+    tx, ty = -vx, ux
+    if tx * uy + ty * vy < 0:
+        tx, ty = -tx, -ty
+
+    def pt(w, d, h=0.0):
+        return ox + w * ux + d * vx, oy + w * uy + d * vy - h
+
+    def poly(points):
+        return "M" + " L".join(f"{x:.1f} {y:.1f}" for x, y in points) + " Z"
+
+    items = []
+    for c in cells:
+        w = (c["day"] - monday).days // 7
+        d = c["day"].weekday()
+        value = c["value"] or 0
+        h = max(value / maximum * tall, 1.2) if value > 0 else 0
+        base = [pt(w, d), pt(w + _SKY_GAP, d), pt(w + _SKY_GAP, d + _SKY_GAP), pt(w, d + _SKY_GAP)]
+        lifted = [(x, y - h) for x, y in base]
+        if h == 0:
+            body = f'<path class="sk-leer" d="{poly(base)}"/>'
+        else:
+            # visible side along the weeks axis faces -u or +u, along the weekdays axis -v or +v
+            side_w = [base[0], base[3], lifted[3], lifted[0]] if tx < 0 else \
+                [base[1], base[2], lifted[2], lifted[1]]
+            side_d = [base[3], base[2], lifted[2], lifted[3]] if ty > 0 else \
+                [base[0], base[1], lifted[1], lifted[0]]
+            body = (f'<path class="sk-seite" d="{poly(side_w)}"/>'
+                    f'<path class="sk-vorn" d="{poly(side_d)}"/>'
+                    f'<path class="sk-oben" d="{poly(lifted)}"/>')
+        tip = c.get("tip") or []
+        parts = [str(tip[0])] if tip else []
+        for pair in tip[1:]:
+            parts += [str(pair[0]), str(pair[1])]
+        cls = "sk-bar sk-peak" if c is peak else "sk-bar"
+        attrs = f' data-w="{w}"'
+        if parts and c["value"] is not None:
+            attrs += f' data-tip="{escape("|".join(parts))}"'
+        depth = (w + _SKY_GAP / 2) * tx + (d + _SKY_GAP / 2) * ty
+        items.append((depth, f'<g class="{cls}"{attrs}>{body}</g>'))
+    items.sort(key=lambda item: item[0])
+
+    months = []
+    last_x = -100.0
+    for c in cells:
+        if c["day"].day == 1 or c is cells[0]:
+            w = (c["day"] - monday).days // 7
+            x, y = pt(w + 0.3, 7.3)
+            if x - last_x < 30:
+                continue
+            months.append(f'<text class="sk-monat" x="{x:.1f}" y="{y + 13:.1f}">'
+                          f'{util.MONTHS[c["day"].month - 1]}</text>')
+            last_x = x
+    pw = (peak["day"] - monday).days // 7
+    px, py = pt(pw + _SKY_GAP / 2, peak["day"].weekday() + _SKY_GAP / 2,
+                peak["value"] / maximum * tall)
+    peak_label = (f'<g class="sk-spitze" aria-hidden="true">'
+                  f'<line x1="{px:.1f}" x2="{px:.1f}" y1="{py - 4:.1f}" y2="{py - 12:.1f}"/>'
+                  f'<text x="{px:.1f}" y="{py - 28:.1f}">{escape(_fmt(peak["value"], decimals))}'
+                  f'{(" " + escape(unit)) if unit else ""}</text>'
+                  f'<text class="sk-spitze-tag" x="{px:.1f}" y="{py - 16:.1f}">'
+                  f'{peak["day"].day}. {util.MONTHS[peak["day"].month - 1]}</text></g>')
+    return Markup(
+        f'<figure class="skyline" data-skyline>'
+        f'<svg viewBox="0 0 {width:.0f} {height:.0f}" role="img" aria-label="{escape(label)}" '
+        f'focusable="false">{"".join(i[1] for i in items)}{"".join(months)}{peak_label}</svg>'
+        f'<div class="sk-tip" data-sky-tip hidden></div></figure>')
+
+
+# ---------- Findings ----------
+
+def zone_dots(points: list[dict], start: date, end: date, zone: tuple, unit: str, decimals: int,
+              label: str, zone_label: str, other_label: str = "", highlight: str = "inside",
+              y_format=None) -> Markup:
+    """Dots over time with a shaded zone, like the reel's reveal: the dots that matter (inside
+    or outside the zone) in the accent colour, the others muted.
+    points: [{day, value, tip}]; zone: (low, high), either may be None (open)."""
+    if not points:
+        return empty()
+    values = [p["value"] for p in points] + [z for z in zone if z is not None]
+    lo, hi = min(values), max(values)
+    pad = (hi - lo) * 0.12 or 1
+    axis = _Axis(start, end, nice_ticks(lo - pad, hi + pad))
+    z_lo = axis.lo if zone[0] is None else max(zone[0], axis.lo)
+    z_hi = axis.hi if zone[1] is None else min(zone[1], axis.hi)
+    body = [f'<rect class="zone" x="0" y="{axis.y(z_hi):.1f}" width="{W}" '
+            f'height="{max(axis.y(z_lo) - axis.y(z_hi), 0):.1f}"/>']
+    for edge in zone:
+        if edge is not None and axis.lo < edge < axis.hi:
+            body.append(f'<line class="schwelle" x1="0" x2="{W}" y1="{axis.y(edge):.1f}" '
+                        f'y2="{axis.y(edge):.1f}" vector-effect="non-scaling-stroke"/>')
+    dots = []
+    for p in points:
+        inside = (zone[0] is None or p["value"] >= zone[0]) and (zone[1] is None or p["value"] <= zone[1])
+        hit = inside if highlight == "inside" else not inside
+        dots.append(_dot(axis.x(p["day"]), axis.y(p["value"]), p["tip"],
+                         "dot dot-treffer" if hit else "dot dot-aus"))
+    body.append('<g class="dots">' + "".join(dots) + "</g>")
+    # An open zone gets its label inside (top left if open upwards, else bottom left), the
+    # other side the second label; a band in the middle is explained in the legend instead.
+    overlay = legend = ""
+    if zone[0] is None or zone[1] is None:
+        place, other = ("oben", "unten") if zone[1] is None else ("unten", "oben")
+        overlay = f'<span class="zone-text zone-{place}">{escape(zone_label)}</span>'
+        if other_label:
+            overlay += f'<span class="zone-text zone-{other} zone-text-aus">{escape(other_label)}</span>'
+    else:
+        legend = (f'<span class="leg leg-treffer">{escape(zone_label)}</span>'
+                  + (f'<span class="leg leg-aus">{escape(other_label)}</span>' if other_label else ""))
+    y_text = None
+    if y_format:
+        y_text = [y_format(t) for t in reversed(axis.ticks)]
+    return _frame(axis, body, label, "zone", y_text=y_text, legend=legend, overlay=overlay)
