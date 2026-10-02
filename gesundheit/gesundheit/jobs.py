@@ -1,7 +1,7 @@
 """Background work: Apple import, Withings and Garmin sync, nightly clean-up.
 
 Runs as threads inside the single gunicorn worker. Each kind of job runs at most once at a
-time; the hourly scheduler skips a job that is still running.
+time; one Withings or Garmin run goes through every person that is connected.
 """
 
 import json
@@ -11,56 +11,91 @@ import time
 from datetime import timedelta
 from pathlib import Path
 
-from . import apple, garmin, settings, store, util, withings
-from .db import connect
+from . import apple, garmin, persons, settings, store, util, withings
+from .db import connect, delete_meta, get_meta, set_meta
 
 log = logging.getLogger("gesundheit")
 _locks = {name: threading.Lock() for name in ("withings", "garmin", "apple")}
 
 
-# ---------- Connections (tokens stored encrypted) ----------
+# ---------- Connections (tokens stored encrypted, one row per provider and person) ----------
 
-def connection(db, provider: str):
-    return db.execute("SELECT * FROM connections WHERE provider = ?", (provider,)).fetchone()
+def connection(db, provider: str, pid: int):
+    return db.execute("SELECT * FROM connections WHERE provider = ? AND person_id = ?",
+                      (provider, pid)).fetchone()
 
 
-def load_secret(app, db, provider: str) -> dict:
-    row = connection(db, provider)
+def load_secret(app, db, provider: str, pid: int) -> dict:
+    row = connection(db, provider, pid)
     return (app.extensions["vault"].open(row["secret_enc"]) if row else None) or {}
 
 
-def save_secret(app, db, provider: str, data: dict, label: str | None = None) -> None:
+def save_secret(app, db, provider: str, pid: int, data: dict, label: str | None = None) -> None:
     sealed = app.extensions["vault"].seal(data) if data else ""
     db.execute(
-        "INSERT INTO connections (provider, secret_enc, account_label) VALUES (?, ?, ?) "
-        "ON CONFLICT(provider) DO UPDATE SET secret_enc = excluded.secret_enc"
+        "INSERT INTO connections (provider, person_id, secret_enc, account_label) "
+        "VALUES (?, ?, ?, ?) ON CONFLICT(provider, person_id) DO UPDATE SET "
+        "secret_enc = excluded.secret_enc"
         + (", account_label = excluded.account_label" if label is not None else ""),
-        (provider, sealed, label or ""))
+        (provider, pid, sealed, label or ""))
 
 
-def mark(db, provider: str, error: str = "", ok: bool = True, cursor: dict | None = None):
+def mark(db, provider: str, pid: int, error: str = "", ok: bool = True,
+         cursor: dict | None = None):
     stamp = util.stamp()
     db.execute(
         "UPDATE connections SET last_sync = ?, last_error = ?"
         + (", last_ok = ?" if ok else "") + (", cursor = ?" if cursor is not None else "")
-        + " WHERE provider = ?",
+        + " WHERE provider = ? AND person_id = ?",
         (stamp, error, *([stamp] if ok else []),
-         *([json.dumps(cursor)] if cursor is not None else []), provider))
+         *([json.dumps(cursor)] if cursor is not None else []), provider, pid))
 
 
-def disconnect(db, provider: str, keep_credentials: dict | None = None, app=None) -> None:
-    if keep_credentials and app is not None:
-        save_secret(app, db, provider, keep_credentials, label="")
-        db.execute("UPDATE connections SET connected_at = NULL, last_error = '', cursor = '{}' "
-                   "WHERE provider = ?", (provider,))
-    else:
-        db.execute("DELETE FROM connections WHERE provider = ?", (provider,))
+def disconnect(db, provider: str, pid: int) -> None:
+    db.execute("DELETE FROM connections WHERE provider = ? AND person_id = ?", (provider, pid))
 
 
-def withings_credentials(app, secret: dict) -> tuple[str, str]:
+def connected_persons(app, db, provider: str) -> list[int]:
+    rows = db.execute("SELECT person_id, secret_enc FROM connections WHERE provider = ?",
+                      (provider,)).fetchall()
+    return [r["person_id"] for r in rows
+            if (app.extensions["vault"].open(r["secret_enc"]) or {}).get("tokens")]
+
+
+# ---------- The Withings application (one for everybody) ----------
+
+def withings_app(app, db) -> tuple[str, str]:
     """Client ID and secret: environment first, then what was entered on the Quellen page."""
-    return (app.config["WITHINGS_CLIENT_ID"] or secret.get("client_id", ""),
-            app.config["WITHINGS_CLIENT_SECRET"] or secret.get("client_secret", ""))
+    stored = app.extensions["vault"].open(get_meta(db, "withings_app", "")) or {}
+    return (app.config["WITHINGS_CLIENT_ID"] or stored.get("client_id", ""),
+            app.config["WITHINGS_CLIENT_SECRET"] or stored.get("client_secret", ""))
+
+
+def save_withings_app(app, db, client_id: str, client_secret: str) -> None:
+    set_meta(db, "withings_app", app.extensions["vault"].seal(
+        {"client_id": client_id, "client_secret": client_secret}))
+
+
+def delete_withings_app(db) -> None:
+    delete_meta(db, "withings_app")
+
+
+def migrate_secrets(app) -> None:
+    """Version 1 kept the Withings client credentials next to the tokens; move them."""
+    conn = connect(app.config["DATABASE"])
+    try:
+        for row in conn.execute("SELECT person_id FROM connections WHERE provider = 'withings'"):
+            secret = load_secret(app, conn, "withings", row["person_id"])
+            if "client_id" in secret:
+                if not get_meta(conn, "withings_app"):
+                    save_withings_app(app, conn, secret["client_id"],
+                                      secret.get("client_secret", ""))
+                tokens = secret.get("tokens")
+                save_secret(app, conn, "withings", row["person_id"],
+                            {"tokens": tokens} if tokens else {})
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def withings_http(app):
@@ -99,70 +134,82 @@ def start(app, name: str, target, *args) -> bool:
     return True
 
 
-def run_withings(app) -> None:
+def run_withings(app, pid: int | None = None) -> None:
     conn = connect(app.config["DATABASE"])
     try:
-        secret = load_secret(app, conn, "withings")
-        tokens = secret.get("tokens")
-        if not tokens:
-            return
-        client_id, client_secret = withings_credentials(app, secret)
-
-        def keep(new_tokens):
-            secret["tokens"] = new_tokens
-            save_secret(app, conn, "withings", secret)
-            conn.commit()
-
-        client = withings.Client(withings_http(app), tokens, client_id, client_secret, keep)
-        row = connection(conn, "withings")
-        cursor = json.loads(row["cursor"] or "{}") if row else {}
-        try:
-            cursor, counts, error = withings.sync(
-                conn, client, cursor, settings.get(conn, "withings_backfill_days"),
-                commit=conn.commit)
-            mark(conn, "withings", error=error, ok=not error, cursor=cursor)
-            log.info("Withings abgeglichen: %s", counts)
-        except withings.WithingsError as exc:  # AuthExpired included
-            conn.rollback()
-            mark(conn, "withings", error=str(exc), ok=False)
-        conn.commit()
+        client_id, client_secret = withings_app(app, conn)
+        targets = [pid] if pid else connected_persons(app, conn, "withings")
+        for person_id in targets:
+            _withings_person(app, conn, person_id, client_id, client_secret)
     finally:
         conn.close()
 
 
-def run_garmin(app, days: int | None = None) -> None:
+def _withings_person(app, conn, pid, client_id, client_secret):
+    secret = load_secret(app, conn, "withings", pid)
+    if not secret.get("tokens"):
+        return
+
+    def keep(new_tokens):
+        secret["tokens"] = new_tokens
+        save_secret(app, conn, "withings", pid, secret)
+        conn.commit()
+
+    client = withings.Client(withings_http(app), secret["tokens"], client_id, client_secret, keep)
+    row = connection(conn, "withings", pid)
+    cursor = json.loads(row["cursor"] or "{}") if row else {}
+    try:
+        cursor, counts, error = withings.sync(
+            conn, pid, client, cursor, settings.get(conn, "withings_backfill_days"),
+            commit=conn.commit)
+        mark(conn, "withings", pid, error=error, ok=not error, cursor=cursor)
+        log.info("Withings abgeglichen (Person %s): %s", pid, counts)
+    except withings.WithingsError as exc:  # AuthExpired included
+        conn.rollback()
+        mark(conn, "withings", pid, error=str(exc), ok=False)
+    conn.commit()
+
+
+def run_garmin(app, pid: int | None = None, days: int | None = None) -> None:
     conn = connect(app.config["DATABASE"])
     try:
-        if not settings.get(conn, "garmin_enabled"):
-            return
-        secret = load_secret(app, conn, "garmin")
-        if not secret.get("tokens"):
-            return
-        row = connection(conn, "garmin")
-        today = util.today()
-        if days:
-            start_day = today - timedelta(days=days - 1)
-        elif row and row["last_ok"]:
-            last = util.to_date(row["last_ok"])
-            start_day = max(last - timedelta(days=1), today - timedelta(days=6))
-        else:
-            start_day = today - timedelta(days=settings.get(conn, "garmin_backfill_days") - 1)
-        try:
-            api = garmin.connect(secret["tokens"])
-            counts = garmin.sync(conn, api, start_day, today, commit=conn.commit)
-            secret["tokens"] = garmin.dump_tokens(api)
-            save_secret(app, conn, "garmin", secret)
-            mark(conn, "garmin")
-            log.info("Garmin abgeglichen: %s", counts)
-        except garmin.GarminError as exc:
-            conn.rollback()
-            mark(conn, "garmin", error=str(exc), ok=False)
-        conn.commit()
+        targets = [pid] if pid else connected_persons(app, conn, "garmin")
+        for person_id in targets:
+            _garmin_person(app, conn, person_id, days)
     finally:
         conn.close()
 
 
-def run_import(app, import_id: int, path: str, delete_after: bool) -> None:
+def _garmin_person(app, conn, pid, days):
+    person = persons.get(conn, pid)
+    if not person or not person["garmin_enabled"]:
+        return
+    secret = load_secret(app, conn, "garmin", pid)
+    if not secret.get("tokens"):
+        return
+    row = connection(conn, "garmin", pid)
+    today = util.today()
+    if days:
+        start_day = today - timedelta(days=days - 1)
+    elif row and row["last_ok"]:
+        last = util.to_date(row["last_ok"])
+        start_day = max(last - timedelta(days=1), today - timedelta(days=6))
+    else:
+        start_day = today - timedelta(days=person["garmin_backfill_days"] - 1)
+    try:
+        api = garmin.connect(secret["tokens"])
+        counts = garmin.sync(conn, pid, api, start_day, today, commit=conn.commit)
+        secret["tokens"] = garmin.dump_tokens(api)
+        save_secret(app, conn, "garmin", pid, secret)
+        mark(conn, "garmin", pid)
+        log.info("Garmin abgeglichen (Person %s): %s", pid, counts)
+    except garmin.GarminError as exc:
+        conn.rollback()
+        mark(conn, "garmin", pid, error=str(exc), ok=False)
+    conn.commit()
+
+
+def run_import(app, import_id: int, pid: int, path: str, delete_after: bool) -> None:
     conn = connect(app.config["DATABASE"])
     last = {"t": 0.0}
 
@@ -172,30 +219,27 @@ def run_import(app, import_id: int, path: str, delete_after: bool) -> None:
             conn.execute("UPDATE imports SET progress = ? WHERE id = ?", (percent, import_id))
             conn.commit()
 
+    def finish(status, message, records=0):
+        conn.execute("UPDATE imports SET status = ?, finished_at = ?, message = ?, records = ?"
+                     + (", progress = 100" if status == "fertig" else "") + " WHERE id = ?",
+                     (status, util.stamp(), message, records, import_id))
+        conn.commit()
+
     try:
         conn.execute("UPDATE imports SET status = 'laeuft' WHERE id = ?", (import_id,))
         conn.commit()
-        counts = apple.import_export(conn, path, app.config["XML_MAX_MB"] * 1024 * 1024,
+        counts = apple.import_export(conn, pid, path, app.config["XML_MAX_MB"] * 1024 * 1024,
                                      progress)
         total = sum(v for k, v in counts.items() if k != "uebersprungen")
-        message = (f"{counts['messwerte']} Messwerte, {counts['tageswerte']} Tageswerte, "
-                   f"{counts['naechte']} Nächte, {counts['trainings']} Trainings")
-        conn.execute("UPDATE imports SET status = 'fertig', progress = 100, finished_at = ?, "
-                     "records = ?, message = ? WHERE id = ?",
-                     (util.stamp(), total, message, import_id))
-        conn.commit()
+        finish("fertig", f"{counts['messwerte']} Messwerte, {counts['tageswerte']} Tageswerte, "
+                         f"{counts['naechte']} Nächte, {counts['trainings']} Trainings", total)
     except apple.AppleImportError as exc:
         conn.rollback()
-        conn.execute("UPDATE imports SET status = 'fehler', finished_at = ?, message = ? "
-                     "WHERE id = ?", (util.stamp(), str(exc), import_id))
-        conn.commit()
+        finish("fehler", str(exc))
     except Exception:
         conn.rollback()
         log.exception("Apple-Import fehlgeschlagen")
-        conn.execute("UPDATE imports SET status = 'fehler', finished_at = ?, message = ? "
-                     "WHERE id = ?", (util.stamp(), "Unerwarteter Fehler beim Einlesen.",
-                                      import_id))
-        conn.commit()
+        finish("fehler", "Unerwarteter Fehler beim Einlesen.")
     finally:
         conn.close()
         if delete_after:
@@ -224,6 +268,7 @@ def recover(app) -> None:
         conn.close()
     for leftover in Path(app.config["UPLOAD_DIR"]).glob("import-*.zip"):
         leftover.unlink(missing_ok=True)
+    migrate_secrets(app)
 
 
 def nightly(app) -> None:
@@ -232,7 +277,7 @@ def nightly(app) -> None:
         removed = store.apply_retention(conn, settings.get(conn, "retention_days"))
         conn.execute("DELETE FROM sessions WHERE expires_at <= ?", (util.stamp(),))
         conn.execute("DELETE FROM imports WHERE id NOT IN "
-                     "(SELECT id FROM imports ORDER BY id DESC LIMIT 20)")
+                     "(SELECT id FROM imports ORDER BY id DESC LIMIT 50)")
         conn.commit()
         if removed:
             log.info("Aufbewahrung: %s alte Werte gelöscht", removed)
@@ -244,9 +289,8 @@ def nightly(app) -> None:
 def sync_all(app) -> None:
     conn = connect(app.config["DATABASE"])
     try:
-        has_withings = bool(load_secret(app, conn, "withings").get("tokens"))
-        has_garmin = (settings.get(conn, "garmin_enabled")
-                      and bool(load_secret(app, conn, "garmin").get("tokens")))
+        has_withings = bool(connected_persons(app, conn, "withings"))
+        has_garmin = bool(connected_persons(app, conn, "garmin"))
     finally:
         conn.close()
     if has_withings:

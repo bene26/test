@@ -3,7 +3,7 @@
 {% block title %}Quellen{% endblock %}
 {% block content %}
 <div class="page-head">
-  <div><h1>Quellen</h1><p class="sub">Woher die Werte kommen und welche Quelle zuerst zählt.</p></div>
+  <div><h1>Quellen</h1><p class="sub">Woher die Werte von <strong>{{ person.name }}</strong> kommen und welche Quelle zuerst zählt.</p></div>
 </div>
 
 <div class="quellen-raster">
@@ -12,7 +12,36 @@
     {% if withings.connected and not (withings.row and withings.row.last_error) %}<span class="badge green">verbunden</span>
     {% elif withings.connected %}<span class="badge red">Fehler</span>
     {% else %}<span class="badge">nicht verbunden</span>{% endif %}</h2>
-  <p class="small muted">Waage, Blutdruckmessgerät, Thermometer, Schlafmatte und ScanWatch über die offizielle Schnittstelle. Nur lesender Zugriff.</p>
+  <p class="small muted">Waage, Blutdruckmessgerät, Thermometer, Schlafmatte und ScanWatch über die offizielle Schnittstelle. Nur lesender Zugriff. Jede Person verbindet ihr eigenes Withings-Konto; die Withings-Anwendung trägst du nur einmal ein.</p>
+
+  {% if not withings.configured %}
+  <h3>1. Withings-Anwendung eintragen (einmal für alle)</h3>
+  <ol class="einrichtung">
+    <li>Bei <strong>developer.withings.com</strong> anmelden und eine Anwendung anlegen (<em>Public API integration</em>, kostenlos, Zweck „persönliche Nutzung“).</li>
+    <li>Als <em>Callback URL</em> genau diese Adresse eintragen:
+      <code class="kopierbar">{{ callback }}</code>
+      {% if not config.BASE_URL %}<span class="small muted">Tipp: Mit <code>GESUNDHEIT_BASE_URL</code> in der <code>.env</code> legst du die Adresse fest, unter der du die App öffnest.</span>{% endif %}</li>
+    <li>Client-ID und Secret hier eintragen.</li>
+  </ol>
+  {% else %}
+  <p class="eingerichtet">{{ icon('check') }} Withings-Anwendung eingerichtet <span class="small muted">(Client-ID {{ withings.client_id_hint }}{{ ', aus der .env' if withings.from_env }})</span></p>
+  {% endif %}
+  {% if not withings.from_env %}
+  <details class="trennen"{% if not withings.configured %} open{% endif %}>
+    <summary>{{ 'Zugang eintragen' if not withings.configured else 'Withings-Anwendung ändern' }}</summary>
+    <form method="post" action="{{ url_for('quellen.withings_credentials') }}" class="form-grid">
+      {{ csrf() }}
+      <div class="field"><label for="w-id">Client-ID</label><input id="w-id" type="text" name="client_id" required maxlength="200" autocomplete="off" spellcheck="false"></div>
+      <div class="field"><label for="w-secret">Client-Secret</label><input id="w-secret" name="client_secret" type="password" required maxlength="200" autocomplete="off"></div>
+      <div class="field wide-2"><button class="btn" type="submit">Speichern</button> <span class="small muted">Wird verschlüsselt gespeichert und nie wieder angezeigt.</span></div>
+    </form>
+    {% if withings.configured %}
+    <form method="post" action="{{ url_for('quellen.withings_credentials_delete') }}" data-confirm="Withings-Anwendung löschen? Dann gleicht keine Person mehr ab.">{{ csrf() }}<button class="btn btn-danger btn-small" type="submit">Anwendung löschen</button></form>
+    {% endif %}
+  </details>
+  {% endif %}
+
+  <h3>{{ '2. ' if not withings.configured }}Verbindung für {{ person.name }}</h3>
   {% if withings.connected %}
   <dl class="werte-liste">
     {% if withings.row.account_label %}<dt>Konto</dt><dd>{{ withings.row.account_label }}</dd>{% endif %}
@@ -23,40 +52,18 @@
   <div class="actions">
     <form method="post" action="{{ url_for('quellen.withings_sync') }}">{{ csrf() }}<button class="btn btn-primary" type="submit"{% if withings.busy %} disabled{% endif %}>{{ icon('refresh') }} Jetzt abgleichen</button></form>
     {% if withings.row.last_error %}<form method="post" action="{{ url_for('quellen.withings_connect') }}">{{ csrf() }}<button class="btn" type="submit">Neu verbinden</button></form>{% endif %}
+    <form method="post" action="{{ url_for('quellen.withings_disconnect') }}" data-confirm="Withings für {{ person.name }} trennen?">{{ csrf() }}<button class="btn" type="submit">Trennen</button></form>
   </div>
-  <details class="trennen">
-    <summary>Trennen</summary>
-    <form method="post" action="{{ url_for('quellen.withings_disconnect') }}" data-confirm="Withings wirklich trennen?">
-      {{ csrf() }}
-      <label class="check"><input type="checkbox" name="zugang"> Client-ID und Secret ebenfalls löschen</label>
-      <button class="btn btn-danger" type="submit">Withings trennen</button>
-      <p class="small muted">Die gespeicherten Werte bleiben; löschen unter <a href="{{ url_for('daten.index') }}">Daten</a>.</p>
-    </form>
-  </details>
   {% else %}
-  <ol class="einrichtung">
-    <li>Bei <strong>developer.withings.com</strong> mit dem Withings-Konto anmelden und eine Anwendung anlegen (<em>Public API integration</em>, kostenlos, Zweck „persönliche Nutzung“).</li>
-    <li>Als <em>Callback URL</em> genau diese Adresse eintragen:
-      <code class="kopierbar">{{ callback }}</code>
-      {% if not config.BASE_URL %}<span class="small muted">Tipp: Mit <code>GESUNDHEIT_BASE_URL</code> in der <code>.env</code> legst du die Adresse fest, unter der du die App öffnest.</span>{% endif %}</li>
-    <li>Client-ID und Secret der Anwendung hier eintragen{% if withings.from_env %} (sind schon über die <code>.env</code> gesetzt){% endif %}, dann verbinden.</li>
-  </ol>
-  {% if not withings.from_env %}
-  <form method="post" action="{{ url_for('quellen.withings_credentials') }}" class="form-grid">
-    {{ csrf() }}
-    <div class="field"><label for="w-id">Client-ID</label><input id="w-id" type="text" name="client_id" required maxlength="200" autocomplete="off" spellcheck="false"{% if withings.client_id_hint %} placeholder="gespeichert: {{ withings.client_id_hint }}"{% endif %}></div>
-    <div class="field"><label for="w-secret">Client-Secret</label><input id="w-secret" name="client_secret" type="password" required maxlength="200" autocomplete="off"></div>
-    <div class="field wide-2"><button class="btn" type="submit">{{ 'Zugang ersetzen' if withings.configured else 'Zugang speichern' }}</button> <span class="small muted">Wird verschlüsselt gespeichert und nie wieder angezeigt.</span></div>
-  </form>
-  {% endif %}
+  <p class="small muted">Beim Verbinden meldet sich {{ person.name }} bei Withings mit dem eigenen Konto an. Nutzt ihr eine Waage gemeinsam, hat in der Withings-App jede Person ihr eigenes Profil.</p>
   <form method="post" action="{{ url_for('quellen.withings_connect') }}">{{ csrf() }}
-    <button class="btn btn-primary" type="submit"{% if not withings.configured %} disabled{% endif %}>{{ icon('plug') }} Mit Withings verbinden</button>
+    <button class="btn btn-primary" type="submit"{% if not withings.configured %} disabled{% endif %}>{{ icon('plug') }} {{ person.name }} mit Withings verbinden</button>
   </form>
   {% endif %}
 </section>
 
 <section class="card quelle-karte" id="garmin" aria-labelledby="g-titel">
-  <h2 id="g-titel"><span class="quelle-logo q-garmin" aria-hidden="true">G</span> Garmin direkt
+  <h2 id="g-titel"><span class="quelle-logo q-garmin" aria-hidden="true">G</span> Garmin direkt <span class="small muted">für {{ person.name }}</span>
     {% if not garmin_state.enabled %}<span class="badge">aus</span>
     {% elif garmin_state.connected and not (garmin_state.row and garmin_state.row.last_error) %}<span class="badge green">verbunden</span>
     {% elif garmin_state.connected %}<span class="badge red">Fehler</span>
@@ -70,7 +77,7 @@
   {% endif %}
   <form method="post" action="{{ url_for('quellen.garmin_toggle') }}" class="garmin-schalter">
     {{ csrf() }}
-    <label class="check"><input type="checkbox" name="aktiv"{% if garmin_state.enabled %} checked{% endif %}{% if not garmin_state.available %} disabled{% endif %}> Garmin direkt verwenden</label>
+    <label class="check"><input type="checkbox" name="aktiv"{% if garmin_state.enabled %} checked{% endif %}{% if not garmin_state.available %} disabled{% endif %}> Garmin direkt für {{ person.name }} verwenden</label>
     <label class="inline-feld">Beim ersten Abgleich <input type="number" name="tage" min="1" max="365" value="{{ garmin_state.backfill }}"> Tage zurück</label>
     <button class="btn" type="submit"{% if not garmin_state.available %} disabled{% endif %}>Speichern</button>
   </form>
@@ -103,7 +110,7 @@
 </section>
 
 <section class="card quelle-karte breit" id="apple" aria-labelledby="a-titel">
-  <h2 id="a-titel"><span class="quelle-logo q-apple" aria-hidden="true">♥</span> Apple Health <span class="small muted">Apple Watch, iPhone und Apps, die dorthin schreiben</span></h2>
+  <h2 id="a-titel"><span class="quelle-logo q-apple" aria-hidden="true">♥</span> Apple Health <span class="small muted">Export von {{ person.name }}</span></h2>
   <div class="apple-raster">
     <div>
       <ol class="einrichtung">
@@ -120,7 +127,7 @@
         <input id="a-datei" class="vh" type="file" name="datei" accept=".zip,application/zip" required>
         <progress class="bar" max="100" value="0" data-upload-progress hidden></progress>
         <p class="small" data-upload-status aria-live="polite"></p>
-        <button class="btn btn-primary" type="submit"{% if apple_busy %} disabled{% endif %}>Hochladen und einlesen</button>
+        <button class="btn btn-primary" type="submit"{% if apple_busy %} disabled{% endif %}>Für {{ person.name }} hochladen</button>
       </form>
       <details class="ordner">
         <summary>Sehr große Datei? Über den Import-Ordner</summary>
@@ -151,9 +158,32 @@
 </section>
 </div>
 
+{% if persons|length > 1 %}
+<section class="card" id="alle" aria-labelledby="alle-titel">
+  <h2 id="alle-titel">Alle Personen</h2>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Person</th><th>Withings</th><th>Garmin direkt</th><th></th></tr></thead>
+    <tbody>
+    {% for p in persons %}
+    {% set c = everyone.get(p.id, {}) %}
+    <tr>
+      <td><span class="avatar klein p-{{ p.color }}" aria-hidden="true">{{ p.name|kuerzel }}</span> {{ p.name }}</td>
+      {% for provider in ['withings', 'garmin'] %}
+      <td>{% if provider not in c %}<span class="badge">nicht verbunden</span>{% elif c[provider].last_error %}<span class="badge red" title="{{ c[provider].last_error }}">Fehler</span>{% else %}<span class="badge green">{{ c[provider].last_ok|vor }}</span>{% endif %}</td>
+      {% endfor %}
+      <td>{% if p.id != person.id %}<form method="post" action="{{ url_for('personen.show', person_id=p.id) }}">{{ csrf() }}<input type="hidden" name="next" value="{{ url_for('quellen.index') }}"><button class="btn btn-small" type="submit">Quellen von {{ p.name }}</button></form>{% else %}<span class="small muted">wird gezeigt</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endif %}
+
 <section class="card" id="reihenfolge" aria-labelledby="r-titel">
   <h2 id="r-titel">Reihenfolge der Quellen</h2>
-  <p>Wenn mehrere Quellen für denselben Tag einen Wert haben, zählt die oberste. So wird nichts doppelt gezählt, etwa Schritte von Uhr und Telefon oder ein Gewicht, das direkt von Withings und noch einmal über Apple Health kommt. Quellen ohne Werte stehen grau da.</p>
+  <p>Gilt für alle Personen. Wenn mehrere Quellen für denselben Tag einen Wert haben, zählt die oberste. So wird nichts doppelt gezählt, etwa Schritte von Uhr und Telefon oder ein Gewicht, das direkt von Withings und noch einmal über Apple Health kommt. Quellen ohne Werte stehen grau da.</p>
   <div class="reihenfolge-raster">
     {% for family, (label, desc, _default) in families.items() %}
     <div class="reihenfolge" id="reihenfolge-{{ family }}">

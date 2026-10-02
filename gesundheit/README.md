@@ -1,6 +1,10 @@
 # Gesundheits-Cockpit
 
-Deine Gesundheitsdaten von **Withings** (Waage, Blutdruck, Thermometer, Schlafmatte, ScanWatch), **Garmin** und **Apple Watch / iPhone** an einem Ort, auf deinem eigenen NAS. Eigener Docker-Container mit eigenem Login und eigener Datenbank, im selben Design wie das Projekt-Cockpit (fünf Designs, Akzentfarben, zehn Menü-Stile, Fallblatt-Zahlen, Fehlerseiten-Grafiken, Strg+K).
+Die Gesundheitsdaten der ganzen Familie von **Withings** (Waage, Blutdruck, Thermometer, Schlafmatte, ScanWatch), **Garmin** und **Apple Watch / iPhone** an einem Ort, auf deinem eigenen NAS: mit **Auswertungen**, **Zusammenhängen**, **Vergleich zwischen Personen** und **Berichten**. Eigener Docker-Container mit eigenem Login und eigener Datenbank, im selben Design wie das Projekt-Cockpit (fünf Designs, Akzentfarben, zehn Menü-Stile, Fallblatt-Zahlen, Fehlerseiten-Grafiken, Strg+K).
+
+## Mehrere Personen
+
+Ein Login, beliebig viele Profile (z. B. du, Partner, Kinder). Jede Person hat eine Farbe, eigene Größe und Ziele und verbindet ihre eigenen Geräte: ihr eigenes Withings-Konto, ihre eigene Garmin-Anmeldung, ihren eigenen Apple-Health-Export. Oben in der Seitenleiste wechselst du die gezeigte Person; alle Seiten zeigen dann ihre Werte. Unter *Personen* legst du Profile an, bearbeitest Ziele, änderst die Reihenfolge oder löschst eine Person mit allen Werten. Wer den Login kennt, sieht alle Personen.
 
 Keine Cloud, keine Werbung, keine Weitergabe. Die Daten verlassen das NAS nicht; die App holt sie nur ab.
 
@@ -8,17 +12,22 @@ Keine Cloud, keine Werbung, keine Weitergabe. Die Daten verlassen das NAS nicht;
 
 | Seite | Inhalt |
 |---|---|
-| **Übersicht** | Vier Ringe für heute (Schritte, aktive Minuten, Aktivkalorien, Schlaf letzte Nacht), Kennzahlen mit Trend und Veränderung in 30 Tagen (Gewicht, Ruhepuls, HRV, Sauerstoff, Body Battery, VO2max), letzter Blutdruck mit Einstufung, letzte Nacht mit Schlafphasen, Schritte der Woche, Stand der Quellen |
+| **Übersicht** | Drei Aktivitätsringe ineinander (Bewegen, aktive Minuten, Schritte; zweite Runde, wenn das Ziel übertroffen ist), Halbkreis-Anzeigen für Schlafbewertung, Body Battery und Trainingsbereitschaft, Kennzahlen mit Trendkurve und Veränderung in 30 Tagen, letzte Nacht als Ring der Schlafphasen, letzter Blutdruck auf der Stufen-Skala, Schritte der Woche, Stand der Quellen |
 | **Körper** | Gewicht mit Trendlinie, Zielgewicht und Band „Normalgewicht laut BMI“, BMI, Körperfett, Muskeln, Wasser, Knochen, Viszeralfett, Grundumsatz, Liste der Wiegungen |
 | **Herz & Kreislauf** | Blutdruck je Tag (Bereich von diastolisch bis systolisch, farbig nach Stufe), Mittel der letzten 7 Tage mit Einstufung nach ESH 2023 und Grenze für Heimmessungen (135/85), einzelne Messungen, Ruhepuls, HRV, Sauerstoffsättigung, Pulswellengeschwindigkeit, Temperatur, Atemfrequenz, EKG-Einstufungen |
 | **Schlaf** | Letzte Nacht mit Phasen (Tief, Leicht, REM, Wach), Schlafdauer je Nacht als gestapelte Balken mit Ziel, Schnitt, Bett- und Aufstehzeit, Anteile, Bewertung, Liste der Nächte |
 | **Aktivität** | Schritte und aktive Minuten mit Ziel, Kalorien, Strecke, Etagen, Trainings nach Art, Garmin-Werte (Body Battery, Stress, Trainingsbereitschaft, VO2max), Liste der Trainings |
 | **Verlauf** | Für jeden Wert: Diagramm, Durchschnitt, Minimum, Maximum, Werte je Tag mit gezählter Quelle und den Werten der anderen Quellen |
+| **Auswertungen** | Für jeden Wert: dieser Zeitraum gegen den Zeitraum davor und gegen dasselbe Fenster vor einem Jahr (Zahlen, Prozent, übereinandergelegte Kurven), Bestwerte, schwächster Tag, Ziel-Serien (längste und aktuelle), Durchschnitt je Wochentag, Kalender-Heatmap über 53 Wochen |
+| **Zusammenhänge** | Automatische Erkenntnisse wie „Nach längeren Nächten ist dein Ruhepuls niedriger“ (nur wenn mindestens 20 gemeinsame Tage und ein deutlicher Zusammenhang da sind), dazu frei wählbar: Wert A gegen Wert B, am selben Tag oder am Tag danach, als Streudiagramm mit Ausgleichsgerade, Korrelation und Effekt („pro 1 Stunde Schlaf mehr im Schnitt 2 bpm weniger Ruhepuls“) |
+| **Vergleich** | Alle oder ausgewählte Personen: Verlauf als farbige Linien, Tabelle mit Schnitt, Spanne, Veränderung und Zielerreichung, Rangliste, Radar „Ziele erreicht“ (jede Person an ihren eigenen Zielen gemessen) und eine Wochen-Challenge für Schritte, Minuten, Strecke und Trainingsminuten |
+| **Berichte** | Woche oder Monat je Person, mit Vorwoche bzw. Vormonat verglichen: Kennzahlen, Diagramme, Blutdruck-Protokoll (morgens, mittags, abends mit Mittelwerten und Einstufung) und Trainings. Drucken oder als PDF speichern, z. B. für den Arzttermin |
+| **Personen** | Profile mit Farbe, Geburtsjahr, Größe und Zielen (Schritte, Minuten, Kalorien, Schlaf, Trainings pro Woche, Zielgewicht) |
 | **Quellen** | Withings verbinden, Garmin ein- und ausschalten und anmelden, Apple-Health-Export hochladen, Reihenfolge der Quellen je Bereich |
 | **Daten** | Was gespeichert ist je Quelle, CSV-Export, Aufbewahrungsdauer, Löschen je Quelle oder alles |
 | **Einstellungen** | Darstellung (wie im Projekt-Cockpit, mit Live-Vorschau), Größe und Ziele, Passwort |
 
-Jede Seite hat die Zeiträume **7 T, 30 T, 90 T, 1 J**. Diagramme zeigen beim Darüberfahren oder Antippen den genauen Wert mit Quelle.
+Jede Seite hat die Zeiträume **7 T, 30 T, 90 T, 1 J**. Diagramme haben weiche Kurven mit Farbverlauf, bauen sich beim Öffnen auf und zeigen beim Darüberfahren oder Antippen den genauen Wert mit Quelle. Alles ist serverseitiges SVG ohne Diagramm-Bibliothek; mit „Bewegung reduzieren“ entfallen die Animationen.
 
 ## Woher die Werte kommen
 
@@ -59,13 +68,13 @@ Beide Apps laufen nebeneinander: Projekt-Cockpit auf Port 8080, Gesundheits-Cock
 
 ### Withings einrichten (einmalig, etwa 5 Minuten)
 
-Withings verlangt für den Zugriff eine eigene, kostenlose „Anwendung“:
+Withings verlangt für den Zugriff eine eigene, kostenlose „Anwendung“. Die trägst du **einmal** ein; danach verbindet jede Person ihr eigenes Withings-Konto (bei einer gemeinsamen Waage hat in der Withings-App jede Person ihr Profil). Dasselbe Withings-Konto lässt sich nicht zwei Personen zuordnen.
 
 1. Auf **developer.withings.com** mit deinem Withings-Konto anmelden und unter *My apps* eine Anwendung anlegen: *Public API integration*, Zweck „persönliche Nutzung“.
 2. Als **Callback URL** genau die Adresse eintragen, die die App unter *Quellen → Withings* anzeigt, also `GESUNDHEIT_BASE_URL` + `/quellen/withings/zurueck`.
    Falls Withings eine Adresse im Heimnetz (`http://192.168…`) nicht annimmt: die App über den Reverse Proxy des NAS mit HTTPS erreichbar machen und diese Adresse verwenden. Erreichbar von außen muss sie dafür nicht sein; die Rückleitung läuft nur über deinen Browser.
 3. **Client-ID** und **Secret** unter *Quellen → Withings* eintragen (werden verschlüsselt gespeichert) oder in der `.env` als `WITHINGS_CLIENT_ID` / `WITHINGS_CLIENT_SECRET`.
-4. **Mit Withings verbinden**, bei Withings zustimmen. Der erste Abgleich holt alle Messwerte und die Aktivitäten, Nächte und Trainings des letzten Jahres; danach stündlich nur Neues.
+4. Die Person oben in der Seitenleiste auswählen, **Mit Withings verbinden**, bei Withings mit ihrem Konto anmelden und zustimmen. Der erste Abgleich holt alle Messwerte und die Aktivitäten, Nächte und Trainings des letzten Jahres; danach stündlich nur Neues.
 
 Die App fragt nur lesende Rechte an (`user.info, user.metrics, user.activity, user.sleepevents`).
 
@@ -73,7 +82,7 @@ Die App fragt nur lesende Rechte an (`user.info, user.metrics, user.activity, us
 
 1. iPhone: **Health**-App → Profilbild oben rechts → **Alle Gesundheitsdaten exportieren**.
 2. Die Datei `Export.zip` in „Dateien“ sichern oder per AirDrop an den Mac schicken.
-3. Unter *Quellen → Apple Health* hochladen. Das Einlesen läuft im Hintergrund mit Fortschrittsanzeige; die ZIP-Datei wird danach gelöscht.
+3. Die Person auswählen, unter *Quellen → Apple Health* hochladen. Das Einlesen läuft im Hintergrund mit Fortschrittsanzeige; die ZIP-Datei wird danach gelöscht.
 
 Jeder Export enthält die ganze Geschichte, ein neuer Import ersetzt die Apple-Werte derselben Tage. Bei sehr großen Exporten (über `GESUNDHEIT_UPLOAD_MAX_MB`, Standard 2 GB) die ZIP-Datei in den Ordner `gesundheit/import` auf dem NAS legen und unter *Quellen* „aus dem Ordner einlesen“.
 
@@ -83,7 +92,7 @@ Eine eigene kleine iPhone-App, die die Werte automatisch schickt, ist für spät
 
 Garmin-Werte kommen ohne weiteres Zutun über Apple Health mit, wenn die Garmin-Connect-App dort hineinschreibt (Connect-App → Einstellungen → Verbundene Apps → Apple Health). Für Body Battery, Stress, nächtliche HRV und Trainingsbereitschaft gibt es zusätzlich **Garmin direkt**:
 
-- Unter *Quellen → Garmin direkt* einschalten, festlegen, wie viele Tage der erste Abgleich zurückgeht (Standard 30), mit E-Mail und Passwort von Garmin anmelden; bei Zwei-Faktor-Anmeldung kommt danach die Abfrage des Codes.
+- Für die gezeigte Person unter *Quellen → Garmin direkt* einschalten, festlegen, wie viele Tage der erste Abgleich zurückgeht (Standard 30), mit E-Mail und Passwort von Garmin anmelden; bei Zwei-Faktor-Anmeldung kommt danach die Abfrage des Codes.
 - **Wichtig:** Garmin bietet Privatpersonen keine offizielle Schnittstelle. Die Verbindung meldet sich an wie die Connect-App, kann jederzeit ausfallen und verträgt sich womöglich nicht mit Garmins Nutzungsbedingungen. Gespeichert werden nur die Anmelde-Token (verschlüsselt), nie das Passwort. Ausschalten löscht die Anmeldung sofort.
 
 ## Sicherheit und Datenschutz
@@ -94,7 +103,7 @@ Gesundheitsdaten sind besonders schützenswert (Art. 9 DSGVO). Die Einzelheiten 
 - Withings- und Garmin-Token verschlüsselt (Schlüssel in `GESUNDHEIT_KEY` oder `data/schluessel`, getrennt sichern oder bei Verlust einfach neu verbinden).
 - Apple-Upload wird wie feindliche Eingabe behandelt (Größenlimit, ZIP-Bomben-Prüfung, kein Entpacken auf die Platte, XML ohne Entitäten).
 - Herzfrequenz, Schritte und Energie aus Apple Health werden schon beim Einlesen zu Tageswerten zusammengefasst; GPS-Routen, EKG-Kurven, Medikamente, Zyklus und Notizen werden gar nicht gelesen.
-- Aufbewahrungsdauer einstellbar, Löschen je Quelle oder alles, CSV-Export.
+- Aufbewahrungsdauer einstellbar, Löschen je Quelle, je Person oder alles, CSV-Export aller Personen.
 - Container ohne Root, schreibgeschützt, ohne Linux-Rechte, Datenordner nur für den App-Benutzer lesbar.
 - Die Cookies heißen anders als die des Projekt-Cockpits. Browser trennen Cookies aber nicht nach Port: auf derselben NAS-Adresse nur eigene Apps betreiben.
 
@@ -125,9 +134,9 @@ sudo docker exec -it -u 1000:1000 gesundheits-cockpit python -m gesundheit.manag
 ```
 cd gesundheit
 pip install -r requirements.txt pytest
-python -m pytest                      # 149 Tests
-python tools/demo_daten.py /tmp/demo  # ein Jahr Beispieldaten (nie in den echten Datenordner!)
+python -m pytest                      # 208 Tests
+python tools/demo_daten.py /tmp/demo  # ein Jahr Beispieldaten für drei Personen (nie in den echten Datenordner!)
 GESUNDHEIT_DATA_DIR=/tmp/demo flask --app gesundheit run --port 8090
 ```
 
-Aufbau: `gesundheit/katalog.py` (Quellen, Bereiche, alle Werte), `store.py` (Speichern und Quellen-Reihenfolge), `withings.py`, `apple.py`, `garmin.py` (Anbindungen), `jobs.py` (Hintergrund-Abgleich und Importe), `charts.py` (Diagramme als SVG), `views/` (Seiten). Das Design kommt aus `../cockpit/static` (im Container nach `/app/shared` kopiert); `themes.py` ist eine Kopie aus dem Cockpit, ein Test prüft, dass beide gleich bleiben.
+Aufbau: `gesundheit/katalog.py` (Quellen, Bereiche, alle Werte), `persons.py` (Profile, gezeigte Person), `store.py` (Speichern und Quellen-Reihenfolge, immer je Person), `auswertung.py` (Zeiträume, Bestwerte, Zusammenhänge, Vergleich, Berichte), `withings.py`, `apple.py`, `garmin.py` (Anbindungen), `jobs.py` (Hintergrund-Abgleich und Importe), `charts.py` (Diagramme als SVG), `views/` (Seiten). Das Design kommt aus `../cockpit/static` (im Container nach `/app/shared` kopiert); `themes.py` ist eine Kopie aus dem Cockpit, ein Test prüft, dass beide gleich bleiben.

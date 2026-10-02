@@ -98,35 +98,36 @@ def make_zip(path, xml=EXPORT, name="apple_health_export/export.xml", extra=None
     return path
 
 
-def run(db, path):
-    return apple.import_export(db, str(path), 50 * 1024 * 1024)
+def run(db, path, pid=None):
+    pid = pid or db.execute("SELECT id FROM persons ORDER BY id LIMIT 1").fetchone()[0]
+    return apple.import_export(db, pid, str(path), 50 * 1024 * 1024)
 
 
-def test_full_export(db, tmp_path):
+def test_full_export(db, pid, tmp_path):
     progress = []
-    counts = apple.import_export(db, str(make_zip(tmp_path / "e.zip")), 50 * 1024 * 1024,
+    counts = apple.import_export(db, pid, str(make_zip(tmp_path / "e.zip")), 50 * 1024 * 1024,
                                  progress.append)
     assert progress[-1] == 100 and counts["uebersprungen"] == 1
     day = "2026-09-01"
-    steps = store.per_source(db, "steps", day, "2026-09-02")
+    steps = store.per_source(db, pid, "steps", day, "2026-09-02")
     assert steps[day] == {"apple_watch": 9000, "iphone": 6500}
     assert steps["2026-09-02"] == {"apple_garmin": 8000}
-    assert store.daily_series(db, "steps", day, day)[0]["source"] == "apple_watch"
-    assert store.per_source(db, "distance_km", day, day)[day]["apple_watch"] == pytest.approx(4.989, 0.001)
-    assert store.per_source(db, "active_kcal", day, day)[day]["apple_watch"] == pytest.approx(239.0, 0.01)
-    assert store.per_source(db, "hr_min", day, day)[day]["apple_watch"] == 55
-    assert store.per_source(db, "hr_max", day, day)[day]["apple_watch"] == 140
-    assert store.latest(db, "spo2")["value"] == pytest.approx(97)
-    weight = store.latest(db, "weight")
+    assert store.daily_series(db, pid, "steps", day, day)[0]["source"] == "apple_watch"
+    assert store.per_source(db, pid, "distance_km", day, day)[day]["apple_watch"] == pytest.approx(4.989, 0.001)
+    assert store.per_source(db, pid, "active_kcal", day, day)[day]["apple_watch"] == pytest.approx(239.0, 0.01)
+    assert store.per_source(db, pid, "hr_min", day, day)[day]["apple_watch"] == 55
+    assert store.per_source(db, pid, "hr_max", day, day)[day]["apple_watch"] == 140
+    assert store.latest(db, pid, "spo2")["value"] == pytest.approx(97)
+    weight = store.latest(db, pid, "weight")
     assert weight["value"] == pytest.approx(80.01, 0.01) and weight["source"] == "apple_withings"
-    assert store.latest(db, "fat_ratio")["value"] == pytest.approx(21.5)
-    assert store.latest(db, "height")["value"] == pytest.approx(181)
-    assert store.latest(db, "temperature")["value"] == pytest.approx(37.0)
-    bp = store.readings(db, ("bp_sys", "bp_dia"), day, day)
+    assert store.latest(db, pid, "fat_ratio")["value"] == pytest.approx(21.5)
+    assert store.latest(db, pid, "height")["value"] == pytest.approx(181)
+    assert store.latest(db, pid, "temperature")["value"] == pytest.approx(37.0)
+    bp = store.readings(db, pid, ("bp_sys", "bp_dia"), day, day)
     assert len(bp) == 1 and bp[0]["values"] == {"bp_sys": 127, "bp_dia": 82}
 
 
-def test_sleep_nights(db, tmp_path):
+def test_sleep_nights(db, pid, tmp_path):
     run(db, make_zip(tmp_path / "e.zip"))
     rows = {r["source"]: dict(r) for r in db.execute("SELECT * FROM sleep")}
     watch = rows["apple_watch"]
@@ -135,10 +136,10 @@ def test_sleep_nights(db, tmp_path):
     assert watch["deep_min"] == 60 and watch["rem_min"] == 90 and watch["awake_min"] == 15
     assert watch["bed_start"] == "2026-08-31 22:40:00"
     assert rows["iphone"]["asleep_min"] is None and rows["iphone"]["deep_min"] is None
-    assert store.sleep_series(db, "2026-09-01", "2026-09-01")[0]["source"] == "apple_watch"
+    assert store.sleep_series(db, pid, "2026-09-01", "2026-09-01")[0]["source"] == "apple_watch"
 
 
-def test_workouts(db, tmp_path):
+def test_workouts(db, pid, tmp_path):
     run(db, make_zip(tmp_path / "e.zip"))
     rows = {r["kind"]: dict(r) for r in db.execute("SELECT * FROM workouts")}
     run_row = rows["laufen"]
@@ -150,19 +151,19 @@ def test_workouts(db, tmp_path):
     assert kraft["energy_kcal"] == pytest.approx(215.1, 0.1)
 
 
-def test_reimport_does_not_duplicate(db, tmp_path):
+def test_reimport_does_not_duplicate(db, pid, tmp_path):
     path = make_zip(tmp_path / "e.zip")
     run(db, path)
     before = [db.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in store.HEALTH_TABLES]
     run(db, path)
     after = [db.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in store.HEALTH_TABLES]
     assert before == after
-    assert store.per_source(db, "steps", "2026-09-01", "2026-09-01")["2026-09-01"]["apple_watch"] == 9000
+    assert store.per_source(db, pid, "steps", "2026-09-01", "2026-09-01")["2026-09-01"]["apple_watch"] == 9000
 
 
-def test_german_file_name(db, tmp_path):
+def test_german_file_name(db, pid, tmp_path):
     run(db, make_zip(tmp_path / "e.zip", name="apple_health_export/exportieren.xml"))
-    assert store.latest(db, "weight")
+    assert store.latest(db, pid, "weight")
 
 
 @pytest.mark.parametrize("name,device,expected", [
@@ -184,14 +185,14 @@ def test_time_parsing():
     assert apple.parse_time("kaputt") is None
 
 
-def test_not_a_zip(db, tmp_path):
+def test_not_a_zip(db, pid, tmp_path):
     path = tmp_path / "e.zip"
     path.write_text(EXPORT)
     with pytest.raises(AppleImportError, match="keine ZIP"):
         run(db, path)
 
 
-def test_zip_without_export(db, tmp_path):
+def test_zip_without_export(db, pid, tmp_path):
     path = tmp_path / "e.zip"
     with zipfile.ZipFile(path, "w") as zf:
         zf.writestr("bild.jpg", b"x")
@@ -199,19 +200,19 @@ def test_zip_without_export(db, tmp_path):
         run(db, path)
 
 
-def test_zip_bomb_is_refused(db, tmp_path):
+def test_zip_bomb_is_refused(db, pid, tmp_path):
     path = make_zip(tmp_path / "e.zip", xml=HEADER + " " * 5_000_000 + "</HealthData>")
     with pytest.raises(AppleImportError, match="gepackt"):
         run(db, path)
 
 
-def test_too_large_is_refused(db, tmp_path):
+def test_too_large_is_refused(db, pid, tmp_path):
     path = make_zip(tmp_path / "e.zip")
     with pytest.raises(AppleImportError, match="zu groß"):
-        apple.import_export(db, str(path), 1000)
+        apple.import_export(db, pid, str(path), 1000)
 
 
-def test_entities_are_refused(db, tmp_path):
+def test_entities_are_refused(db, pid, tmp_path):
     evil = ('<?xml version="1.0"?>\n<!DOCTYPE HealthData [<!ENTITY a "aaaaaaaaaa">'
             '<!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">]>\n<HealthData>&b;</HealthData>')
     with pytest.raises(AppleImportError):
@@ -219,24 +220,24 @@ def test_entities_are_refused(db, tmp_path):
     assert db.execute("SELECT COUNT(*) FROM measurements").fetchone()[0] == 0
 
 
-def test_external_entity_is_refused(db, tmp_path):
+def test_external_entity_is_refused(db, pid, tmp_path):
     evil = ('<?xml version="1.0"?>\n<!DOCTYPE HealthData [<!ENTITY x SYSTEM "file:///etc/passwd">]>'
             '\n<HealthData>&x;</HealthData>')
     with pytest.raises(AppleImportError):
         run(db, make_zip(tmp_path / "e.zip", xml=evil))
 
 
-def test_other_xml_is_refused(db, tmp_path):
+def test_other_xml_is_refused(db, pid, tmp_path):
     with pytest.raises(AppleImportError, match="kein Apple"):
         run(db, make_zip(tmp_path / "e.zip", xml="<?xml version='1.0'?><svg></svg>"))
 
 
-def test_broken_xml(db, tmp_path):
+def test_broken_xml(db, pid, tmp_path):
     with pytest.raises(AppleImportError, match="beschädigt"):
         run(db, make_zip(tmp_path / "e.zip", xml=EXPORT[:-40]))
 
 
-def test_paths_inside_zip_are_never_used(db, tmp_path):
+def test_paths_inside_zip_are_never_used(db, pid, tmp_path):
     path = make_zip(tmp_path / "e.zip", extra={"../../boese.txt": "x"})
     run(db, path)
     assert not (tmp_path.parent / "boese.txt").exists()
@@ -256,13 +257,13 @@ def zip_bytes(tmp_path):
     return make_zip(tmp_path / "upload.zip").read_bytes()
 
 
-def test_upload_imports_and_removes_file(app, logged_in, db, tmp_path):
+def test_upload_imports_and_removes_file(app, logged_in, db, me, tmp_path):
     response = upload(logged_in, zip_bytes(tmp_path), ajax=True)
     data = response.get_json()
     assert response.status_code == 200 and data["ok"]
     status = logged_in.client.get(data["status_url"]).get_json()
     assert status["status"] == "fertig" and status["progress"] == 100
-    assert store.latest(db, "weight")
+    assert store.latest(db, me, "weight")
     uploads = Path(app.config["UPLOAD_DIR"])
     assert list(uploads.iterdir()) == []  # neither the upload nor a temporary part remains
     page = logged_in.get("/quellen").get_data(as_text=True)
@@ -304,20 +305,21 @@ def test_large_upload_without_login_is_refused_early(app):
     assert list(Path(app.config["UPLOAD_DIR"]).iterdir()) == []
 
 
-def test_normal_forms_keep_small_limit(logged_in):
+def test_normal_forms_keep_small_limit(logged_in, me):
     logged_in.get("/einstellungen")
-    response = logged_in.post("/einstellungen/ziele", {"goal_steps": "1" * (3 * 1024 * 1024)})
+    response = logged_in.post(f"/personen/{me}", {"goal_steps": "1" * (3 * 1024 * 1024)})
     assert response.status_code == 413
+    assert "Zu groß" in response.get_data(as_text=True)
 
 
-def test_import_folder(app, logged_in, db, tmp_path):
+def test_import_folder(app, logged_in, db, me, tmp_path):
     folder = Path(app.config["IMPORT_DIR"])
     folder.mkdir()
     make_zip(folder / "export.zip")
     (folder / "link.zip").symlink_to(folder / "export.zip")
     logged_in.get("/quellen")
     logged_in.post("/quellen/apple/ordner")
-    assert store.latest(db, "weight")
+    assert store.latest(db, me, "weight")
     assert (folder / "export.zip").exists()  # the folder may be read-only: file stays
     names = [p.name for p in __import__("gesundheit").jobs.import_folder_files(app)]
     assert names == ["export.zip"]

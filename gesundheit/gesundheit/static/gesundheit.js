@@ -3,6 +3,7 @@
    1. activity rings fill up when the page opens
    2. chart read-out: hover or tap shows the nearest value
    3. upload of the Apple Health export with progress, then live import status
+   4. pickers on the analysis pages send themselves, print button for reports
    No inline styles in the markup (CSP); positions are set through the CSSOM. */
 (function () {
   "use strict";
@@ -54,6 +55,14 @@
     plot.addEventListener("pointermove", function (e) { show(e.clientX); });
     plot.addEventListener("pointerdown", function (e) { show(e.clientX); });
     plot.addEventListener("pointerleave", hide);
+  });
+
+  // Pickers send themselves; print button
+  document.querySelectorAll("form[data-auto-submit]").forEach(function (f) {
+    f.addEventListener("change", function () { f.submit(); });
+  });
+  document.querySelectorAll("[data-drucken]").forEach(function (b) {
+    b.addEventListener("click", function () { window.print(); });
   });
 
   // 3. Upload with progress, then follow the import

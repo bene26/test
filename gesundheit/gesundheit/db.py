@@ -8,6 +8,8 @@ from flask import current_app, g
 # Each entry upgrades the schema by one version. Append, never edit.
 MIGRATIONS: list[str] = [
     resources.files("gesundheit").joinpath("schema.sql").read_text(encoding="utf-8"),
+    # 2: several persons; every value belongs to one (see persons.py).
+    resources.files("gesundheit").joinpath("migration_2.sql").read_text(encoding="utf-8"),
 ]
 
 

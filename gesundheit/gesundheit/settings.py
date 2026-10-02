@@ -1,16 +1,9 @@
-"""Single values: profile, goals, retention, connection options. Stored in the settings table."""
+"""App-wide single values (retention, Withings history). Stored in the settings table."""
 
 # key: default (int or None). Everything is an integer, None means "not set".
+# Goals, height and the Garmin switch belong to each person (persons.py).
 DEFAULTS: dict[str, int | None] = {
-    "height_cm": None,
-    "goal_steps": 10000,
-    "goal_active_min": 30,
-    "goal_active_kcal": 500,
-    "goal_sleep_min": 480,
-    "goal_weight_dg": None,       # target weight in tenths of a kilogram (723 = 72,3 kg)
     "retention_days": 0,          # 0 = keep forever
-    "garmin_enabled": 0,
-    "garmin_backfill_days": 30,
     "withings_backfill_days": 365,
 }
 

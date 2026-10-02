@@ -10,7 +10,9 @@ from gesundheit import auth, themes
 
 REPO = Path(__file__).resolve().parents[2]
 PAGES = ["/", "/koerper", "/herz", "/schlaf", "/aktivitaet", "/quellen", "/einstellungen",
-         "/daten", "/verlauf/weight", "/suche.json?q=ge", "/quellen/import/1.json"]
+         "/daten", "/personen", "/auswertungen", "/auswertungen/zusammenhaenge", "/vergleich",
+         "/berichte", "/verlauf/weight", "/personen/1", "/suche.json?q=ge",
+         "/quellen/import/1.json"]
 
 
 def _cockpit_module(name):
@@ -39,7 +41,7 @@ def test_every_page_needs_login(app, logged_in, url):
     assert "/anmelden" in response.headers["Location"]
 
 
-@pytest.mark.parametrize("url", PAGES[:8])
+@pytest.mark.parametrize("url", PAGES[:15])
 def test_pages_render_without_data(logged_in, url):
     response = logged_in.get(url)
     assert response.status_code == 200, url
@@ -51,7 +53,7 @@ def test_empty_overview_explains_next_steps(logged_in):
 
 
 def test_post_without_csrf_is_rejected(logged_in):
-    response = logged_in.client.post("/einstellungen/ziele", data={"goal_steps": "8000"})
+    response = logged_in.client.post("/personen", data={"name": "Eve", "color": "rot"})
     assert response.status_code == 400
     assert "Formular ist abgelaufen" in response.get_data(as_text=True)
 

@@ -129,7 +129,7 @@ def _first(data):
     return data if isinstance(data, dict) else {}
 
 
-def store_summary(db, day: str, summary: dict) -> int:
+def store_summary(db, pid, day: str, summary: dict) -> int:
     if not isinstance(summary, dict):
         return 0
     distance = _num(summary.get("totalDistanceMeters"))
@@ -156,10 +156,10 @@ def store_summary(db, day: str, summary: dict) -> int:
     if not rows[0][1]:
         rows = [r for r in rows if r[0] not in ("steps", "distance_km", "active_kcal", "floors",
                                                  "active_min")]
-    return store.set_daily_many(db, [(m, day, "garmin", v) for m, v in rows if v is not None])
+    return store.set_daily_many(db, pid, [(m, day, "garmin", v) for m, v in rows if v is not None])
 
 
-def store_sleep(db, data: dict) -> int:
+def store_sleep(db, pid, data: dict) -> int:
     dto = data.get("dailySleepDTO") if isinstance(data, dict) else None
     if not isinstance(dto, dict) or not _num(dto.get("sleepTimeSeconds")):
         return 0
@@ -174,7 +174,7 @@ def store_sleep(db, data: dict) -> int:
         value = _num(dto.get(key))
         return value / 60 if value is not None else None
 
-    return int(store.upsert_sleep(db, night, "garmin", {
+    return int(store.upsert_sleep(db, pid, night, "garmin", {
         "bed_start": util.wallclock_ms(start) if _num(start) else None,
         "bed_end": util.wallclock_ms(end) if _num(end) else None,
         "asleep_min": minutes("sleepTimeSeconds"), "deep_min": minutes("deepSleepSeconds"),
@@ -185,27 +185,27 @@ def store_sleep(db, data: dict) -> int:
     }))
 
 
-def store_hrv(db, day: str, data) -> int:
+def store_hrv(db, pid, day: str, data) -> int:
     summary = data.get("hrvSummary") if isinstance(data, dict) else None
     if not isinstance(summary, dict):
         return 0
-    return int(store.set_daily(db, "hrv_rmssd", day, "garmin", _num(summary.get("lastNightAvg"))))
+    return int(store.set_daily(db, pid, "hrv_rmssd", day, "garmin", _num(summary.get("lastNightAvg"))))
 
 
-def store_readiness(db, day: str, data) -> int:
-    return int(store.set_daily(db, "readiness", day, "garmin", _num(_first(data).get("score"))))
+def store_readiness(db, pid, day: str, data) -> int:
+    return int(store.set_daily(db, pid, "readiness", day, "garmin", _num(_first(data).get("score"))))
 
 
-def store_vo2max(db, day: str, data) -> int:
+def store_vo2max(db, pid, day: str, data) -> int:
     generic = _first(data).get("generic")
     if not isinstance(generic, dict):
         return 0
     value = _num(generic.get("vo2MaxPreciseValue")) or _num(generic.get("vo2MaxValue"))
     at = util.to_datetime(f"{day} 12:00:00")
-    return int(store.add_measurement(db, "vo2max", value, at, "garmin", "") if value else 0)
+    return int(store.add_measurement(db, pid, "vo2max", value, at, "garmin", "") if value else 0)
 
 
-def store_activities(db, activities) -> int:
+def store_activities(db, pid, activities) -> int:
     count = 0
     for item in activities if isinstance(activities, list) else []:
         if not isinstance(item, dict) or item.get("activityId") is None:
@@ -219,7 +219,7 @@ def store_activities(db, activities) -> int:
         kind_key = (item.get("activityType") or {}).get("typeKey", "")
         duration = _num(item.get("duration"))
         distance = _num(item.get("distance"))
-        count += store.upsert_workout(db, "garmin", str(item["activityId"]), {
+        count += store.upsert_workout(db, pid, "garmin", str(item["activityId"]), {
             "kind": GARMIN_WORKOUTS.get(kind_key, "sonstiges"), "started_at": start,
             "ended_at": start + timedelta(seconds=duration) if duration else None,
             "duration_min": duration / 60 if duration else None,
@@ -230,7 +230,7 @@ def store_activities(db, activities) -> int:
     return count
 
 
-def store_body(db, data) -> int:
+def store_body(db, pid, data) -> int:
     rows = []
     items = data.get("dateWeightList") if isinstance(data, dict) else None
     for item in items if isinstance(items, list) else []:
@@ -245,12 +245,12 @@ def store_body(db, data) -> int:
             value = _num(item.get(key))
             if value is not None:
                 rows.append((metric, value * factor, at, "garmin", group))
-    return store.add_measurements(db, rows)
+    return store.add_measurements(db, pid, rows)
 
 
 # ---------- Sync ----------
 
-def sync(db, api, start: date, end: date, commit=lambda: None, pause: float = PAUSE) -> dict:
+def sync(db, pid: int, api, start: date, end: date, commit=lambda: None, pause: float = PAUSE) -> dict:
     """Fetch all days from start to end. Single endpoints may fail without stopping the rest."""
     counts = {"tage": 0, "werte": 0, "fehler": 0}
 
@@ -266,18 +266,18 @@ def sync(db, api, start: date, end: date, commit=lambda: None, pause: float = PA
 
     for current in util.days(start, end):
         day = current.isoformat()
-        attempt(lambda: store_summary(db, day, api.get_user_summary(day)))
-        attempt(lambda: store_sleep(db, api.get_sleep_data(day)))
-        attempt(lambda: store_hrv(db, day, api.get_hrv_data(day)))
-        attempt(lambda: store_readiness(db, day, api.get_training_readiness(day)))
-        attempt(lambda: store_vo2max(db, day, api.get_max_metrics(day)))
+        attempt(lambda: store_summary(db, pid, day, api.get_user_summary(day)))
+        attempt(lambda: store_sleep(db, pid, api.get_sleep_data(day)))
+        attempt(lambda: store_hrv(db, pid, day, api.get_hrv_data(day)))
+        attempt(lambda: store_readiness(db, pid, day, api.get_training_readiness(day)))
+        attempt(lambda: store_vo2max(db, pid, day, api.get_max_metrics(day)))
         counts["tage"] += 1
         commit()
         if pause and current < end:
             time.sleep(pause)
-    attempt(lambda: store_activities(db, api.get_activities_by_date(start.isoformat(),
+    attempt(lambda: store_activities(db, pid, api.get_activities_by_date(start.isoformat(),
                                                                     end.isoformat())))
-    attempt(lambda: store_body(db, api.get_body_composition(start.isoformat(), end.isoformat())))
+    attempt(lambda: store_body(db, pid, api.get_body_composition(start.isoformat(), end.isoformat())))
     commit()
     if counts["tage"] and counts["fehler"] >= counts["tage"] * 5:
         raise GarminError("Garmin hat keine verwertbaren Daten geliefert. Vielleicht hat Garmin "

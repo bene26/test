@@ -34,52 +34,42 @@ def clean(metric: str, value) -> float | None:
     return round(number, 4)
 
 
-def add_measurement(db, metric: str, value, measured_at: datetime, source: str,
+def add_measurement(db, pid: int, metric: str, value, measured_at: datetime, source: str,
                     group_id: str = "") -> bool:
-    number = clean(metric, value)
-    if number is None or source not in SOURCES:
-        return False
-    db.execute(
-        "INSERT INTO measurements (metric, value, measured_at, day, source, group_id) "
-        "VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(metric, source, measured_at) DO UPDATE SET "
-        "value = excluded.value, group_id = excluded.group_id",
-        (metric, number, util.stamp(measured_at), measured_at.date().isoformat(), source,
-         group_id),
-    )
-    return True
+    return add_measurements(db, pid, [(metric, value, measured_at, source, group_id)]) == 1
 
 
-def add_measurements(db, rows) -> int:
-    """Bulk insert of (metric, value, measured_at: datetime, source, group_id)."""
+def add_measurements(db, pid: int, rows) -> int:
+    """Bulk insert of (metric, value, measured_at: datetime, source, group_id) for a person."""
     prepared = []
     for metric, value, measured_at, source, group_id in rows:
         number = clean(metric, value)
         if number is not None and source in SOURCES:
-            prepared.append((metric, number, util.stamp(measured_at),
+            prepared.append((pid, metric, number, util.stamp(measured_at),
                              measured_at.date().isoformat(), source, group_id))
     db.executemany(
-        "INSERT INTO measurements (metric, value, measured_at, day, source, group_id) "
-        "VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(metric, source, measured_at) DO UPDATE SET "
-        "value = excluded.value, group_id = excluded.group_id", prepared)
+        "INSERT INTO measurements (person_id, metric, value, measured_at, day, source, group_id) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(person_id, metric, source, measured_at) "
+        "DO UPDATE SET value = excluded.value, group_id = excluded.group_id", prepared)
     return len(prepared)
 
 
-def set_daily(db, metric: str, day, source: str, value) -> bool:
-    return set_daily_many(db, [(metric, day, source, value)]) == 1
+def set_daily(db, pid: int, metric: str, day, source: str, value) -> bool:
+    return set_daily_many(db, pid, [(metric, day, source, value)]) == 1
 
 
-def set_daily_many(db, rows) -> int:
-    """Bulk upsert of (metric, day, source, value)."""
+def set_daily_many(db, pid: int, rows) -> int:
+    """Bulk upsert of (metric, day, source, value) for a person."""
     stamp = util.stamp()
     prepared = []
     for metric, day, source, value in rows:
         number = clean(metric, value)
         if number is not None and source in SOURCES:
-            prepared.append((metric, str(day)[:10], source, number, stamp))
+            prepared.append((pid, metric, str(day)[:10], source, number, stamp))
     db.executemany(
-        "INSERT INTO daily_values (metric, day, source, value, updated_at) VALUES (?, ?, ?, ?, ?) "
-        "ON CONFLICT(metric, day, source) DO UPDATE SET value = excluded.value, "
-        "updated_at = excluded.updated_at", prepared)
+        "INSERT INTO daily_values (person_id, metric, day, source, value, updated_at) "
+        "VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(person_id, metric, day, source) DO UPDATE SET "
+        "value = excluded.value, updated_at = excluded.updated_at", prepared)
     return len(prepared)
 
 
@@ -93,7 +83,7 @@ def _minutes(value, limit=24 * 60):
     return number if 0 <= number <= limit else None
 
 
-def upsert_sleep(db, night, source: str, data: dict) -> bool:
+def upsert_sleep(db, pid: int, night, source: str, data: dict) -> bool:
     """data: bed_start/bed_end (datetime), *_min (minutes), score, hr_avg, rr_avg."""
     if source not in SOURCES:
         return False
@@ -112,11 +102,11 @@ def upsert_sleep(db, night, source: str, data: dict) -> bool:
     if not row["asleep_min"] and not row["bed_start"]:
         return False
     db.execute(
-        f"INSERT INTO sleep (night, source, {', '.join(SLEEP_COLUMNS)}) "
-        f"VALUES (?, ?, {', '.join('?' for _ in SLEEP_COLUMNS)}) "
-        f"ON CONFLICT(night, source) DO UPDATE SET "
+        f"INSERT INTO sleep (person_id, night, source, {', '.join(SLEEP_COLUMNS)}) "
+        f"VALUES (?, ?, ?, {', '.join('?' for _ in SLEEP_COLUMNS)}) "
+        f"ON CONFLICT(person_id, night, source) DO UPDATE SET "
         + ", ".join(f"{c} = excluded.{c}" for c in SLEEP_COLUMNS),
-        (str(night)[:10], source, *(row[c] for c in SLEEP_COLUMNS)),
+        (pid, str(night)[:10], source, *(row[c] for c in SLEEP_COLUMNS)),
     )
     return True
 
@@ -131,7 +121,7 @@ def _positive(value, limit):
     return round(number, 3) if 0 <= number <= limit else None
 
 
-def upsert_workout(db, source: str, external_id: str, data: dict) -> bool:
+def upsert_workout(db, pid: int, source: str, external_id: str, data: dict) -> bool:
     """data: kind, started_at/ended_at (datetime), duration_min, distance_km, energy_kcal,
     hr_avg, hr_max."""
     if source not in SOURCES or not data.get("started_at"):
@@ -148,11 +138,11 @@ def upsert_workout(db, source: str, external_id: str, data: dict) -> bool:
         "hr_max": clean("hr_max", data.get("hr_max")),
     }
     db.execute(
-        f"INSERT INTO workouts (source, external_id, day, {', '.join(WORKOUT_COLUMNS)}) "
-        f"VALUES (?, ?, ?, {', '.join('?' for _ in WORKOUT_COLUMNS)}) "
-        f"ON CONFLICT(source, external_id) DO UPDATE SET day = excluded.day, "
+        f"INSERT INTO workouts (person_id, source, external_id, day, {', '.join(WORKOUT_COLUMNS)}) "
+        f"VALUES (?, ?, ?, ?, {', '.join('?' for _ in WORKOUT_COLUMNS)}) "
+        f"ON CONFLICT(person_id, source, external_id) DO UPDATE SET day = excluded.day, "
         + ", ".join(f"{c} = excluded.{c}" for c in WORKOUT_COLUMNS),
-        (source, str(external_id)[:100], started.date().isoformat(),
+        (pid, source, str(external_id)[:100], started.date().isoformat(),
          *(row[c] for c in WORKOUT_COLUMNS)),
     )
     return True
@@ -197,51 +187,52 @@ def _iso(value) -> str:
     return value.isoformat() if isinstance(value, (date, datetime)) else str(value)[:10]
 
 
-def per_source(db, metric: str, start, end) -> dict[str, dict[str, float]]:
+def per_source(db, pid: int, metric: str, start, end) -> dict[str, dict[str, float]]:
     """{day: {source: value}} with the metric's day aggregation applied per source."""
     meta = METRICS[metric]
     start, end = _iso(start), _iso(end)
     result: dict[str, dict[str, float]] = {}
     for row in db.execute(
-            "SELECT day, source, value FROM daily_values WHERE metric = ? AND day BETWEEN ? AND ?",
-            (metric, start, end)):
+            "SELECT day, source, value FROM daily_values WHERE person_id = ? AND metric = ? "
+            "AND day BETWEEN ? AND ?", (pid, metric, start, end)):
         result.setdefault(row["day"], {})[row["source"]] = row["value"]
     if meta.agg == "last":
         query = ("SELECT day, source, value, MAX(measured_at) FROM measurements "
-                 "WHERE metric = ? AND day BETWEEN ? AND ? GROUP BY day, source")
+                 "WHERE person_id = ? AND metric = ? AND day BETWEEN ? AND ? GROUP BY day, source")
     else:
         query = (f"SELECT day, source, {AGG_SQL[meta.agg]}(value) AS value FROM measurements "
-                 "WHERE metric = ? AND day BETWEEN ? AND ? GROUP BY day, source")
-    for row in db.execute(query, (metric, start, end)):
+                 "WHERE person_id = ? AND metric = ? AND day BETWEEN ? AND ? GROUP BY day, source")
+    for row in db.execute(query, (pid, metric, start, end)):
         result.setdefault(row["day"], {})[row["source"]] = row["value"]
     return result
 
 
-def daily_series(db, metric: str, start, end) -> list[dict]:
+def daily_series(db, pid: int, metric: str, start, end) -> list[dict]:
     """[{day, value, source}] sorted by day, one entry per day that has a value."""
     order = priority(db, METRICS[metric].family)
     series = []
-    for day, by_source in sorted(per_source(db, metric, start, end).items()):
+    for day, by_source in sorted(per_source(db, pid, metric, start, end).items()):
         source, value = _pick(by_source, order)
         if source:
             series.append({"day": day, "value": value, "source": source})
     return series
 
 
-def latest(db, metric: str, until=None) -> dict | None:
+def latest(db, pid: int, metric: str, until=None) -> dict | None:
     """Most recent value (by the source order on that day), optionally up to a day."""
     until = _iso(until or util.today() + timedelta(days=1))
     row = db.execute(
-        "SELECT MAX(day) FROM (SELECT MAX(day) AS day FROM measurements WHERE metric = ? "
-        "AND day <= ? UNION ALL SELECT MAX(day) FROM daily_values WHERE metric = ? AND day <= ?)",
-        (metric, until, metric, until)).fetchone()
+        "SELECT MAX(day) FROM (SELECT MAX(day) AS day FROM measurements WHERE person_id = ? "
+        "AND metric = ? AND day <= ? UNION ALL SELECT MAX(day) FROM daily_values "
+        "WHERE person_id = ? AND metric = ? AND day <= ?)",
+        (pid, metric, until, pid, metric, until)).fetchone()
     if not row or not row[0]:
         return None
-    series = daily_series(db, metric, row[0], row[0])
+    series = daily_series(db, pid, metric, row[0], row[0])
     return series[-1] if series else None
 
 
-def readings(db, metrics: tuple[str, ...], start, end) -> list[dict]:
+def readings(db, pid: int, metrics: tuple[str, ...], start, end) -> list[dict]:
     """Single readings grouped (e.g. systolic + diastolic + pulse), newest first.
 
     Per day only the readings of the first source in the family's order are kept.
@@ -252,8 +243,8 @@ def readings(db, metrics: tuple[str, ...], start, end) -> list[dict]:
     groups: dict[tuple, dict] = {}
     for row in db.execute(
             f"SELECT metric, value, measured_at, day, source, group_id FROM measurements "
-            f"WHERE metric IN ({marks}) AND day BETWEEN ? AND ?",
-            (*metrics, _iso(start), _iso(end))):
+            f"WHERE person_id = ? AND metric IN ({marks}) AND day BETWEEN ? AND ?",
+            (pid, *metrics, _iso(start), _iso(end))):
         key = (row["source"], row["group_id"] or row["measured_at"])
         entry = groups.setdefault(key, {"measured_at": row["measured_at"], "day": row["day"],
                                         "source": row["source"], "values": {}})
@@ -268,12 +259,12 @@ def readings(db, metrics: tuple[str, ...], start, end) -> list[dict]:
     return sorted(kept, key=lambda e: e["measured_at"], reverse=True)
 
 
-def sleep_series(db, start, end) -> list[dict]:
+def sleep_series(db, pid: int, start, end) -> list[dict]:
     """One night per day (source order of 'schlaf'), sorted by night."""
     order = priority(db, "schlaf")
     nights: dict[str, dict[str, dict]] = {}
-    for row in db.execute("SELECT * FROM sleep WHERE night BETWEEN ? AND ?",
-                          (_iso(start), _iso(end))):
+    for row in db.execute("SELECT * FROM sleep WHERE person_id = ? AND night BETWEEN ? AND ?",
+                          (pid, _iso(start), _iso(end))):
         nights.setdefault(row["night"], {})[row["source"]] = dict(row)
     result = []
     for night, by_source in sorted(nights.items()):
@@ -283,12 +274,13 @@ def sleep_series(db, start, end) -> list[dict]:
     return result
 
 
-def workouts(db, start, end) -> list[dict]:
+def workouts(db, pid: int, start, end) -> list[dict]:
     """Trainings newest first. The same training recorded by two sources (start within
     five minutes) appears once, from the first source in the order of 'aktivitaet'."""
     rank = {s: i for i, s in enumerate(priority(db, "aktivitaet"))}
     rows = [dict(r) for r in db.execute(
-        "SELECT * FROM workouts WHERE day BETWEEN ? AND ?", (_iso(start), _iso(end)))]
+        "SELECT * FROM workouts WHERE person_id = ? AND day BETWEEN ? AND ?",
+        (pid, _iso(start), _iso(end)))]
     rows.sort(key=lambda r: rank.get(r["source"], 99))
     kept: list[dict] = []
     for row in rows:
@@ -309,17 +301,19 @@ def summary(values: list[float]) -> dict:
             "count": len(values)}
 
 
-def sources_overview(db) -> dict[str, dict]:
-    """Per source: number of values and the first and last day."""
+def sources_overview(db, pid: int | None = None) -> dict[str, dict]:
+    """Per source: number of values and the first and last day (one person or everyone)."""
     overview = {key: {"count": 0, "first": None, "last": None} for key in SOURCES}
+    where = "WHERE person_id = ?" if pid is not None else ""
+    args = (pid,) if pid is not None else ()
     queries = [
-        "SELECT source, COUNT(*), MIN(day), MAX(day) FROM measurements GROUP BY source",
-        "SELECT source, COUNT(*), MIN(day), MAX(day) FROM daily_values GROUP BY source",
-        "SELECT source, COUNT(*), MIN(night), MAX(night) FROM sleep GROUP BY source",
-        "SELECT source, COUNT(*), MIN(day), MAX(day) FROM workouts GROUP BY source",
+        f"SELECT source, COUNT(*), MIN(day), MAX(day) FROM measurements {where} GROUP BY source",
+        f"SELECT source, COUNT(*), MIN(day), MAX(day) FROM daily_values {where} GROUP BY source",
+        f"SELECT source, COUNT(*), MIN(night), MAX(night) FROM sleep {where} GROUP BY source",
+        f"SELECT source, COUNT(*), MIN(day), MAX(day) FROM workouts {where} GROUP BY source",
     ]
     for query in queries:
-        for source, count, first, last in db.execute(query):
+        for source, count, first, last in db.execute(query, args):
             entry = overview.setdefault(source, {"count": 0, "first": None, "last": None})
             entry["count"] += count
             entry["first"] = min(filter(None, (entry["first"], first)), default=None)
@@ -330,20 +324,33 @@ def sources_overview(db) -> dict[str, dict]:
 HEALTH_TABLES = ("measurements", "daily_values", "sleep", "workouts")
 
 
-def delete_source(db, source: str) -> int:
+def delete_source(db, pid: int, source: str) -> int:
     total = 0
     for table in HEALTH_TABLES:
-        total += db.execute(f"DELETE FROM {table} WHERE source = ?", (source,)).rowcount
+        total += db.execute(f"DELETE FROM {table} WHERE person_id = ? AND source = ?",
+                            (pid, source)).rowcount
+    return total
+
+
+def delete_person_data(db, pid: int) -> int:
+    """All values, imports and connections of one person (the profile stays)."""
+    total = 0
+    for table in HEALTH_TABLES:
+        total += db.execute(f"DELETE FROM {table} WHERE person_id = ?", (pid,)).rowcount
+    db.execute("DELETE FROM imports WHERE person_id = ?", (pid,))
+    db.execute("DELETE FROM connections WHERE person_id = ?", (pid,))
     return total
 
 
 def delete_all(db) -> int:
+    """Everything of every person, the Withings application and the source order."""
     total = 0
     for table in HEALTH_TABLES:
         total += db.execute(f"DELETE FROM {table}").rowcount
     db.execute("DELETE FROM imports")
     db.execute("DELETE FROM connections")
     db.execute("DELETE FROM source_priority")
+    db.execute("DELETE FROM meta WHERE key = 'withings_app'")
     return total
 
 

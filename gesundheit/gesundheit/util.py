@@ -8,6 +8,8 @@ _tz = ZoneInfo("Europe/Berlin")
 
 WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
 MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
+MONTHS_LONG = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September",
+               "Oktober", "November", "Dezember"]
 
 
 def set_timezone(name: str) -> None:

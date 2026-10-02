@@ -5,15 +5,17 @@ from pathlib import Path
 
 import pytest
 
-from gesundheit import bewertung, charts, settings, store, util
+from gesundheit import bewertung, charts, persons, settings, store, util
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 import demo_daten  # noqa: E402
 
 
 @pytest.fixture
-def filled(logged_in, db):
-    demo_daten.fill(db, util.today(), 120)
+def filled(logged_in, db, me):
+    demo_daten.fill(db, me, util.today(), 120)
+    other = persons.create(db, "Ben", "blau")
+    demo_daten.fill(db, other, util.today(), 120, seed=3, profile=demo_daten.PROFILES["Ben"])
     return logged_in
 
 
@@ -54,33 +56,34 @@ def test_search_for_card_file(filled):
     assert any(h["titel"] == "Körper" for h in hits)
 
 
-def test_csv_export(filled, db):
-    store.add_measurement(db, "weight", 80, util.to_datetime("2026-01-01 07:00:00"), "withings")
+def test_csv_export(filled, db, me):
+    store.add_measurement(db, me, "weight", 80, util.to_datetime("2026-01-01 07:00:00"), "withings")
     db.commit()
     response = filled.get("/daten/export/werte.csv")
     text = response.get_data(as_text=True)
-    assert text.startswith("﻿Datum;Uhrzeit;Wert") and "Gewicht" in text and ";80;" in text
+    assert text.startswith("\ufeffPerson;Datum;Uhrzeit;Wert") and "Gewicht" in text and ";80;" in text
+    assert "\nBen;" in text and "\nanna;" in text
     assert "attachment" in response.headers["Content-Disposition"]
     for name in ("schlaf", "trainings"):
         assert filled.get(f"/daten/export/{name}.csv").status_code == 200
     assert filled.get("/daten/export/geheim.csv").status_code == 404
 
 
-def test_goals(filled, db):
-    filled.get("/einstellungen")
-    filled.post("/einstellungen/ziele", {"height_cm": "181", "goal_steps": "8000",
-                                         "goal_active_min": "40", "goal_active_kcal": "450",
-                                         "goal_sleep_h": "7,5", "goal_weight": "76,5"})
-    values = settings.get_all(db)
-    assert values["goal_steps"] == 8000 and values["goal_sleep_min"] == 450
-    assert values["goal_weight_dg"] == 765 and values["height_cm"] == 181
-    filled.post("/einstellungen/ziele", {"goal_steps": "5", "goal_active_min": "40",
-                                         "goal_active_kcal": "450", "goal_sleep_h": "7"})
-    assert settings.get(db, "goal_steps") == 8000
-    filled.post("/einstellungen/ziele", {"goal_steps": "8000", "goal_active_min": "40",
-                                         "goal_active_kcal": "450", "goal_sleep_h": "7",
-                                         "admin": "1"})
-    assert settings.get(db, "goal_sleep_min") == 450  # unknown field: nothing saved
+def test_goals_per_person(filled, db, me):
+    filled.get(f"/personen/{me}")
+    data = {"name": "Anna", "color": "pink", "birth_year": "1986", "height_cm": "181",
+            "goal_steps": "8000", "goal_active_min": "40", "goal_active_kcal": "450",
+            "goal_sleep_h": "7,5", "goal_workouts": "4", "goal_weight": "76,5"}
+    filled.post(f"/personen/{me}", data)
+    person = persons.get(db, me)
+    assert person["goal_steps"] == 8000 and person["goal_sleep_min"] == 450
+    assert person["goal_weight_dg"] == 765 and person["height_cm"] == 181 and person["name"] == "Anna"
+    filled.post(f"/personen/{me}", dict(data, goal_steps="5"))
+    assert persons.get(db, me)["goal_steps"] == 8000
+    filled.post(f"/personen/{me}", dict(data, goal_sleep_h="9", admin="1"))
+    assert persons.get(db, me)["goal_sleep_min"] == 450  # unknown field: nothing saved
+    filled.post(f"/personen/{me}", dict(data, color="#ff0000"))
+    assert persons.get(db, me)["color"] == "pink"
 
 
 def test_source_order_buttons(filled, db):
@@ -106,11 +109,12 @@ def test_retention(filled, db):
     assert settings.get(db, "retention_days") == 365
 
 
-def test_delete_source_and_everything(filled, db):
+def test_delete_source_and_everything(filled, db, me):
     filled.get("/daten")
     filled.post("/daten/loeschen/quelle", {"quelle": "iphone"})
-    assert store.sources_overview(db)["iphone"]["count"] == 0
-    assert store.sources_overview(db)["garmin"]["count"] > 0
+    assert store.sources_overview(db, me)["iphone"]["count"] == 0
+    assert store.sources_overview(db)["iphone"]["count"] > 0  # Ben keeps his
+    assert store.sources_overview(db, me)["garmin"]["count"] > 0
     filled.post("/daten/loeschen/alles", {"bestaetigung": "ja"})
     assert store.sources_overview(db)["garmin"]["count"] > 0
     filled.post("/daten/loeschen/alles", {"bestaetigung": "löschen"})

@@ -1,14 +1,18 @@
-"""Sources: connect Withings and Garmin, upload the Apple Health export, source order."""
+"""Sources: connect Withings and Garmin, upload the Apple Health export, source order.
+
+Everything on this page is for the person currently shown (g.person); only the Withings
+application (client ID and secret) is shared by everyone.
+"""
 
 import hmac
 import os
 import secrets
 from pathlib import Path
 
-from flask import (Blueprint, abort, current_app, flash, jsonify, redirect, render_template,
+from flask import (Blueprint, abort, current_app, flash, g, jsonify, redirect, render_template,
                    request, session, url_for)
 
-from .. import forms, garmin, jobs, settings, store, util, withings
+from .. import forms, garmin, jobs, persons, store, util, withings
 from ..db import get_db
 from ..katalog import FAMILIES, SOURCES
 from . import parse_or_flash
@@ -22,35 +26,48 @@ def callback_url() -> str:
     return base + path if base else url_for("quellen.withings_callback", _external=True)
 
 
+def _app():
+    return current_app._get_current_object()
+
+
+def _back(anchor: str):
+    return redirect(url_for("quellen.index") + f"#{anchor}")
+
+
 @bp.route("")
 def index():
     db = get_db()
-    app = current_app._get_current_object()
-    withings_secret = jobs.load_secret(app, db, "withings")
-    client_id, client_secret = jobs.withings_credentials(app, withings_secret)
-    connections = {row["provider"]: row for row in db.execute("SELECT * FROM connections")}
-    garmin_secret = jobs.load_secret(app, db, "garmin")
-    imports = db.execute("SELECT * FROM imports ORDER BY id DESC LIMIT 8").fetchall()
+    app = _app()
+    pid = g.person["id"]
+    client_id, client_secret = jobs.withings_app(app, db)
+    connections = {row["provider"]: row for row in db.execute(
+        "SELECT * FROM connections WHERE person_id = ?", (pid,))}
+    everyone = {}
+    for row in db.execute("SELECT provider, person_id, last_error, last_ok FROM connections"):
+        everyone.setdefault(row["person_id"], {})[row["provider"]] = row
+    imports = db.execute("SELECT * FROM imports WHERE person_id = ? ORDER BY id DESC LIMIT 8",
+                         (pid,)).fetchall()
     orders = {family: store.priority(db, family) for family in FAMILIES}
     customized = {row["family"] for row in db.execute("SELECT family FROM source_priority")}
+    mfa = session.get("garmin_mfa") or {}
     return render_template(
         "quellen.html",
         withings={"configured": bool(client_id and client_secret),
                   "from_env": bool(current_app.config["WITHINGS_CLIENT_ID"]),
                   "client_id_hint": (client_id[:4] + "…" + client_id[-3:]) if client_id else "",
-                  "connected": bool(withings_secret.get("tokens")),
+                  "connected": bool(jobs.load_secret(app, db, "withings", pid).get("tokens")),
                   "row": connections.get("withings"), "busy": jobs.busy("withings")},
         garmin_state={"available": garmin.available(),
-                      "enabled": bool(settings.get(db, "garmin_enabled")),
-                      "connected": bool(garmin_secret.get("tokens")),
+                      "enabled": bool(g.person["garmin_enabled"]),
+                      "connected": bool(jobs.load_secret(app, db, "garmin", pid).get("tokens")),
                       "row": connections.get("garmin"), "busy": jobs.busy("garmin"),
-                      "mfa": session.get("garmin_mfa"),
-                      "backfill": settings.get(db, "garmin_backfill_days")},
-        callback=callback_url(), imports=imports, apple_busy=jobs.busy("apple"),
-        folder=current_app.config["IMPORT_DIR"],
+                      "mfa": mfa.get("person") == pid,
+                      "backfill": g.person["garmin_backfill_days"]},
+        everyone=everyone, callback=callback_url(), imports=imports,
+        apple_busy=jobs.busy("apple"), folder=current_app.config["IMPORT_DIR"],
         folder_files=jobs.import_folder_files(app)[:5],
         upload_max=current_app.config["UPLOAD_MAX_MB"], orders=orders, customized=customized,
-        overview=store.sources_overview(db), families=FAMILIES, sources=SOURCES)
+        overview=store.sources_overview(db, pid), families=FAMILIES, sources=SOURCES)
 
 
 # ---------- Withings ----------
@@ -66,92 +83,102 @@ def withings_credentials():
             flash("Client-ID und Secret enthalten ungültige Zeichen.", "error")
         else:
             db = get_db()
-            app = current_app._get_current_object()
-            secret = jobs.load_secret(app, db, "withings")
-            secret.update(client_id=values["client_id"], client_secret=values["client_secret"])
-            jobs.save_secret(app, db, "withings", secret)
+            jobs.save_withings_app(_app(), db, values["client_id"], values["client_secret"])
             db.commit()
-            flash("Withings-Zugang gespeichert (verschlüsselt). Jetzt „Mit Withings verbinden“.",
-                  "ok")
-    return redirect(url_for("quellen.index") + "#withings")
+            flash("Withings-Anwendung gespeichert (verschlüsselt). Jetzt je Person „Mit Withings "
+                  "verbinden“.", "ok")
+    return _back("withings")
+
+
+@bp.route("/withings/zugang/loeschen", methods=["POST"])
+def withings_credentials_delete():
+    db = get_db()
+    jobs.delete_withings_app(db)
+    db.commit()
+    flash("Withings-Anwendung gelöscht. Verbundene Personen können erst wieder abgleichen, "
+          "wenn sie neu eingetragen ist.", "ok")
+    return _back("withings")
 
 
 @bp.route("/withings/verbinden", methods=["POST"])
 def withings_connect():
-    db = get_db()
-    app = current_app._get_current_object()
-    client_id, client_secret = jobs.withings_credentials(app, jobs.load_secret(app, db,
-                                                                               "withings"))
+    client_id, client_secret = jobs.withings_app(_app(), get_db())
     if not client_id or not client_secret:
         flash("Zuerst Client-ID und Secret der Withings-Anwendung eintragen.", "error")
-        return redirect(url_for("quellen.index") + "#withings")
+        return _back("withings")
     state = secrets.token_urlsafe(24)
-    session["withings_state"] = state
+    session["withings_state"] = {"state": state, "person": g.person["id"]}
     return redirect(withings.authorize_url(client_id, callback_url(), state))
 
 
 @bp.route("/withings/zurueck")
 def withings_callback():
-    expected = session.pop("withings_state", None)
+    expected = session.pop("withings_state", None) or {}
     state = request.args.get("state", "")
-    if not expected or not hmac.compare_digest(state, expected):
+    if not expected.get("state") or not hmac.compare_digest(state, expected["state"]):
         flash("Die Rückmeldung von Withings passt nicht zu dieser Anmeldung. Bitte noch "
               "einmal verbinden.", "error")
-        return redirect(url_for("quellen.index") + "#withings")
+        return _back("withings")
     if request.args.get("error"):
         flash("Die Verbindung mit Withings wurde abgebrochen.", "error")
-        return redirect(url_for("quellen.index") + "#withings")
+        return _back("withings")
     code = request.args.get("code", "")
     if not code or len(code) > 200:
         abort(400)
     db = get_db()
-    app = current_app._get_current_object()
-    secret = jobs.load_secret(app, db, "withings")
-    client_id, client_secret = jobs.withings_credentials(app, secret)
+    app = _app()
+    person = persons.get(db, expected.get("person"))
+    if not person:
+        abort(400)
+    client_id, client_secret = jobs.withings_app(app, db)
     try:
         tokens = withings.exchange_code(jobs.withings_http(app), client_id, client_secret, code,
                                         callback_url())
     except withings.WithingsError as exc:
         flash(str(exc), "error")
-        return redirect(url_for("quellen.index") + "#withings")
-    secret["tokens"] = tokens
-    jobs.save_secret(app, db, "withings", secret, label=f"Konto {tokens['userid'][-4:]}"
-                     if tokens.get("userid") else "")
+        return _back("withings")
+    for other in jobs.connected_persons(app, db, "withings"):
+        other_tokens = jobs.load_secret(app, db, "withings", other).get("tokens") or {}
+        if other != person["id"] and tokens.get("userid") and \
+                other_tokens.get("userid") == tokens["userid"]:
+            other_name = (persons.get(db, other) or {}).get("name", "einer anderen Person")
+            flash(f"Dieses Withings-Konto ist schon mit {other_name} verbunden. Bei Withings "
+                  "erst mit dem Konto der richtigen Person anmelden.", "error")
+            return _back("withings")
+    jobs.save_secret(app, db, "withings", person["id"], {"tokens": tokens},
+                     label=f"Konto …{tokens['userid'][-4:]}" if tokens.get("userid") else "")
     db.execute("UPDATE connections SET connected_at = ?, last_error = '', cursor = '{}' "
-               "WHERE provider = 'withings'", (util.stamp(),))
+               "WHERE provider = 'withings' AND person_id = ?", (util.stamp(), person["id"]))
     db.commit()
-    jobs.start(app, "withings", jobs.run_withings)
-    flash("Withings ist verbunden. Der erste Abgleich läuft im Hintergrund.", "ok")
-    return redirect(url_for("quellen.index") + "#withings")
+    jobs.start(app, "withings", jobs.run_withings, person["id"])
+    response = _back("withings")
+    persons.set_cookie(response, person["id"])
+    flash(f"Withings ist für {person['name']} verbunden. Der erste Abgleich läuft im "
+          "Hintergrund.", "ok")
+    return response
 
 
 @bp.route("/withings/abgleichen", methods=["POST"])
 def withings_sync():
-    app = current_app._get_current_object()
-    if not jobs.load_secret(app, get_db(), "withings").get("tokens"):
-        flash("Withings ist nicht verbunden.", "error")
-    elif jobs.start(app, "withings", jobs.run_withings):
+    app = _app()
+    pid = g.person["id"]
+    if not jobs.load_secret(app, get_db(), "withings", pid).get("tokens"):
+        flash("Withings ist für diese Person nicht verbunden.", "error")
+    elif jobs.start(app, "withings", jobs.run_withings, pid):
         flash("Withings-Abgleich gestartet.", "ok")
     else:
         flash("Der Withings-Abgleich läuft bereits.", "info")
-    return redirect(url_for("quellen.index") + "#withings")
+    return _back("withings")
 
 
 @bp.route("/withings/trennen", methods=["POST"])
 def withings_disconnect():
-    values = parse_or_flash({"zugang": forms.Checkbox("Zugang ebenfalls löschen")})
-    if values is None:
-        return redirect(url_for("quellen.index") + "#withings")
     db = get_db()
-    app = current_app._get_current_object()
-    secret = jobs.load_secret(app, db, "withings")
-    keep = None if values["zugang"] else {k: secret[k] for k in ("client_id", "client_secret")
-                                          if k in secret}
-    jobs.disconnect(db, "withings", keep_credentials=keep, app=app)
+    jobs.disconnect(db, "withings", g.person["id"])
     db.commit()
-    flash("Withings getrennt. Die Zugangsdaten sind gelöscht; die bisherigen Werte bleiben, "
-          "bis du sie unter „Daten“ löschst.", "ok")
-    return redirect(url_for("quellen.index") + "#withings")
+    flash(f"Withings für {g.person['name']} getrennt, die Anmeldung ist gelöscht. Die bisherigen "
+          "Werte bleiben, bis du sie unter „Daten“ löschst.", "ok")
+    return _back("withings")
 
 
 # ---------- Garmin ----------
@@ -164,33 +191,37 @@ def garmin_toggle():
     })
     if values is not None:
         db = get_db()
-        settings.put(db, "garmin_enabled", 1 if values["aktiv"] else 0)
+        pid = g.person["id"]
+        fields = {"garmin_enabled": 1 if values["aktiv"] else 0}
         if values["tage"]:
-            settings.put(db, "garmin_backfill_days", values["tage"])
+            fields["garmin_backfill_days"] = values["tage"]
+        persons.update(db, pid, **fields)
         if not values["aktiv"]:
-            jobs.disconnect(db, "garmin")
+            jobs.disconnect(db, "garmin", pid)
             session.pop("garmin_mfa", None)
         db.commit()
-        flash("Garmin direkt ist eingeschaltet." if values["aktiv"] else
-              "Garmin direkt ist ausgeschaltet; die Anmeldung wurde gelöscht.", "ok")
-    return redirect(url_for("quellen.index") + "#garmin")
+        flash(f"Garmin direkt ist für {g.person['name']} eingeschaltet." if values["aktiv"] else
+              f"Garmin direkt ist für {g.person['name']} ausgeschaltet; die Anmeldung wurde "
+              "gelöscht.", "ok")
+    return _back("garmin")
 
 
-def _garmin_connected(tokens: str):
+def _garmin_connected(pid: int, tokens: str):
     db = get_db()
-    app = current_app._get_current_object()
-    jobs.save_secret(app, db, "garmin", {"tokens": tokens}, label="")
+    app = _app()
+    jobs.save_secret(app, db, "garmin", pid, {"tokens": tokens}, label="")
     db.execute("UPDATE connections SET connected_at = ?, last_ok = NULL, last_error = '' "
-               "WHERE provider = 'garmin'", (util.stamp(),))
+               "WHERE provider = 'garmin' AND person_id = ?", (util.stamp(), pid))
     db.commit()
-    jobs.start(app, "garmin", jobs.run_garmin, settings.get(db, "garmin_backfill_days"))
-    flash("Garmin ist verbunden. Der erste Abgleich läuft im Hintergrund.", "ok")
+    person = persons.get(db, pid)
+    jobs.start(app, "garmin", jobs.run_garmin, pid, person["garmin_backfill_days"])
+    flash(f"Garmin ist für {person['name']} verbunden. Der erste Abgleich läuft im "
+          "Hintergrund.", "ok")
 
 
 @bp.route("/garmin/anmelden", methods=["POST"])
 def garmin_login():
-    db = get_db()
-    if not settings.get(db, "garmin_enabled") or not garmin.available():
+    if not g.person["garmin_enabled"] or not garmin.available():
         abort(400, description="Garmin direkt ist ausgeschaltet.")
     values = parse_or_flash({
         "email": forms.Email("E-Mail", required=True),
@@ -203,62 +234,63 @@ def garmin_login():
             flash(str(exc), "error")
         else:
             if status == "mfa":
-                session["garmin_mfa"] = value
+                session["garmin_mfa"] = {"id": value, "person": g.person["id"]}
                 flash("Garmin hat einen Code geschickt (E-Mail oder App). Bitte innerhalb von "
                       "5 Minuten eingeben.", "info")
             else:
-                _garmin_connected(value)
-    return redirect(url_for("quellen.index") + "#garmin")
+                _garmin_connected(g.person["id"], value)
+    return _back("garmin")
 
 
 @bp.route("/garmin/code", methods=["POST"])
 def garmin_code():
     values = parse_or_flash({"code": forms.Text("Code", required=True, max_len=12)})
-    pending = session.pop("garmin_mfa", None)
+    pending = session.pop("garmin_mfa", None) or {}
     if values is not None:
-        if not pending:
+        if not pending.get("id"):
             flash("Der Anmeldevorgang ist abgelaufen. Bitte noch einmal anmelden.", "error")
         elif not values["code"].isdigit():
             flash("Der Code besteht nur aus Ziffern.", "error")
             session["garmin_mfa"] = pending
         else:
             try:
-                _garmin_connected(garmin.finish_login(pending, values["code"]))
+                _garmin_connected(pending["person"], garmin.finish_login(pending["id"],
+                                                                         values["code"]))
             except garmin.GarminError as exc:
                 flash(str(exc), "error")
-    return redirect(url_for("quellen.index") + "#garmin")
+    return _back("garmin")
 
 
 @bp.route("/garmin/abgleichen", methods=["POST"])
 def garmin_sync():
-    app = current_app._get_current_object()
-    db = get_db()
-    if not settings.get(db, "garmin_enabled") or not jobs.load_secret(app, db, "garmin").get(
-            "tokens"):
-        flash("Garmin ist nicht verbunden.", "error")
-    elif jobs.start(app, "garmin", jobs.run_garmin):
+    app = _app()
+    pid = g.person["id"]
+    if not g.person["garmin_enabled"] or not jobs.load_secret(app, get_db(), "garmin",
+                                                              pid).get("tokens"):
+        flash("Garmin ist für diese Person nicht verbunden.", "error")
+    elif jobs.start(app, "garmin", jobs.run_garmin, pid):
         flash("Garmin-Abgleich gestartet.", "ok")
     else:
         flash("Der Garmin-Abgleich läuft bereits.", "info")
-    return redirect(url_for("quellen.index") + "#garmin")
+    return _back("garmin")
 
 
 @bp.route("/garmin/trennen", methods=["POST"])
 def garmin_disconnect():
     db = get_db()
-    jobs.disconnect(db, "garmin")
+    jobs.disconnect(db, "garmin", g.person["id"])
     session.pop("garmin_mfa", None)
     db.commit()
     flash("Garmin getrennt, die Anmeldung ist gelöscht.", "ok")
-    return redirect(url_for("quellen.index") + "#garmin")
+    return _back("garmin")
 
 
 # ---------- Apple Health ----------
 
-def _new_import(db, filename: str) -> int:
+def _new_import(db, pid: int, filename: str) -> int:
     safe = "".join(c for c in filename if c.isalnum() or c in "._- ")[:80] or "export.zip"
-    cur = db.execute("INSERT INTO imports (kind, filename, status, started_at) "
-                     "VALUES ('apple', ?, 'wartet', ?)", (safe, util.stamp()))
+    cur = db.execute("INSERT INTO imports (kind, filename, status, started_at, person_id) "
+                     "VALUES ('apple', ?, 'wartet', ?, ?)", (safe, util.stamp(), pid))
     db.commit()
     return cur.lastrowid
 
@@ -269,7 +301,7 @@ def _wants_json() -> bool:
 
 @bp.route("/apple/hochladen", methods=["POST"])
 def apple_upload():
-    app = current_app._get_current_object()
+    app = _app()
     upload = request.files.get("datei")
     if set(request.form) - {"csrf_token"} or set(request.files) - {"datei"}:
         abort(400, description="Das Formular enthält unerwartete Felder.")
@@ -281,7 +313,8 @@ def apple_upload():
         message, ok = "Es läuft bereits ein Import. Bitte warten, bis er fertig ist.", False
     else:
         db = get_db()
-        import_id = _new_import(db, upload.filename)
+        pid = g.person["id"]
+        import_id = _new_import(db, pid, upload.filename)
         target = Path(app.config["UPLOAD_DIR"]) / f"import-{import_id}.zip"
         part = getattr(upload.stream, "name", None)
         if isinstance(part, str) and os.path.exists(part):
@@ -290,20 +323,21 @@ def apple_upload():
         else:
             upload.save(target)
         target.chmod(0o600)
-        jobs.start(app, "apple", jobs.run_import, import_id, str(target), True)
-        message, ok = "Datei hochgeladen. Das Einlesen läuft im Hintergrund.", True
+        jobs.start(app, "apple", jobs.run_import, import_id, pid, str(target), True)
+        message, ok = (f"Datei für {g.person['name']} hochgeladen. Das Einlesen läuft im "
+                       "Hintergrund."), True
         if _wants_json():
             return jsonify({"ok": True, "nachricht": message, "import": import_id,
                             "status_url": url_for("quellen.import_status", import_id=import_id)})
     if _wants_json():
         return jsonify({"ok": ok, "nachricht": message}), (200 if ok else 400)
     flash(message, "ok" if ok else "error")
-    return redirect(url_for("quellen.index") + "#apple")
+    return _back("apple")
 
 
 @bp.route("/apple/ordner", methods=["POST"])
 def apple_folder():
-    app = current_app._get_current_object()
+    app = _app()
     if set(request.form) - {"csrf_token"}:
         abort(400)
     files = jobs.import_folder_files(app)
@@ -312,10 +346,11 @@ def apple_folder():
     elif jobs.busy("apple"):
         flash("Es läuft bereits ein Import.", "info")
     else:
-        import_id = _new_import(get_db(), files[0].name)
-        jobs.start(app, "apple", jobs.run_import, import_id, str(files[0]), False)
-        flash(f"„{files[0].name}“ wird eingelesen.", "ok")
-    return redirect(url_for("quellen.index") + "#apple")
+        pid = g.person["id"]
+        import_id = _new_import(get_db(), pid, files[0].name)
+        jobs.start(app, "apple", jobs.run_import, import_id, pid, str(files[0]), False)
+        flash(f"„{files[0].name}“ wird für {g.person['name']} eingelesen.", "ok")
+    return _back("apple")
 
 
 @bp.route("/import/<int:import_id>.json")
@@ -350,4 +385,4 @@ def order():
                 store.set_priority(db, family, current)
         db.commit()
     target = values["familie"] if values else ""
-    return redirect(url_for("quellen.index") + f"#reihenfolge-{target}")
+    return _back(f"reihenfolge-{target}")

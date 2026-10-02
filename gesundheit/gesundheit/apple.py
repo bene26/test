@@ -271,7 +271,7 @@ def _workout(element, attrs) -> dict | None:
     return data
 
 
-def import_export(db, path, xml_max_bytes: int, progress=lambda percent: None) -> dict:
+def import_export(db, pid: int, path, xml_max_bytes: int, progress=lambda percent: None) -> dict:
     """Read the export and store everything. Returns counts per kind."""
     archive, info = find_export(path, xml_max_bytes)
     counts = {"messwerte": 0, "tageswerte": 0, "naechte": 0, "trainings": 0, "uebersprungen": 0}
@@ -304,11 +304,11 @@ def import_export(db, path, xml_max_bytes: int, progress=lambda percent: None) -
                     if data:
                         source = source_key(attrs.get("sourceName", ""), attrs.get("device", ""))
                         external = f"{attrs.get('startDate', '')}|{data['kind']}"
-                        counts["trainings"] += store.upsert_workout(db, source, external, data)
+                        counts["trainings"] += store.upsert_workout(db, pid, source, external, data)
                 if depth == 1:
                     root.clear()  # free memory of everything read so far
                     if len(points) >= 5000:
-                        counts["messwerte"] += store.add_measurements(db, points)
+                        counts["messwerte"] += store.add_measurements(db, pid, points)
                         since_commit += len(points)
                         points.clear()
                     if since_commit >= COMMIT_EVERY:
@@ -327,12 +327,12 @@ def import_export(db, path, xml_max_bytes: int, progress=lambda percent: None) -
     finally:
         archive.close()
 
-    counts["messwerte"] += store.add_measurements(db, points)
+    counts["messwerte"] += store.add_measurements(db, pid, points)
     progress(92)
-    counts["tageswerte"] = store.set_daily_many(db, aggregator.rows(modes))
+    counts["tageswerte"] = store.set_daily_many(db, pid, aggregator.rows(modes))
     progress(96)
     for night, source, data in _sleep_nights(sleep_samples):
-        counts["naechte"] += store.upsert_sleep(db, night, source, data)
+        counts["naechte"] += store.upsert_sleep(db, pid, night, source, data)
     db.commit()
     progress(100)
     return counts

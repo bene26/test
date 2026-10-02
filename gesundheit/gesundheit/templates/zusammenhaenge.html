@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% from "_wahl.html" import wert_auswahl %}
+{% block title %}Zusammenhänge{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Zusammenhänge</h1><p class="sub">{{ person.name }}: Welche Werte gehen bei dir zusammen? Zum Beispiel Schlaf und Ruhepuls, Training und Erholung.</p></div>
+  <nav class="zeitraum" aria-label="Zeitraum">{% for d, label in ranges.items() %}<a href="{{ url_for('auswertungen.zusammenhaenge', zeitraum=d, x=xkey, y=ykey, versatz=lag) }}"{% if d == days %} aria-current="true"{% endif %}>{{ label }}</a>{% endfor %}</nav>
+</div>
+
+<section class="erkenntnisse" aria-labelledby="e-titel">
+  <h2 id="e-titel">{{ icon('bulb') }} Erkenntnisse aus den letzten {{ ranges[days] }}</h2>
+  {% if found %}
+  <div class="erkenntnis-raster">
+    {% for f in found[:6] %}
+    <a class="card erkenntnis staerke-{{ f.level }}" href="{{ url_for('auswertungen.zusammenhaenge', zeitraum=days, x=f.xkey, y=f.ykey, versatz=f.lag) }}">
+      <span class="erk-titel">{{ f.title }}</span>
+      <span class="erk-satz">{{ f.sentence }}</span>
+      <span class="erk-fuss"><span class="erk-r">r = {{ f.r|zahl(2) }}</span> {{ f.text }} · {{ f.n }} Tage</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="card muted">Noch keine deutlichen Zusammenhänge. Dafür braucht es mindestens 20 Tage, an denen beide Werte vorhanden sind.</p>
+  {% endif %}
+</section>
+
+<section class="card" aria-labelledby="s-titel">
+  <h2 id="s-titel">Selbst untersuchen</h2>
+  <form class="auswahl-leiste flach" method="get" data-auto-submit>
+    <input type="hidden" name="zeitraum" value="{{ days }}">
+    <div class="auswahl-feld">{{ wert_auswahl('x', groups, xkey, 'Wenn …', 'z-x') }}</div>
+    <div class="auswahl-feld">{{ wert_auswahl('y', groups, ykey, '… wie verhält sich', 'z-y') }}</div>
+    <fieldset class="auswahl-feld">
+      <legend class="wahl-label">Wann</legend>
+      <div class="seg"><label><input type="radio" name="versatz" value="0"{% if lag == 0 %} checked{% endif %}>am selben Tag</label><label><input type="radio" name="versatz" value="1"{% if lag == 1 %} checked{% endif %}>am Tag danach</label></div>
+    </fieldset>
+    <noscript><button class="btn" type="submit">Anzeigen</button></noscript>
+  </form>
+  <div class="zusammenhang-kopf staerke-{{ rel.level }}">
+    <div class="zk-zahl"><span class="small muted">Korrelation</span><strong>{{ rel.r|zahl(2) if rel.r is not none else '–' }}</strong></div>
+    <div class="zk-text">
+      <strong>{{ rel.text|capitalize }}</strong>{% if rel.r is not none and rel.level != 'keiner' %}: je höher „{{ rel.x.label }}“, desto {{ 'höher' if rel.r > 0 else 'niedriger' }} „{{ rel.y.label }}“{{ ' am Tag danach' if lag }}.{% endif %}
+      {% if rel.effect %}<br><span class="small">{{ rel.effect }}.</span>{% endif %}
+      <br><span class="small muted">{{ rel.n }} Tage mit beiden Werten.</span>
+    </div>
+  </div>
+  {{ scatter }}
+  <p class="small muted">Ein Zusammenhang heißt nicht, dass das eine das andere verursacht. Werte von −1 bis +1: nahe 0 kein Zusammenhang, ab etwa ±0,3 ein mittlerer, ab ±0,5 ein starker.</p>
+</section>
+{% endblock %}

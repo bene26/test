@@ -137,19 +137,11 @@
 <div class="columns-even">
   <section class="card" id="ziele">
     <h2>Profil und Ziele</h2>
-    <form method="post" action="{{ url_for('einstellungen.save_goals') }}">
-      {{ csrf() }}
-      <div class="form-grid">
-        <div class="field"><label for="z-groesse">Größe (cm)</label><input id="z-groesse" type="number" name="height_cm" min="100" max="250" value="{{ values.height_cm or '' }}" inputmode="numeric"><small class="muted">Für den BMI. Leer lassen, wenn die Waage die Größe kennt.</small></div>
-        <div class="field"><label for="z-gewicht">Zielgewicht (kg, optional)</label><input id="z-gewicht" type="text" name="goal_weight" inputmode="decimal" maxlength="6" value="{{ (values.goal_weight_dg / 10)|zahl(1) if values.goal_weight_dg else '' }}"></div>
-        <div class="field"><label for="z-schritte">Schritte am Tag</label><input id="z-schritte" type="number" name="goal_steps" min="500" max="100000" step="500" value="{{ values.goal_steps }}" required></div>
-        <div class="field"><label for="z-minuten">Aktive Minuten am Tag</label><input id="z-minuten" type="number" name="goal_active_min" min="5" max="600" value="{{ values.goal_active_min }}" required></div>
-        <div class="field"><label for="z-kcal">Aktivkalorien am Tag</label><input id="z-kcal" type="number" name="goal_active_kcal" min="50" max="5000" step="10" value="{{ values.goal_active_kcal }}" required></div>
-        <div class="field"><label for="z-schlaf">Schlaf (Stunden)</label><input id="z-schlaf" type="text" name="goal_sleep_h" inputmode="decimal" maxlength="5" value="{{ (values.goal_sleep_min / 60)|zahl(1) }}" required></div>
-      </div>
-      <p class="small muted">Die Ziele steuern die Ringe auf der Übersicht und die Ziellinien in den Diagrammen. Die WHO empfiehlt Erwachsenen 150 bis 300 Minuten Bewegung mit mittlerer Anstrengung pro Woche, also etwa 20 bis 45 Minuten am Tag.</p>
-      <button class="btn btn-primary" type="submit">Speichern</button>
-    </form>
+    <p>Größe, Geburtsjahr und Ziele gehören zu jeder Person einzeln. Gerade gezeigt: <strong>{{ person.name }}</strong>.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{ url_for('personen.edit', person_id=person.id) }}">Ziele von {{ person.name }} ändern</a>
+      <a class="btn" href="{{ url_for('personen.index') }}">Alle Personen</a>
+    </div>
   </section>
 
   <section class="card" id="passwort">

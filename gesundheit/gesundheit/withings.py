@@ -150,7 +150,7 @@ def _num(value):
     return value if isinstance(value, (int, float)) and not isinstance(value, bool) else None
 
 
-def store_measure_groups(db, groups) -> int:
+def store_measure_groups(db, pid, groups) -> int:
     rows = []
     for group in groups:
         if group.get("category", 1) != 1 or not _num(group.get("date")):
@@ -165,7 +165,7 @@ def store_measure_groups(db, groups) -> int:
             metric, factor = mapping
             rows.append((metric, value * (10 ** unit) * factor, measured_at, "withings",
                          group_id))
-    return store.add_measurements(db, rows)
+    return store.add_measurements(db, pid, rows)
 
 
 def _seconds_to_min(*values):
@@ -175,7 +175,7 @@ def _seconds_to_min(*values):
     return sum(n or 0 for n in numbers) / 60
 
 
-def store_activities(db, activities) -> int:
+def store_activities(db, pid, activities) -> int:
     rows = []
     for item in activities:
         day = item.get("date")
@@ -192,10 +192,10 @@ def store_activities(db, activities) -> int:
             ("hr_min", day, "withings", _num(item.get("hr_min"))),
             ("hr_max", day, "withings", _num(item.get("hr_max"))),
         ]
-    return store.set_daily_many(db, [r for r in rows if r[3] is not None])
+    return store.set_daily_many(db, pid, [r for r in rows if r[3] is not None])
 
 
-def store_sleep(db, series) -> int:
+def store_sleep(db, pid, series) -> int:
     count = 0
     for item in series:
         if not _num(item.get("startdate")) or not _num(item.get("enddate")):
@@ -208,7 +208,7 @@ def store_sleep(db, series) -> int:
         asleep = _seconds_to_min(data.get("total_sleep_time"))
         if asleep is None and any(v is not None for v in (deep, light, rem)):
             asleep = (deep or 0) + (light or 0) + (rem or 0)
-        count += store.upsert_sleep(db, end.date(), "withings", {
+        count += store.upsert_sleep(db, pid, end.date(), "withings", {
             "bed_start": start, "bed_end": end, "asleep_min": asleep, "deep_min": deep,
             "light_min": light, "rem_min": rem,
             "awake_min": _seconds_to_min(data.get("wakeupduration")),
@@ -218,7 +218,7 @@ def store_sleep(db, series) -> int:
     return count
 
 
-def store_workouts(db, series) -> int:
+def store_workouts(db, pid, series) -> int:
     count = 0
     for item in series:
         if not _num(item.get("startdate")) or item.get("id") is None:
@@ -227,7 +227,7 @@ def store_workouts(db, series) -> int:
         start = util.from_unix(item["startdate"])
         end = util.from_unix(item["enddate"]) if _num(item.get("enddate")) else None
         distance = _num(data.get("distance")) or _num(data.get("manual_distance"))
-        count += store.upsert_workout(db, "withings", str(item["id"]), {
+        count += store.upsert_workout(db, pid, "withings", str(item["id"]), {
             "kind": WITHINGS_WORKOUTS.get(item.get("category"), "sonstiges"),
             "started_at": start, "ended_at": end,
             "duration_min": (end - start).total_seconds() / 60 if end else None,
@@ -238,7 +238,7 @@ def store_workouts(db, series) -> int:
     return count
 
 
-def store_heart(db, series) -> int:
+def store_heart(db, pid, series) -> int:
     rows = []
     for item in series:
         ecg = item.get("ecg") or {}
@@ -249,12 +249,12 @@ def store_heart(db, series) -> int:
         rows.append(("ekg_afib", ecg["afib"], at, "withings", group_id))
         if _num(item.get("heart_rate")):
             rows.append(("ekg_puls", item["heart_rate"], at, "withings", group_id))
-    return store.add_measurements(db, rows)
+    return store.add_measurements(db, pid, rows)
 
 
 # ---------- Sync ----------
 
-def sync(db, client: Client, cursor: dict, backfill_days: int, now: datetime | None = None,
+def sync(db, pid: int, client: Client, cursor: dict, backfill_days: int, now: datetime | None = None,
          commit=lambda: None) -> tuple[dict, dict, str]:
     """Fetch everything changed since the last run. Returns (new cursor, counts, error).
 
@@ -281,19 +281,19 @@ def sync(db, client: Client, cursor: dict, backfill_days: int, now: datetime | N
             first_error = first_error or exc
 
     # Body measurements: complete history on the first run (few values per day).
-    run("messwerte", lambda since: store_measure_groups(db, client.pages(
+    run("messwerte", lambda since: store_measure_groups(db, pid, client.pages(
         "measure", {"action": "getmeas", "category": 1, "lastupdate": since or 0},
         "measuregrps")))
-    run("aktivitaet", lambda since: store_activities(db, client.pages(
+    run("aktivitaet", lambda since: store_activities(db, pid, client.pages(
         "v2/measure", {"action": "getactivity", "lastupdate": since or initial,
                        "data_fields": ACTIVITY_FIELDS}, "activities")))
-    run("schlaf", lambda since: store_sleep(db, client.pages(
+    run("schlaf", lambda since: store_sleep(db, pid, client.pages(
         "v2/sleep", {"action": "getsummary", "lastupdate": since or initial,
                      "data_fields": SLEEP_FIELDS}, "series")))
-    run("training", lambda since: store_workouts(db, client.pages(
+    run("training", lambda since: store_workouts(db, pid, client.pages(
         "v2/measure", {"action": "getworkouts", "lastupdate": since or initial,
                        "data_fields": WORKOUT_FIELDS}, "series")))
-    run("ekg", lambda since: store_heart(db, client.pages(
+    run("ekg", lambda since: store_heart(db, pid, client.pages(
         "v2/heart", {"action": "list", "startdate": since or initial,
                      "enddate": start_ts + 300}, "series")))
     return cursor, counts, str(first_error) if first_error else ""

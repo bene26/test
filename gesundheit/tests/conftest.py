@@ -31,6 +31,15 @@ def db(app):
     conn.close()
 
 
+@pytest.fixture
+def pid(db):
+    """A person for tests that work directly on the database."""
+    from gesundheit import persons
+    person_id = persons.create(db, "Testperson")
+    db.commit()
+    return person_id
+
+
 def csrf_from(html: str) -> str:
     match = re.search(r'name="csrf_token" value="([^"]+)"', html)
     assert match, "kein CSRF-Token in der Seite"
@@ -73,3 +82,9 @@ def logged_in(app, browser):
     assert response.status_code == 302
     browser.get("/")
     return browser
+
+
+@pytest.fixture
+def me(logged_in, db):
+    """Id of the person shown after setup (created from the account name)."""
+    return db.execute("SELECT id FROM persons ORDER BY id LIMIT 1").fetchone()[0]

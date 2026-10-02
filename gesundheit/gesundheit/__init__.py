@@ -11,9 +11,9 @@ from flask import Request as FlaskRequest
 from jinja2 import ChoiceLoader, FileSystemLoader, TemplateNotFound
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from . import auth, crypto, db, katalog, themes, util
+from . import auswertung, auth, crypto, db, katalog, persons, themes, util
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 APP_NAME = "Gesundheits-Cockpit"
 log = logging.getLogger("gesundheit")
 
@@ -150,9 +150,13 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.before_request(_upload_limit)
     app.before_request(auth.check_csrf)
     app.before_request(auth.require_login)
+    app.before_request(persons.load_current)
+    app.after_request(persons.remember)
 
-    from .views import bereiche, daten, einstellungen, main, quellen
-    for module in (auth, main, bereiche, quellen, einstellungen, daten):
+    from .views import (auswertungen, berichte, bereiche, daten, einstellungen, main, personen,
+                        quellen, vergleich)
+    for module in (auth, main, bereiche, auswertungen, vergleich, berichte, personen, quellen,
+                   einstellungen, daten):
         app.register_blueprint(module.bp)
 
     _register_template_helpers(app)
@@ -192,6 +196,8 @@ def _register_template_helpers(app: Flask) -> None:
         delta=util.fmt_signed,
         quelle=katalog.source_label,
         quelle_kurz=lambda v: katalog.source_label(v, short=True),
+        kuerzel=persons.initials,
+        prozent=lambda v: "–" if v is None else f"{util.fmt_signed(v, 0)} %",
     )
     app.jinja_env.globals.update(
         csrf_token=auth.csrf_token,
@@ -200,6 +206,9 @@ def _register_template_helpers(app: Flask) -> None:
         METRICS=katalog.METRICS,
         SOURCES=katalog.SOURCES,
         FAMILIES=katalog.FAMILIES,
+        PERSON_COLORS=persons.COLORS,
+        KEYS=auswertung.KEYS,
+        WORKOUT_KINDS=katalog.WORKOUT_KINDS,
         nav_status=_nav_status,
         app_version=__version__,
         app_name=APP_NAME,
@@ -210,7 +219,8 @@ def _register_template_helpers(app: Flask) -> None:
         theme = themes.current()
         look = themes.current_look()
         return {"current_user": g.get("user"), "today": util.today(), "theme": theme,
-                "look": look, "html_attrs": themes.html_attrs(theme, look)}
+                "look": look, "html_attrs": themes.html_attrs(theme, look),
+                "person": g.get("person"), "persons": g.get("persons", [])}
 
     app.after_request(themes.remember)
 
@@ -269,6 +279,11 @@ def _register_errors(app: Flask) -> None:
         message = text or message
         if wants_json():
             return {"ok": False, "error": message, "nachricht": message}, code
+        if g.get("user") and not g.get("person"):  # error before persons were loaded (CSRF, 413)
+            try:
+                persons.load_current()
+            except Exception:
+                g.user = None
         return render_template("error.html", code=code, title=title, kurz=kurz, message=message,
                                path=request.path[:200],
                                now_time=util.now().strftime("%H:%M")), code

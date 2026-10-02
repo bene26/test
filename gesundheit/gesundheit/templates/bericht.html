@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, quelle %}
+{% block title %}Bericht {{ person.name }}{% endblock %}
+{% block body_class %}bericht-seite{% endblock %}
+{% block content %}
+<div class="page-head no-print">
+  <div><h1>Berichte</h1><p class="sub">Eine Woche oder ein Monat auf einen Blick, zum Ansehen, Drucken oder als PDF für den Arzttermin.</p></div>
+  <div class="actions">
+    <nav class="zeitraum" aria-label="Art">{% for k, label in kinds.items() %}<a href="{{ url_for('berichte.index', art=k, datum=rep.start.isoformat()) }}"{% if k == kind %} aria-current="true"{% endif %}>{{ label }}</a>{% endfor %}</nav>
+    <a class="btn" href="{{ url_for('berichte.index', art=kind, datum=previous.isoformat()) }}">{{ icon('left') }} {{ 'Vorwoche' if kind == 'woche' else 'Vormonat' }}</a>
+    {% if following %}<a class="btn" href="{{ url_for('berichte.index', art=kind, datum=following.isoformat()) }}">{{ 'Nächste Woche' if kind == 'woche' else 'Nächster Monat' }} {{ icon('right') }}</a>{% endif %}
+    <button class="btn btn-primary" type="button" data-drucken>{{ icon('print') }} Drucken / PDF</button>
+  </div>
+</div>
+
+<article class="bericht">
+  <header class="bericht-kopf">
+    <span class="avatar gross p-{{ person.color }}" aria-hidden="true">{{ person.name|kuerzel }}</span>
+    <div>
+      <p class="eyebrow">Gesundheitsbericht · {{ kinds[kind] }}</p>
+      <h2>{{ person.name }} · {{ title }}</h2>
+      <p class="small muted">Verglichen mit {{ rep.prev_start|datum }} bis {{ rep.prev_end|datum }} · erstellt am {{ created|zeitpunkt }}</p>
+    </div>
+  </header>
+
+  {% if rep.figures %}
+  <section class="bericht-zahlen" aria-label="Kennzahlen">
+    {% for f in rep.figures %}
+    <div class="bz">
+      <span class="bz-label">{{ f.meta.label }}</span>
+      <strong>{{ fmt(f.key, f.cur.avg) }}</strong>
+      <span class="bz-sub">{% if f.meta.agg == 'sum' %}Schnitt/Tag · Summe {{ fmt(f.key, f.cur.total) }}{% else %}Schnitt aus {{ f.cur.count }} Tagen{% endif %}</span>
+      {% if f.change is not none %}<span class="aenderung trend-{{ f.trend }}">{{ f.change|prozent }}</span>{% endif %}
+    </div>
+    {% endfor %}
+    <div class="bz">
+      <span class="bz-label">Schrittziel erreicht</span>
+      <strong>{{ rep.goal_days }} von {{ rep.steps|length }}</strong>
+      <span class="bz-sub">Tagen{% if rep.best_steps %} · bester Tag {{ rep.best_steps.day|tag }}{% endif %}</span>
+    </div>
+    <div class="bz">
+      <span class="bz-label">Trainings</span>
+      <strong>{{ rep.workouts|length }}</strong>
+      <span class="bz-sub">zusammen {{ rep.workout_minutes|dauer }}</span>
+    </div>
+    {% if rep.weight_change is not none %}
+    <div class="bz">
+      <span class="bz-label">Gewicht im Zeitraum</span>
+      <strong>{{ rep.weight_change|delta(1) }} kg</strong>
+      <span class="bz-sub">{{ rep.weight[0].value|zahl(1) }} → {{ rep.weight[-1].value|zahl(1) }} kg</span>
+    </div>
+    {% endif %}
+  </section>
+  {% else %}
+  <p class="muted">In diesem Zeitraum gibt es keine Werte für {{ person.name }}.</p>
+  {% endif %}
+
+  <div class="bericht-grafiken">
+    {% if rep.steps %}<section><h3>Schritte</h3>{{ charts.steps }}</section>{% endif %}
+    {% if rep.nights %}<section><h3>Schlaf</h3>{{ charts.sleep }}</section>{% endif %}
+    {% if charts.weight %}<section><h3>Gewicht</h3>{{ charts.weight }}</section>{% endif %}
+    {% if charts.bp %}<section><h3>Blutdruck (Tagesmittel)</h3>{{ charts.bp }}</section>{% endif %}
+  </div>
+
+  {% if rep.protocol %}
+  <section class="bericht-block">
+    <h3>Blutdruck-Protokoll</h3>
+    <div class="bd-mittel">
+      {% for label, avg in [('Alle Messungen', rep.bp.all), ('Morgens', rep.bp.morning), ('Abends', rep.bp.evening)] if avg %}
+      <div><span class="small muted">{{ label }} ({{ avg.count }})</span><strong>{{ avg.sys|zahl }}/{{ avg.dia|zahl }}</strong><span class="stufe stufe-{{ avg.category[0] }}">{{ avg.category[1] }}</span></div>
+      {% endfor %}
+    </div>
+    <div class="table-wrap">
+    <table class="protokoll">
+      <thead><tr><th>Tag</th><th>Morgens (bis 12 Uhr)</th><th>Mittags</th><th>Abends (ab 17 Uhr)</th></tr></thead>
+      <tbody>
+      {% for day, slots in rep.protocol %}
+      <tr><td>{{ day|datum_wt }}</td>
+        {% for slot in ['morgens', 'mittags', 'abends'] %}
+        <td>{% for r in slots[slot] %}<span class="messung">{{ r.measured_at|uhrzeit }} <strong>{{ r['values'].bp_sys|zahl }}/{{ r['values'].bp_dia|zahl }}</strong>{% if r['values'].pulse %} · {{ r['values'].pulse|zahl }}{% endif %}</span>{% endfor %}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    <p class="small muted">mmHg, Puls in Schlägen pro Minute. {{ bp_note }}</p>
+  </section>
+  {% endif %}
+
+  {% if rep.workouts %}
+  <section class="bericht-block">
+    <h3>Trainings</h3>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Beginn</th><th>Art</th><th class="num">Dauer</th><th class="num">Strecke</th><th class="num">Puls ⌀</th><th>Quelle</th></tr></thead>
+      <tbody>
+      {% for w in rep.workouts %}
+      <tr><td>{{ w.started_at|tag }}, {{ w.started_at|uhrzeit }}</td><td>{{ WORKOUT_KINDS.get(w.kind, w.kind) }}</td>
+        <td class="num">{{ w.duration_min|dauer if w.duration_min else '–' }}</td><td class="num">{{ (w.distance_km|zahl(1) ~ ' km') if w.distance_km else '–' }}</td>
+        <td class="num">{{ w.hr_avg|zahl if w.hr_avg else '–' }}</td><td>{{ quelle(w.source) }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </section>
+  {% endif %}
+
+  <footer class="bericht-fuss small muted">Erstellt mit dem {{ app_name }} aus den Daten von Withings, Garmin und Apple Health. Werte von Uhren und Waagen sind Schätzungen; keine Diagnose.</footer>
+</article>
+{% endblock %}
