@@ -153,10 +153,10 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.before_request(persons.load_current)
     app.after_request(persons.remember)
 
-    from .views import (auswertungen, befunde, berichte, bereiche, daten, einstellungen, main,
-                        personen, quellen, vergleich)
-    for module in (auth, main, bereiche, befunde, auswertungen, vergleich, berichte, personen,
-                   quellen, einstellungen, daten):
+    from .views import (auswertungen, ausblick, befunde, berichte, bereiche, daten,
+                        einstellungen, main, personen, quellen, vergleich)
+    for module in (auth, main, bereiche, befunde, ausblick, auswertungen, vergleich, berichte,
+                   personen, quellen, einstellungen, daten):
         app.register_blueprint(module.bp)
 
     _register_template_helpers(app)

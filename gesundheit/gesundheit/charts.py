@@ -763,3 +763,58 @@ def zone_dots(points: list[dict], start: date, end: date, zone: tuple, unit: str
     if y_format:
         y_text = [y_format(t) for t in reversed(axis.ticks)]
     return _frame(axis, body, label, "zone", y_text=y_text, legend=legend, overlay=overlay)
+
+
+# ---------- Outlook ----------
+
+def fan(history: list, paths: dict, days: int, unit: str, decimals: int, label: str, fmt,
+        goal: float | None = None, neutral: bool = False) -> Markup:
+    """The past on the left, three scenarios from today on the right, the band between the
+    positive and the negative one shaded. Past and future are equally long, so "heute" sits
+    in the middle. history: [(date, value)]; paths: {gut, erwartet, schlecht} with .values."""
+    today = paths["erwartet"].values[0][0]
+    start, end = today - timedelta(days=days), today + timedelta(days=days)
+    values = [v for _, v in history] + [v for p in paths.values() for _, v in p.values]
+    lo, hi = min(values), max(values)
+    if goal is not None and lo - (hi - lo) <= goal <= hi + (hi - lo):
+        lo, hi = min(lo, goal), max(hi, goal)
+    else:
+        goal = None
+    pad = (hi - lo) * 0.1 or max(abs(hi) * 0.02, 1)
+    axis = _Axis(start, end, nice_ticks(lo - pad, hi + pad))
+
+    def coords(series):
+        return [(axis.x(d), axis.y(v)) for d, v in series]
+    good, bad = coords(paths["gut"].values), coords(paths["schlecht"].values)
+    band = "M" + " L".join(f"{x:.1f} {y:.1f}" for x, y in good + bad[::-1]) + " Z"
+    body = [f'<path class="fan-band" d="{band}"/>']
+    tx = axis.x(today)
+    body.append(f'<line class="heute-linie" x1="{tx:.1f}" x2="{tx:.1f}" y1="0" y2="{H}" '
+                f'vector-effect="non-scaling-stroke"/>')
+    if goal is not None:
+        body.append(f'<line class="goal" x1="0" x2="{W}" y1="{axis.y(goal):.1f}" y2="{axis.y(goal):.1f}" '
+                    f'vector-effect="non-scaling-stroke"/>')
+    if len(history) > 1:
+        body.append(f'<path class="line" d="{smooth_path(coords(history))}" vector-effect="non-scaling-stroke"/>')
+    for key in ("gut", "schlecht", "erwartet"):
+        body.append(f'<path class="sz sz-{key}" d="M' + " L".join(f"{x:.1f} {y:.1f}" for x, y in coords(paths[key].values))
+                    + '" vector-effect="non-scaling-stroke"/>')
+    dots = []
+    step = max(1, len(history) // 12)
+    for d, v in history[::step]:
+        dots.append(_dot(axis.x(d), axis.y(v), f"{util.fmt_day(d)}: {fmt(v)}", "dot fan-punkt"))
+    for i in range(7, days + 1, 7):
+        d = today + timedelta(days=i)
+        tip = (f"{util.fmt_day(d)}: " + " · ".join(f"{paths[k].label} {fmt(paths[k].values[i][1])}"
+                                                    for k in ("gut", "erwartet", "schlecht")))
+        dots.append(_dot(axis.x(d), axis.y(paths["erwartet"].values[i][1]), tip, "dot fan-punkt"))
+    body.append('<g class="dots">' + "".join(dots) + "</g>")
+    x_labels = [util.fmt_day(start), util.fmt_day(start + timedelta(days=days // 2)), "heute",
+                util.fmt_day(today + timedelta(days=days // 2)), util.fmt_day(end)]
+    legend = "".join(f'<span class="leg leg-sz-{k}">{escape(paths[k].label)}</span>'
+                     for k in ("gut", "erwartet", "schlecht"))
+    legend += '<span class="leg leg-fan">Spanne</span>'
+    if goal is not None:
+        legend += f'<span class="leg leg-goal">Ziel {escape(fmt(goal))}</span>'
+    return _frame(axis, body, label, "fan fan-neutral" if neutral else "fan", x_labels=x_labels,
+                  legend=legend)

@@ -16,7 +16,7 @@ from datetime import timedelta
 
 from markupsafe import Markup, escape
 
-from . import auswertung, store, util
+from . import auswertung, ausblick, store, util
 
 HABIT_DRIFT_KG_PER_WEEK = 0.25
 BELL_W, BELL_H = 300, 120
@@ -119,12 +119,19 @@ def weight(db, pid: int, person: dict, today) -> dict | None:
     days = (target - today).days
     current = slope * now_x + intercept
     mean = current + slope * days
+    # the same trend as the outlook (eight weeks, fading out), so "erwartet" agrees everywhere
+    outlook = ausblick.trend(db, pid, person, "weight", today, days)
+    rate = slope * 7
+    if outlook:
+        current, mean = outlook.current, outlook.paths["erwartet"].end
+        rate = outlook.extra["rates"]["erwartet"]
     drift = HABIT_DRIFT_KG_PER_WEEK * math.sqrt(days / 7)
     sd = math.sqrt(noise ** 2 + (slope_error * days) ** 2 + drift ** 2)
     direction = "down" if goal < current else "up"
     when = util.fmt_date(target) if dated else "in acht Wochen"
     parts = [
-        ("Trend", f"{util.fmt_signed(slope * 7, 2)} kg pro Woche",
+        ("Trend", f"{util.fmt_signed(rate, 2)} kg pro Woche",
+         "Trend der letzten acht Wochen, flacht über etwa zwölf Wochen ab" if outlook else
          f"Gerade durch {len(points)} Messungen der letzten 60 Tage"),
         ("Zeit", f"{days} Tage", f"bis {util.fmt_date(target)}" + (
             "" if dated else " (Zieldatum vorbei)" if passed else " (kein Zieldatum eingetragen)")),
@@ -132,11 +139,22 @@ def weight(db, pid: int, person: dict, today) -> dict | None:
         ("Unsicherheit", f"± {util.fmt_num(sd, 1)} kg",
          f"Tagesschwankung ±{util.fmt_num(noise, 1)}, Unsicherheit des Trends, Spielraum für geänderte Gewohnheiten"),
     ]
-    return _result(
+    scenarios = []
+    if outlook:
+        for key in ("gut", "erwartet", "schlecht"):
+            path = outlook.paths[key]
+            scenarios.append({
+                "key": key, "label": path.label, "value": f"{util.fmt_num(path.end, 1)} kg",
+                "note": (f"Ziel am {util.fmt_date(path.goal_day)}" if path.goal_day else
+                         "Ziel nicht erreicht"),
+                "why": path.why})
+    result = _result(
         "gewicht", "Zielgewicht", f"{util.fmt_num(goal, 1)} kg {('bis ' + when) if dated else when}?",
         mean, sd, goal, direction, "kg", 1, 0.1, parts,
         "Gerechnet mit einer Normalverteilung um den fortgeschriebenen Trend.",
         (current, max(days / 7, 0.1), "kg pro Woche", 2, "nötig ab heute"))
+    result["scenarios"] = scenarios
+    return result
 
 
 def steps_month(db, pid: int, person: dict, today) -> dict | None:
@@ -165,11 +183,27 @@ def steps_month(db, pid: int, person: dict, today) -> dict | None:
         ("Unsicherheit", f"± {util.fmt_num(sd)}",
          f"Tage schwanken um ±{util.fmt_num(spread)}, über {left} Tage wächst das mit der Wurzel"),
     ]
-    return _result(
+    scenarios = []
+    windows = ausblick.weekly_scenarios(db, pid, "steps", today)
+    if windows:
+        for key, label, per_day, why in (
+                ("gut", "Positiv", max(windows["best"]["value"], usual),
+                 f"jeder Resttag wie in deinen besten vier Wochen ({ausblick.window_text(windows['best'])})"),
+                ("erwartet", "Wie bisher", usual, "jeder Resttag wie ein üblicher Tag der letzten 8 Wochen"),
+                ("schlecht", "Negativ", min(windows["worst"]["value"], usual),
+                 f"jeder Resttag wie in deinen schwächsten vier Wochen ({ausblick.window_text(windows['worst'])})")):
+            total = done + per_day * left
+            scenarios.append({"key": key, "label": label, "value": util.fmt_num(total),
+                              "note": "Ziel erreicht" if total >= goal else
+                              f"{util.fmt_num(goal - total)} fehlen",
+                              "why": f"{why}: {util.fmt_num(per_day)} am Tag"})
+    result = _result(
         "schritte", f"Schritte im {month}", f"{util.fmt_num(goal)} Schritte im {month}?",
         mean, sd, goal, "up", "Schritte", 0, max(1000, round(goal / 300, -3)), parts,
         f"Ziel: {util.fmt_num(goal_day)} am Tag × {length} Tage.",
         (done, left, "Schritte am Tag", 0, "nötig ab heute"))
+    result["scenarios"] = scenarios
+    return result
 
 
 def main(db, pid: int, person: dict, today) -> list[dict]:

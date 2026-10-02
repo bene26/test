@@ -9,7 +9,7 @@ import logging
 import statistics
 from datetime import timedelta
 
-from . import auswertung, bewertung, store, util
+from . import ausblick, auswertung, bewertung, store, util
 
 log = logging.getLogger(__name__)
 WHO_WEEKLY_MIN = 150
@@ -168,6 +168,33 @@ def too_hard(db, pid, person, today, ctx):
         "von Zone 2, und die Belastung dieser Woche passt zu den Wochen davor.")
 
 
+def outlook(db, pid, person, today, ctx):
+    found = {o.key: o for o in ausblick.all_outlooks(db, pid, person, today, 12)}
+    order = ["weight", "resting_hr", "fitness", "steps", "schlaf_dauer", "hrv_rmssd", "hrv_sdnn"]
+    chosen = [found[k] for k in order if k in found][:3]
+    if not chosen:
+        return None
+    better = worse = 0
+    for o in chosen:
+        end = o.paths["erwartet"].end
+        if not o.direction or abs(end - o.current) < max(abs(o.current) * 0.01, 10 ** -o.decimals):
+            continue
+        if (end < o.current) == (o.direction == "down"):
+            better += 1
+        else:
+            worse += 1
+    head = ("Wenn alles bleibt wie bisher, eher aufwärts." if better > worse else
+            "Wenn alles bleibt wie bisher, eher abwärts." if worse > better else
+            "Wenn alles bleibt wie bisher, gemischt: manches besser, manches schlechter."
+            if better else "Wenn alles bleibt wie bisher, ziemlich stabil.")
+
+    def line(key):
+        return ", ".join(f"{o.label} {o.fmt(o.paths[key].end)}" for o in chosen)
+    return head, (f"In drei Monaten wie bisher: {line('erwartet')}. Positiv, wie in deinen besten "
+                  f"Wochen: {line('gut')}. Negativ, wie in deinen schwächsten: {line('schlecht')}. "
+                  "Alle Werte mit Verlauf stehen unter Ausblick.")
+
+
 QUESTIONS = [
     ("erholt", "Bin ich heute erholt?", recovered),
     ("schlaf", "Schlafe ich genug?", sleep_enough),
@@ -176,6 +203,7 @@ QUESTIONS = [
     ("gewicht", "Wie entwickelt sich mein Gewicht?", weight_course),
     ("blutdruck", "Wie ist mein Blutdruck?", blood_pressure),
     ("besser", "Was hat sich diesen Monat verändert?", improved),
+    ("weiter", "Wie könnte es weitergehen?", outlook),
 ]
 
 

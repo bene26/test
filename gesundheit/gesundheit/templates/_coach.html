@@ -69,6 +69,22 @@
       <div class="pg-achse" aria-hidden="true">{% for t in f.labels %}<span>{{ t }}</span>{% endfor %}</div>
       <figcaption class="small muted">Mitte: erwartet am {{ 'Zieltag' if f.kind == 'gewicht' else 'Monatsende' }}. Fläche: Anteil, der das Ziel erreicht.</figcaption>
     </figure>
+    {% if f.scenarios %}
+    <div class="pg-szenarien">
+      <p class="pg-sz-titel">Wie es weitergehen könnte <a href="{{ url_for('ausblick.index') }}">Ausblick für alle Werte {{ icon('right') }}</a></p>
+      <ul>
+        {% for sz in f.scenarios %}
+        <li class="sz-{{ sz.key }}" title="{{ sz.why }}">
+          <span class="ab-punkt" aria-hidden="true"></span>
+          <span class="pg-sz-label">{{ sz.label }}</span>
+          <strong>{{ sz.value }}</strong>
+          <small>{{ sz.note }}</small>
+          <span class="sr-only">{{ sz.why }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
     <details class="pg-weg">
       <summary>{{ icon('right') }} So entsteht die Zahl</summary>
       <dl>{% for label, value, note in f.parts %}<div><dt>{{ label }}</dt><dd><strong>{{ value }}</strong><small>{{ note }}</small></dd></div>{% endfor %}</dl>

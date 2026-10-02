@@ -16,7 +16,7 @@ Alles hier sind **Gesundheitsdaten, also besondere Kategorien personenbezogener 
 - EKG-Einstufungen (Vorhofflimmern ja, nein oder unklar) aus Withings-Geräten, ohne die Kurven selbst
 - Schlaf (Dauer, Phasen, Bewertung), Aktivität (Schritte, Kalorien, Minuten), Trainings, Garmin-Werte (Body Battery, Stress, Trainingsbereitschaft)
 - Profile: Vorname oder Spitzname, Farbe, Geburtsjahr (optional, kein Datum), Größe, Ziele (auch Zielgewicht mit Zieldatum), welche Befunde schon gesehen wurden. Keine Standorte (GPS-Routen aus Apple Health werden nicht eingelesen)
-- Abgeleitete Werte (Belastung, Form, Befunde, Wochenplan, Prognosen, Antworten) werden bei jedem Aufruf aus den gespeicherten Werten berechnet und nicht gespeichert; Befunde liegen höchstens fünf Minuten im Arbeitsspeicher
+- Abgeleitete Werte (Belastung, Form, Befunde, Wochenplan, Prognosen, Ausblick-Szenarien, Antworten) werden bei jedem Aufruf aus den gespeicherten Werten berechnet und nicht gespeichert; Befunde liegen höchstens fünf Minuten im Arbeitsspeicher
 - Zugangsdaten zu fremden Diensten: Withings-Token je Person und das Client-Secret der Withings-Anwendung (einmal für alle), Garmin-Token je Person. **Das Garmin-Passwort wird nie gespeichert**, nur einmal zum Anmelden weitergegeben.
 
 ## Vertrauensgrenzen
@@ -51,7 +51,7 @@ Jemand im Heimnetz oder mit Zugriff auf das NAS liest die Datenbank und sieht di
 - **Datenminimierung:** Herzfrequenz, Schritte, Energie und Strecke aus Apple Health werden schon beim Einlesen zu Tageswerten zusammengefasst; die Einzelwerte werden nicht gespeichert. GPS-Routen, EKG-Kurven, Medikamente, Zyklusdaten und Notizen werden ignoriert. Die hochgeladene ZIP-Datei wird nach dem Einlesen gelöscht.
 - **Aufbewahrung:** einstellbar (Standard: unbegrenzt). Ältere Werte löscht die App nachts von selbst.
 - **Löschen:** unter *Daten* je Quelle oder je Person, unter *Personen* das ganze Profil, oder alles auf einmal; sofort und endgültig (danach `VACUUM`, damit nichts in freien Seiten der Datei bleibt).
-- **Auswertungen, Befunde, Coach, Prognosen und „Frag dein Cockpit“** rechnen nur mit den eigenen Daten auf dem NAS, mit festen Regeln statt KI; nichts wird an Dienste geschickt. Zusammenhänge werden als Korrelation mit dem Hinweis „Zusammenhang heißt nicht Ursache“ gezeigt.
+- **Auswertungen, Befunde, Coach, Prognosen, Ausblick und „Frag dein Cockpit“** rechnen nur mit den eigenen Daten auf dem NAS, mit festen Regeln statt KI; nichts wird an Dienste geschickt. Zusammenhänge werden als Korrelation mit dem Hinweis „Zusammenhang heißt nicht Ursache“ gezeigt.
 - **Befunde und Wochen-Coach sind keine medizinische Beratung.** Sie vergleichen mit dem eigenen Normalbereich und sagen das dazu; beim Blutdruck steht der Hinweis auf die Hausarztpraxis. Ein Fehler in einer einzelnen Regel wird protokolliert (nur der Name der Regel, keine Werte) und blendet nur diesen Befund aus.
 - **Export:** alle Werte als CSV.
 - **Keine medizinische Beratung:** Einstufungen (z. B. Blutdruck nach ESH 2023) sind Orientierung und werden so beschriftet.

@@ -431,9 +431,11 @@ def test_weight_forecast_follows_the_trend(db, pid):
     persons.update(db, pid, goal_weight_dg=785, goal_weight_date=(TODAY + timedelta(days=70)).isoformat())
     db.commit()
     f = prognose.weight(db, pid, person(db, pid), TODAY)
-    # losing 0.14 kg a week: about 78.6 kg on the goal date, so 78.5 is about even
-    assert f["mean"] == pytest.approx(78.6, abs=0.15)
-    assert 25 <= f["probability"] <= 60 and f["direction"] == "down"
+    # losing 0.14 kg a week, fading out over twelve weeks: about 79.0 kg after ten weeks
+    assert f["mean"] == pytest.approx(79.05, abs=0.15)
+    assert 10 <= f["probability"] <= 45 and f["direction"] == "down"
+    assert [sz["key"] for sz in f["scenarios"]] == ["gut", "erwartet", "schlecht"]
+    assert f["scenarios"][1]["value"] == util.fmt_num(f["mean"], 1) + " kg"  # one expectation
     assert f["lo"] < f["goal"] < f["hi"] and round(f["lo"] * 10) == f["lo"] * 10
     assert "glocke-flaeche" in str(f["chart"]) and "style=" not in str(f["chart"])
     assert [p[0] for p in f["parts"]] == ["Trend", "Zeit", "Erwartet", "Unsicherheit"]
@@ -533,3 +535,122 @@ def test_goal_date_is_saved_only_with_a_goal_weight(logged_in, db, me):
     assert tuple(row) == (None, None)
     response = logged_in.post(f"/personen/{me}", dict(base, goal_weight="75", goal_weight_date="morgen"))
     assert "kein gültiges Datum" in response.get_data(as_text=True)
+
+
+# ---------- Outlook ----------
+
+from gesundheit import ausblick  # noqa: E402
+
+
+def weigh(db, pid, rate_for_block):
+    """A year of weights, every second day; the weekly rate changes every eight weeks."""
+    value = 85.0
+    rows = []
+    for n in range(364, -1, -1):
+        value += rate_for_block((364 - n) // 56) / 7
+        if n % 2 == 0:
+            rows.append(("weight", value + wobble(n, 0.1),
+                         datetime.combine(day(n), datetime.min.time()).replace(hour=7), "withings", ""))
+    store.add_measurements(db, pid, rows)
+    db.commit()
+    return value
+
+
+def test_fade_and_approach():
+    assert ausblick.fade(-0.5, 0, 12) == 0
+    assert ausblick.fade(-0.5, 7, 12) == pytest.approx(-0.48, abs=0.01)   # almost the full rate at first
+    assert ausblick.fade(-0.5, 364, 12) > -0.5 * 12                       # never more than 12 weeks' worth
+    assert ausblick.approach(60, 52, 0, 3) == 60
+    assert ausblick.approach(60, 52, 21, 3) == pytest.approx(52 + 8 / math.e)
+
+
+def test_weight_scenarios_follow_best_and_weakest_weeks(db, pid):
+    rates = [-0.5, 0.4, -0.1, 0.2, -0.3, 0.0, -0.1]
+    weigh(db, pid, lambda block: rates[block])
+    persons.update(db, pid, goal_weight_dg=790, height_cm=180)
+    db.commit()
+    o = ausblick.trend(db, pid, person(db, pid), "weight", TODAY, 84)
+    assert o.direction == "down" and o.goal == 79.0
+    gut, erwartet, schlecht = (o.paths[k] for k in ("gut", "erwartet", "schlecht"))
+    assert gut.end < erwartet.end < schlecht.end
+    assert o.extra["rates"]["gut"] == pytest.approx(-0.5, abs=0.08)
+    assert o.extra["rates"]["schlecht"] == pytest.approx(0.4, abs=0.08)
+    assert gut.label == "Positiv" and schlecht.label == "Negativ"
+    assert "besten vier Wochen" in gut.why and "schwächsten" in schlecht.why
+    assert len(gut.values) == 85 and gut.values[0][1] == pytest.approx(o.current)
+    assert gut.goal_day is not None and schlecht.goal_day is None
+    assert str(o.chart()).count('class="sz sz-') == 3
+
+
+def test_weight_without_goal_and_normal_bmi_is_neutral(db, pid):
+    weigh(db, pid, lambda block: [-0.3, 0.3][block % 2])
+    persons.update(db, pid, height_cm=200)  # about 21 BMI
+    db.commit()
+    o = ausblick.trend(db, pid, person(db, pid), "weight", TODAY, 28)
+    assert o.direction == "" and o.paths["gut"].label == "Niedriger" and o.paths["schlecht"].label == "Höher"
+    assert "fan-neutral" in str(o.chart())
+
+
+def test_trend_rates_are_capped(db, pid):
+    weigh(db, pid, lambda block: -1.5 if block == 6 else 0.0)   # the last eight weeks
+    persons.update(db, pid, goal_weight_dg=500)
+    db.commit()
+    o = ausblick.trend(db, pid, person(db, pid), "weight", TODAY, 28)
+    assert o.extra["rates"]["gut"] == pytest.approx(-o.current * 0.01)
+    assert o.extra["rates"]["erwartet"] == pytest.approx(-o.current * 0.01)
+
+
+def test_level_scenarios_move_towards_best_and_weakest_month(db, pid):
+    daily(db, pid, "resting_hr", range(0, 364), lambda n: [56, 52, 60, 55][(n // 28) % 4] + wobble(n))
+    o = ausblick.level(db, pid, person(db, pid), "resting_hr", TODAY, 84)
+    assert o.kind == "niveau" and o.direction == "down"
+    assert o.paths["gut"].end == pytest.approx(52, abs=0.8)
+    assert o.paths["schlecht"].end == pytest.approx(60, abs=0.8)
+    lo, hi = 51, 61
+    assert all(lo <= v <= hi for _, v in o.paths["erwartet"].values)
+
+
+def test_levers_name_what_was_different(db, pid):
+    daily(db, pid, "resting_hr", range(0, 364), lambda n: 52 if (n // 28) % 2 else 60)
+    for n in range(364):
+        store.upsert_sleep(db, pid, day(n), "garmin", {"asleep_min": 480 if (n // 28) % 2 else 380})
+    db.commit()
+    o = ausblick.level(db, pid, person(db, pid), "resting_hr", TODAY, 28)
+    assert o.levers and o.levers[0].startswith("Schlafdauer: 8 h 00 min in den besten")
+
+
+def test_fitness_scenarios(db, pid):
+    daily(db, pid, "active_min", range(0, 300), lambda n: 60)
+    o = ausblick.fitness(db, pid, person(db, pid), TODAY, 182)
+    gut, erwartet, schlecht = (o.paths[k].end for k in ("gut", "erwartet", "schlecht"))
+    assert gut > erwartet > schlecht
+    assert gut < o.current * 1.35            # built up to 30 % more load at most
+    assert "Form am Ende" in o.paths["gut"].why
+
+
+def test_all_outlooks_and_page(logged_in, db, me):
+    assert "Noch zu wenige Werte" in logged_in.get("/ausblick").get_data(as_text=True)
+    today = util.today()
+    store.set_daily_many(db, me, [("resting_hr", today - timedelta(days=n), "garmin",
+                                   [56, 52, 60, 55][(n // 28) % 4]) for n in range(364)])
+    store.set_daily_many(db, me, [("steps", today - timedelta(days=n), "garmin", 8000) for n in range(364)])
+    db.commit()
+    found = {o.key for o in ausblick.all_outlooks(db, me, persons.get(db, me), today)}
+    assert "resting_hr" in found and "steps" not in found   # no spread, nothing to choose
+    page = logged_in.get("/ausblick?wochen=26").get_data(as_text=True)
+    assert "Auf einen Blick" in page and "in 6 Monaten" in page and 'class="sz sz-gut"' in page
+    assert 'aria-current="true">6 Monate</a>' in logged_in.get("/ausblick?wochen=26").get_data(as_text=True)
+    assert 'aria-current="true">3 Monate</a>' in logged_in.get("/ausblick?wochen=5").get_data(as_text=True)
+    assert "Ausblick" in logged_in.get("/").get_data(as_text=True)  # menu entry
+
+
+def test_steps_forecast_has_scenarios_and_outlook_question(db, pid):
+    persons.update(db, pid, goal_steps=10000)
+    daily(db, pid, "steps", range(1, 364), lambda n: [9000, 12000, 7000][(n // 28) % 3])
+    f = prognose.steps_month(db, pid, person(db, pid), TODAY)
+    values = [sz["value"] for sz in f["scenarios"]]
+    assert [sz["label"] for sz in f["scenarios"]] == ["Positiv", "Wie bisher", "Negativ"]
+    as_int = [int(v.replace(".", "")) for v in values]
+    assert as_int[0] >= as_int[1] >= as_int[2]
+    answer = {a["key"]: a for a in fragen.answers(db, pid, person(db, pid), TODAY)}.get("weiter")
+    assert answer is None or "In drei Monaten wie bisher" in answer["text"]
